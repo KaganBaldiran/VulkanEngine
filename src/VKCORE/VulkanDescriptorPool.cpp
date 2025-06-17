@@ -3,13 +3,21 @@
 
 VKCORE::DescriptorPool::DescriptorPool(const std::vector<std::pair<VkDescriptorType,uint32_t>> &PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice)
 {
+    Create(PoolSizes, MaxSets, LogicalDevice);
+}
+
+void VKCORE::DescriptorPool::Create(const std::vector<std::pair<VkDescriptorType, uint32_t>>& PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice)
+{
+    if (PoolSizes.empty() || MaxSets == 0)
+        throw std::runtime_error("Descriptor pool sizes or max sets must be non-zero");
+
     std::vector<VkDescriptorPoolSize> Sizes(PoolSizes.size());
     for (size_t i = 0; i < PoolSizes.size(); i++)
     {
         Sizes[i].type = PoolSizes[i].first;
         Sizes[i].descriptorCount = PoolSizes[i].second;
     }
-    
+
     VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo{};
     DescriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     DescriptorPoolCreateInfo.poolSizeCount = Sizes.size();

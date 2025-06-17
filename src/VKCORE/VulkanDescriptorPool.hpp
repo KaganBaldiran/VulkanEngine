@@ -10,6 +10,8 @@ namespace VKCORE
 	{
 	public:
 		DescriptorPool(const std::vector<std::pair<VkDescriptorType, uint32_t>>& PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice);
+		DescriptorPool() = default;
+		void Create(const std::vector<std::pair<VkDescriptorType, uint32_t>>& PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice);
 		void Destroy(VkDevice& LogicalDevice);
 		VkDescriptorPool descriptorPool;
 	private:

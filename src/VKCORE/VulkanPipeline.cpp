@@ -2,6 +2,11 @@
 
 VKCORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice)
 {
+    Create(CreateInfo, LogicalDevice);
+}
+
+void VKCORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice)
+{
     auto& ShaderModules = CreateInfo.ShaderModules;
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
     ShaderStages.resize(ShaderModules.size());
@@ -78,7 +83,19 @@ VKCORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInf
     MultiSamplingCreateInfo.alphaToCoverageEnable = VK_FALSE;
     MultiSamplingCreateInfo.alphaToOneEnable = VK_FALSE;
 
-    VkPipelineColorBlendAttachmentState ColorBlendAttachment{};
+    std::vector<VkPipelineColorBlendAttachmentState> BlendStateAttachment(CreateInfo.DynamicRenderingColorAttachmentCount);
+    for (size_t i = 0; i < CreateInfo.DynamicRenderingColorAttachmentCount; i++)
+    {
+        BlendStateAttachment[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        BlendStateAttachment[i].blendEnable = VK_TRUE;
+        BlendStateAttachment[i].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        BlendStateAttachment[i].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        BlendStateAttachment[i].colorBlendOp = VK_BLEND_OP_ADD;
+        BlendStateAttachment[i].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        BlendStateAttachment[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        BlendStateAttachment[i].alphaBlendOp = VK_BLEND_OP_ADD;
+    }
+    /*VkPipelineColorBlendAttachmentState ColorBlendAttachment{};
     ColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     ColorBlendAttachment.blendEnable = VK_TRUE;
     ColorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -86,12 +103,12 @@ VKCORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInf
     ColorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
     ColorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     ColorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    ColorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    ColorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;*/
 
     VkPipelineDepthStencilStateCreateInfo DepthStencilStateCreateInfo{};
     DepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    DepthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
-    DepthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
+    DepthStencilStateCreateInfo.depthTestEnable = CreateInfo.EnableDepthTesting;
+    DepthStencilStateCreateInfo.depthWriteEnable = CreateInfo.EnableDepthWriting;
     DepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
     DepthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
     DepthStencilStateCreateInfo.minDepthBounds = 0.0f;
@@ -104,8 +121,8 @@ VKCORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInf
     ColorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     ColorBlendStateCreateInfo.logicOpEnable = VK_FALSE;
     ColorBlendStateCreateInfo.logicOp = VK_LOGIC_OP_COPY;
-    ColorBlendStateCreateInfo.attachmentCount = 1;
-    ColorBlendStateCreateInfo.pAttachments = &ColorBlendAttachment;
+    ColorBlendStateCreateInfo.attachmentCount = BlendStateAttachment.size();
+    ColorBlendStateCreateInfo.pAttachments = BlendStateAttachment.data();
     ColorBlendStateCreateInfo.blendConstants[0] = 0.0f;
     ColorBlendStateCreateInfo.blendConstants[1] = 0.0f;
     ColorBlendStateCreateInfo.blendConstants[2] = 0.0f;
@@ -115,8 +132,8 @@ VKCORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInf
     PipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     PipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(CreateInfo.DescriptorSetLayouts.size());
     PipelineLayoutCreateInfo.pSetLayouts = CreateInfo.DescriptorSetLayouts.empty() ? nullptr : CreateInfo.DescriptorSetLayouts.data();
-    PipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-    PipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+    PipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(CreateInfo.PushConstantRanges.size());
+    PipelineLayoutCreateInfo.pPushConstantRanges = CreateInfo.PushConstantRanges.empty() ? nullptr : CreateInfo.PushConstantRanges.data();
 
     if (vkCreatePipelineLayout(LogicalDevice, &PipelineLayoutCreateInfo, nullptr, &Layout) != VK_SUCCESS)
     {

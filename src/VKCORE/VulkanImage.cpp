@@ -26,7 +26,7 @@ VkFormat VKCORE::FindSupportedFormat(VkPhysicalDevice &PhysicalDevice,const std:
     }
 }
 
-void VKCORE::CreateImage(VkPhysicalDevice &PhysicaDevice, VkDevice& LogicalDevice, const uint32_t& Width, const uint32_t& Height, VkImageTiling Tiling, VkFormat Format, VkImageUsageFlags Usage, VkMemoryPropertyFlags Properties, VkImage& Image, VkDeviceMemory& ImageMemory)
+void VKCORE::CreateImage(VkPhysicalDevice &PhysicalDevice, VkDevice& LogicalDevice, const uint32_t& Width, const uint32_t& Height, VkImageTiling Tiling, VkFormat Format, VkImageUsageFlags Usage, VkMemoryPropertyFlags Properties, VkImage& Image, VkDeviceMemory& ImageMemory)
 {
     VkImageCreateInfo ImageCreateInfo{};
     ImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -55,7 +55,7 @@ void VKCORE::CreateImage(VkPhysicalDevice &PhysicaDevice, VkDevice& LogicalDevic
     VkMemoryAllocateInfo ImageMemoryAllocationInfo{};
     ImageMemoryAllocationInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     ImageMemoryAllocationInfo.allocationSize = ImageMemoryRequirements.size;
-    ImageMemoryAllocationInfo.memoryTypeIndex = VKCORE::FindMemoryType(PhysicaDevice,ImageMemoryRequirements.memoryTypeBits, Properties);
+    ImageMemoryAllocationInfo.memoryTypeIndex = VKCORE::FindMemoryType(PhysicalDevice,ImageMemoryRequirements.memoryTypeBits, Properties);
 
     if (vkAllocateMemory(LogicalDevice, &ImageMemoryAllocationInfo, nullptr, &ImageMemory) != VK_SUCCESS)
     {

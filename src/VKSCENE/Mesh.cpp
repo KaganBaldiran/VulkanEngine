@@ -162,3 +162,27 @@ VKSCENE::BatchInfo VKSCENE::BatchModels(std::vector<VKSCENE::Model3D>& Models)
     }
     return Result;
 }
+
+VKSCENE::BatchInfo VKSCENE::BatchModels(std::vector<VKSCENE::Model3D*> Models)
+{
+    VKSCENE::BatchInfo Result{};
+    uint32_t IndexOffset = 0;
+    for (auto& Model : Models)
+    {
+        for (auto& Mesh : Model->Meshes)
+        {
+            if (!Mesh.Enabled) continue;
+
+            Mesh.Info.VertexOffset = Result.Vertices.size();
+            Result.Vertices.insert(Result.Vertices.end(), Mesh.Vertices.begin(), Mesh.Vertices.end());
+
+            Mesh.Info.IndexCount = Mesh.Indices.size();
+            Mesh.Info.FirstIndex = IndexOffset;
+
+            Result.Indices.insert(Result.Indices.end(), Mesh.Indices.begin(), Mesh.Indices.end());
+
+            IndexOffset += Mesh.Indices.size();
+        }
+    }
+    return Result;
+}

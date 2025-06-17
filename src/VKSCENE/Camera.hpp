@@ -14,6 +14,8 @@ namespace VKSCENE
 	{
 	public:
 		Camera3D(VKCORE::Window &window);
+		Camera3D() = default;
+		void Create(VKCORE::Window& window);
 		void Update(VKCORE::Window &window);
 		void UpdateMatrix(glm::vec2 Extent);
 		glm::vec3 CameraPosition;
@@ -30,7 +32,7 @@ namespace VKSCENE
 		glm::mat4 ViewMatrix;
 		glm::mat4 ProjectionMatrix;
 
-		glm::vec3 AllowMove;
+		glm::vec4 AllowMove;
 		glm::vec3 CameraRight;
 		glm::vec3 CameraUp;
 	private:

@@ -126,8 +126,7 @@ VKCORE::SwapChain::SwapChain(
     GLFWwindow* Window
 )
 {
-    CreateSwapChain(PhysicalDevice, LogicalDevice, Surface, Window, swapChain, SwapChainImages, SurfaceFormat, PresentMode, Extent);
-    CreateSwapChainImageViews(SwapChainImages, SwapChainImagesViews, SurfaceFormat.format, LogicalDevice);
+    Create(PhysicalDevice, LogicalDevice, Surface, Window);
 }
 
 void VKCORE::SwapChain::Destroy(VkDevice& LogicalDevice)

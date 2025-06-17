@@ -71,6 +71,8 @@ namespace VKCORE
 		std::vector<VkRenderingAttachmentInfo> RenderingColorAttachments;
 		VkRenderingAttachmentInfo DepthAttachment;
 		VkRenderingAttachmentInfo StencilAttachment;
+
+		bool HaveDepthAttachment = false;
 	};
 
 }

@@ -215,8 +215,13 @@ VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
 
 VKCORE::Surface::Surface(VkInstance &Instance,GLFWwindow *Window)
 {
-    CreateSurface(Instance, Window, surface);
+    Create(Instance, Window);
 };
+
+void VKCORE::Surface::Create(VkInstance& Instance, GLFWwindow* Window)
+{
+    CreateSurface(Instance, Window, surface);
+}
 
 void VKCORE::Surface::Destroy(VkInstance &Instance)
 {
@@ -224,6 +229,11 @@ void VKCORE::Surface::Destroy(VkInstance &Instance)
 }
 
 VKCORE::DeviceContext::DeviceContext(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
+{
+    Create(CreateInfo, Surface, Instance);
+}
+
+void VKCORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
 {
     PickPhysicalDevice(CreateInfo, Instance, physicalDevice, Surface);
     CreateLogicalDevice(CreateInfo, physicalDevice, Surface, logicalDevice, GraphicsQueue, PresentQueue);

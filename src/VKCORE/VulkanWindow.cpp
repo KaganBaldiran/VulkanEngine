@@ -37,6 +37,11 @@ VKCORE::VulkanResult VKCORE::CreateWindow(GLFWwindow** Window, uint32_t Width, u
 
 VKCORE::Window::Window(VulkanWindowCreateInfo& CreateInfo)
 {
+    Create(CreateInfo);
+}
+
+void VKCORE::Window::Create(VulkanWindowCreateInfo& CreateInfo)
+{
     CreateWindow(&window, CreateInfo.WindowInitialWidth, CreateInfo.WindowInitialHeight, CreateInfo.WindowsName.c_str(), FrameBufferResizedCallback);
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, FramebufferResizeCallback);
@@ -48,9 +53,12 @@ VKCORE::Window::Window(VulkanWindowCreateInfo& CreateInfo)
     this->Width = CreateInfo.WindowInitialWidth;
     this->Height = CreateInfo.WindowInitialHeight;
     this->IsScrollY = false;
+    this->FrameBufferResizedCallback = false;
 }
 
 void VKCORE::Window::Destroy()
 {
+    if (!window) return;
     glfwDestroyWindow(window);
+    window = nullptr;
 }

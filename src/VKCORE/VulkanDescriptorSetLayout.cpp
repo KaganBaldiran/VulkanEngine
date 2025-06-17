@@ -10,9 +10,6 @@ void VKCORE::DescriptorSetLayout::AppendLayoutBinding(VkDescriptorType Descripto
     NewLayoutBinding.pImmutableSamplers = nullptr;
 
     this->Bindings.push_back(NewLayoutBinding);
-    auto &Found = BindingTypesCounts.find(DescriptorType);
-    if (Found != BindingTypesCounts.end()) Found->second++;
-    else BindingTypesCounts[DescriptorType] = 1;
 }
 
 void VKCORE::DescriptorSetLayout::CreateLayout(VkDevice& LogicalDevice)

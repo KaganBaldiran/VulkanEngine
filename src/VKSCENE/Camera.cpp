@@ -1,7 +1,12 @@
 #include "Camera.hpp"
-#include "../VKCORE/VulkanWindow.hpp"
+#include "../vkcore/VulkanWindow.hpp"
 
 VKSCENE::Camera3D::Camera3D(VKCORE::Window& window)
+{
+    Create(window);
+}
+
+void VKSCENE::Camera3D::Create(VKCORE::Window& window)
 {
     CameraPosition = { 0.0f,0.0f,0.0f };
     CameraDirection = { 0.0f,0.0f,-1.0f };
@@ -16,6 +21,7 @@ VKSCENE::Camera3D::Camera3D(VKCORE::Window& window)
     CursorDisabled = true;
     AllowPressExit = true;
     FirstTurn = true;
+    AllowMove = glm::vec4(1.0f);
 }
 
 void VKSCENE::Camera3D::Update(VKCORE::Window& window)
@@ -38,7 +44,7 @@ void VKSCENE::Camera3D::Update(VKCORE::Window& window)
     {
         CameraPosition += CameraDirection * PositionSensitivity;
     }
-    if (glfwGetKey(window.window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    if (glfwGetKey(window.window, GLFW_KEY_DOWN) == GLFW_PRESS && AllowMove.w)
     {
         CameraPosition -= CameraDirection * PositionSensitivity;
     }

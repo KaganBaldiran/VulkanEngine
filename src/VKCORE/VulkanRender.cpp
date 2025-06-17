@@ -172,6 +172,7 @@ void VKCORE::DynamicRenderingPass::AppendAttachment(
              imageLayout == VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL)
     {
         DepthAttachment = NewAttachmentInfo;
+        HaveDepthAttachment = true;
     }
     else if (imageLayout == VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL)
     {
@@ -184,10 +185,12 @@ void VKCORE::DynamicRenderingPass::BeginRendering(const VkCommandBuffer &Command
     VkRenderingInfo RenderingInfo{};
     RenderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
     RenderingInfo.pColorAttachments = this->RenderingColorAttachments.data();
-    RenderingInfo.pDepthAttachment = &DepthAttachment;
+    RenderingInfo.pDepthAttachment = HaveDepthAttachment ? &DepthAttachment : nullptr;
     RenderingInfo.colorAttachmentCount = static_cast<uint32_t>(RenderingColorAttachments.size());
     RenderingInfo.layerCount = 1;
     RenderingInfo.renderArea = RenderArea;
+    RenderingInfo.viewMask = 0;
+    RenderingInfo.flags = 0;
 
     vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
 }

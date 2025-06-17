@@ -8,7 +8,17 @@ namespace VKCORE
 	class CommandPool
 	{
 	public:
-		CommandPool(uint32_t QueueFamilyIndex,VkDevice& LogicalDevice,VkCommandPoolCreateFlags Flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+		CommandPool(
+			uint32_t QueueFamilyIndex,
+			VkDevice& LogicalDevice,
+			VkCommandPoolCreateFlags Flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
+		);
+		CommandPool() = default;
+		void Create(
+			uint32_t QueueFamilyIndex, 
+			VkDevice& LogicalDevice, 
+			VkCommandPoolCreateFlags Flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
+		);
 		void Destroy(VkDevice& LogicalDevice);
 		VkCommandPool commandPool;
 	private:

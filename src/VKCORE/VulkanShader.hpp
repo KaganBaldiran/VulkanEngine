@@ -14,6 +14,8 @@ namespace VKCORE
 	{
 	public:
 		ShaderModule(const char* FileName, const char* SpirvFileName,bool CompileShaderIntoSpirv,VkDevice& LogicalDevice);
+		ShaderModule() = default;
+		void Create(const char* FileName, const char* SpirvFileName, bool CompileShaderIntoSpirv, VkDevice& LogicalDevice);
 		void Destroy(VkDevice& LogicalDevice);
 		VkShaderModule Module;
 	};

@@ -56,6 +56,8 @@ namespace VKCORE
     {
     public:
         Instance(VulkanInstanceCreateInfo& CreateInfo);
+        Instance() = default;
+        void Create(VulkanInstanceCreateInfo& CreateInfo);
         void Destroy();
         VkInstance instance;
         bool EnableValidationLayers;

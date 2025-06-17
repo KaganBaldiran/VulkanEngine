@@ -182,6 +182,11 @@ VKCORE::VulkanResult VKCORE::SetupDebugMessenger(
 
 VKCORE::Instance::Instance(VulkanInstanceCreateInfo &CreateInfo)
 {
+    Create(CreateInfo);
+}
+
+void VKCORE::Instance::Create(VulkanInstanceCreateInfo& CreateInfo)
+{
     VKCORE::CreateVulkanInstance(CreateInfo, ValidationLayers, EnableValidationLayers, instance, nullptr);
     VKCORE::SetupDebugMessenger(instance, EnableValidationLayers, ValidationLayers, DebugMessenger);
 }

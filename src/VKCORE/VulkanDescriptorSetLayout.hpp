@@ -21,6 +21,5 @@ namespace VKCORE
 		VkDescriptorSetLayout descriptorSetLayout;
 	private:
 		std::vector<VkDescriptorSetLayoutBinding> Bindings;
-		std::map<VkDescriptorType, uint32_t> BindingTypesCounts;
 	};
 }

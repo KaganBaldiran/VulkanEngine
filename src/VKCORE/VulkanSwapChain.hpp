@@ -33,6 +33,7 @@ namespace VKCORE
             VkSurfaceKHR& Surface,
             GLFWwindow* Window
         );
+        SwapChain() = default;
         void Destroy(VkDevice &LogicalDevice);
         void Create(
             VkPhysicalDevice& PhysicalDevice,

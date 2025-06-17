@@ -32,6 +32,8 @@ namespace VKCORE
 	{
 	public:
 		Window(VulkanWindowCreateInfo &CreateInfo);
+        Window() = default;
+        void Create(VulkanWindowCreateInfo& CreateInfo);
         void Destroy();
         GLFWwindow* window;
         uint32_t Width;

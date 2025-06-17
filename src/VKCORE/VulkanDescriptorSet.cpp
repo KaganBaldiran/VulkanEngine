@@ -31,7 +31,28 @@ void VKCORE::AllocateDescriptorSets(VkDevice &LogicalDevice,uint32_t DescriptorS
     }
 }
 
+void VKCORE::AllocateDescriptorSets(VkDevice& LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool& DescriptorPool,VkDescriptorSetLayout Layout, std::vector<VkDescriptorSet>& DestinationSets)
+{
+    std::vector<VkDescriptorSetLayout> Layouts(DescriptorSetsCount, Layout);
+
+    VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo{};
+    DescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    DescriptorSetAllocateInfo.descriptorPool = DescriptorPool;
+    DescriptorSetAllocateInfo.descriptorSetCount = DescriptorSetsCount;
+    DescriptorSetAllocateInfo.pSetLayouts = Layouts.data();
+
+    if (vkAllocateDescriptorSets(LogicalDevice, &DescriptorSetAllocateInfo, DestinationSets.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to allocate descriptor sets!");
+    }
+}
+
 VKCORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(Buffer& SourceBuffer,VkDeviceSize BufferRange,uint32_t Binding,VkDescriptorSet& DestinationSet,VkDescriptorType Type)
+{
+    Create(SourceBuffer, BufferRange, Binding, DestinationSet, Type);
+}
+
+void VKCORE::DescriptorSetWriteBuffer::Create(Buffer& SourceBuffer, VkDeviceSize BufferRange, uint32_t Binding, VkDescriptorSet& DestinationSet, VkDescriptorType Type)
 {
     DescriptorBufferInfo.buffer = SourceBuffer.BufferObject;
     DescriptorBufferInfo.offset = 0;
@@ -49,6 +70,11 @@ VKCORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(Buffer& SourceBuffer,
 }
 
 VKCORE::DescriptorSetWriteImage::DescriptorSetWriteImage(VkImageView& TextureImageView,VkSampler &TextureSampler, VkImageLayout TextureImageLayout,uint32_t Binding, VkDescriptorSet& DestinationSet, VkDescriptorType Type)
+{
+    Create(TextureImageView, TextureSampler, TextureImageLayout, Binding, DestinationSet, Type);
+}
+
+void VKCORE::DescriptorSetWriteImage::Create(VkImageView& TextureImageView, VkSampler& TextureSampler, VkImageLayout TextureImageLayout, uint32_t Binding, VkDescriptorSet& DestinationSet, VkDescriptorType Type)
 {
     DescriptorCombinedSamplerImageInfo.sampler = TextureSampler;
     DescriptorCombinedSamplerImageInfo.imageView = TextureImageView;

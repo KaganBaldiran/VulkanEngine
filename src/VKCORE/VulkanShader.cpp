@@ -45,6 +45,11 @@ int VKCORE::CompileGLSL(const std::string& SourceFileName, const std::string& De
 
 VKCORE::ShaderModule::ShaderModule(const char* FileName, const char* SpirvFileName, bool CompileShaderIntoSpirv, VkDevice& LogicalDevice)
 {
+    Create(FileName, SpirvFileName, CompileShaderIntoSpirv, LogicalDevice);
+}
+
+void VKCORE::ShaderModule::Create(const char* FileName, const char* SpirvFileName, bool CompileShaderIntoSpirv, VkDevice& LogicalDevice)
+{
     static unsigned int ShaderIterator = 0;
     std::string Name(FileName);
     auto FoundDot = Name.find_last_of('.');
@@ -55,9 +60,9 @@ VKCORE::ShaderModule::ShaderModule(const char* FileName, const char* SpirvFileNa
         Name = Name.substr(FoundSlash, Name.size() - 1);
     }
 
-    if(CompileShaderIntoSpirv) CompileGLSL(FileName, SpirvFileName);
+    if (CompileShaderIntoSpirv) CompileGLSL(FileName, SpirvFileName);
     auto ShaderCode = ReadFile(SpirvFileName);
-    this->Module = CreateModule(ShaderCode,LogicalDevice);
+    this->Module = CreateModule(ShaderCode, LogicalDevice);
     ShaderIterator++;
 }
 

@@ -54,6 +54,8 @@ namespace VKCORE
     {
     public:
         Surface(VkInstance& Instance, GLFWwindow* Window);
+        Surface() = default;
+        void Create(VkInstance& Instance, GLFWwindow* Window);
         void Destroy(VkInstance &Instance);
 
         VkSurfaceKHR surface;
@@ -64,6 +66,8 @@ namespace VKCORE
     {
     public:
         DeviceContext(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance);
+        DeviceContext() = default;
+        void Create(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance);
         void Destroy();
 
         VkDevice logicalDevice;
