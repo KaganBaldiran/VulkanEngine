@@ -47,8 +47,17 @@ void VKCORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& LogicalDevi
 
 void VKCORE::Buffer::Destroy(VkDevice &LogicalDevice)
 {
-    vkFreeMemory(LogicalDevice, BufferMemory, nullptr);
-    vkDestroyBuffer(LogicalDevice, BufferObject, nullptr);
+    if (BufferMemory != VK_NULL_HANDLE)
+    {
+        vkFreeMemory(LogicalDevice, BufferMemory, nullptr);
+        BufferMemory = VK_NULL_HANDLE; 
+    }
+
+    if (BufferObject != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(LogicalDevice, BufferObject, nullptr);
+        BufferObject = VK_NULL_HANDLE; 
+    }
 }
 
 void VKCORE::CopyBuffer(
@@ -66,7 +75,7 @@ void VKCORE::CopyBuffer(
         CopyRegion.dstOffset = 0;
         CopyRegion.size = Size;
         vkCmdCopyBuffer(CommandBuffer, SourceBuffer, DestinationBuffer, 1, &CopyRegion);
-        };
+    };
     VKCORE::ExecuteSingleTimeCommand(LogicalDevice,CopyCommand, CommandPool, Queue);
 }
 
@@ -112,6 +121,32 @@ void VKCORE::UploadDataToDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDev
     StagingBuffer.Destroy(LogicalDevice);
 }
 
+void VKCORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDevice PhysicalDevice, VkCommandPool CommandPool, VkQueue Queue, const void* Data, VkDeviceSize Size, VKCORE::Buffer& DestinationBuffer, VkBufferUsageFlags UsageFlags)
+{
+    Buffer StagingBuffer{};
+    VKCORE::CreateStagingBuffer(PhysicalDevice, LogicalDevice, Size, StagingBuffer);
 
+    void* DataPtr;
+    vkMapMemory(LogicalDevice, StagingBuffer.BufferMemory, 0, Size, 0, &DataPtr);
+    memcpy(DataPtr, Data, Size);
+    vkUnmapMemory(LogicalDevice, StagingBuffer.BufferMemory);
 
+    VKCORE::CopyBuffer(
+        StagingBuffer.BufferObject,
+        DestinationBuffer.BufferObject,
+        Size,
+        LogicalDevice,
+        CommandPool,
+        Queue
+    );
 
+    StagingBuffer.Destroy(LogicalDevice);
+}
+
+void VKCORE::PersistentBuffer::Map(VkDevice& LogicalDevice, VkDeviceSize Offset, VkDeviceSize Size, VkMemoryMapFlags Flags)
+{
+    if (vkMapMemory(LogicalDevice, Buffer.BufferMemory, Offset, Size, Flags, &MappedMemory) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Unable to map memory!");
+    }
+}

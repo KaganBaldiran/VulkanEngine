@@ -15,10 +15,34 @@
 #include <queue>
 #include <future>
 
+static float QuadVertices[] = {
+    // positions        // texture Coords
+    -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+     1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+     1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+};
 
-void VKAPP::Renderer::Init(bool EnableValidationLayers)
+struct LightingPassUBOdata
 {
-    InitializeCoreSystems(EnableValidationLayers);
+    glm::vec4 CameraDirection;
+    glm::vec4 CameraPosition;
+    int StaticLightCount;
+    int DynamicLightCount;
+};
+
+void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,bool EnablePhysicsDebugDrawing)
+{
+    this->EnablePhysicsDebugDrawing = EnablePhysicsDebugDrawing;
+    this->rendererContext = &DestinationRendererContext;
+
+    LogicalDevice = DestinationRendererContext.DeviceContext.logicalDevice;
+    PhysicalDevice = DestinationRendererContext.DeviceContext.physicalDevice;
+
+    GraphicsQueueIndex = DestinationRendererContext.QueueFamilyIndices.GraphicsFamily.value();
+
+    CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    VKCORE::AllocateCommandBuffers(rendererContext->CommandPool.commandPool, LogicalDevice, CommandBuffers);
 
     UBO.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -35,18 +59,34 @@ void VKAPP::Renderer::Init(bool EnableValidationLayers)
     Gbuffers.resize(MAX_FRAMES_IN_FLIGHT);
     for (auto& Gbuffer : Gbuffers)
     {
-        Gbuffer.Create(PhysicalDevice, LogicalDevice, SwapChain.Extent.width, SwapChain.Extent.height);
+        Gbuffer.Create(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height);
+    }
+
+    LightingPassUBOs.resize(MAX_FRAMES_IN_FLIGHT);
+    const VkDeviceSize LightingPassUBOsize = sizeof(LightingPassUBOdata);
+    for (auto& LightingPassUBO : LightingPassUBOs)
+    {
+        VKCORE::CreateBuffer(
+            PhysicalDevice, 
+            LogicalDevice,
+            LightingPassUBOsize,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            LightingPassUBO.Buffer
+        );
+        LightingPassUBO.Map(LogicalDevice, 0, LightingPassUBOsize, 0);
     }
 
     //Lighting pass descriptor set
     descriptorPool.Create(
-        {{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,MAX_FRAMES_IN_FLIGHT},
+        {{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,2 * MAX_FRAMES_IN_FLIGHT},
         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,2 * MAX_FRAMES_IN_FLIGHT}},
         2 * MAX_FRAMES_IN_FLIGHT, LogicalDevice
     );
 
     LightingPassLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0, VK_SHADER_STAGE_FRAGMENT_BIT);
     LightingPassLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
+    LightingPassLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 2, VK_SHADER_STAGE_FRAGMENT_BIT);
     LightingPassLayout.CreateLayout(LogicalDevice);
 
     LightingPassDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
@@ -57,7 +97,8 @@ void VKAPP::Renderer::Init(bool EnableValidationLayers)
     {
         VKCORE::DescriptorSetWriteImage NormalTextureWrite(Gbuffers[i].NormalAttachment.ImageView, Gbuffers[i].NormalAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         VKCORE::DescriptorSetWriteImage PositionTextureWrite(Gbuffers[i].PositionAttachment.ImageView, Gbuffers[i].PositionAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::WriteDescriptorSets(LogicalDevice, {}, { NormalTextureWrite,PositionTextureWrite});
+        VKCORE::DescriptorSetWriteBuffer UBOwrite(LightingPassUBOs[i].Buffer, LightingPassUBOsize, 2, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        VKCORE::WriteDescriptorSets(LogicalDevice, { UBOwrite }, { NormalTextureWrite,PositionTextureWrite});
     }
 
 
@@ -79,7 +120,7 @@ void VKAPP::Renderer::Init(bool EnableValidationLayers)
 
     DepthImageFormat = VKCORE::FindSupportedFormat(PhysicalDevice, { VK_FORMAT_D32_SFLOAT,VK_FORMAT_D32_SFLOAT_S8_UINT,VK_FORMAT_D24_UNORM_S8_UINT },
         VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, SwapChain.Extent.width, SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage.Image, DepthImage.ImageMemory);
     DepthImage.ImageView = VKCORE::CreateImageView(DepthImage.Image, DepthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
 
@@ -93,13 +134,32 @@ void VKAPP::Renderer::Init(bool EnableValidationLayers)
     VKCORE::UploadDataToDeviceLocalBuffer(
         LogicalDevice,
         PhysicalDevice,
-        CommandPool.commandPool,
-        DeviceContext.GraphicsQueue,
+        rendererContext->CommandPool.commandPool,
+        rendererContext->DeviceContext.GraphicsQueue,
         QuadVertices,
         sizeof(QuadVertices),
         QuadVertexBuffer,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
     );
+
+    if (EnablePhysicsDebugDrawing)
+    {
+        PhysicsDebugLineVertexBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        MaxLines = 2000000;
+        PhysicsDebugLineVertexBuffersize = MaxLines * sizeof(VKPHYSICS::DebugLineVertexInfo);
+        for (auto& PhysicsDebugLineVertexBuffer : PhysicsDebugLineVertexBuffers)
+        {
+            VKCORE::CreateBuffer(
+                PhysicalDevice,
+                LogicalDevice,
+                PhysicsDebugLineVertexBuffersize,
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                PhysicsDebugLineVertexBuffer.Buffer
+            );
+            PhysicsDebugLineVertexBuffer.Map(LogicalDevice, 0, PhysicsDebugLineVertexBuffersize, 0);
+        }
+    }
 }
 
 void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene,VKSCENE::Camera3D& Camera)
@@ -115,29 +175,59 @@ void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene,VKSCENE::Camera3D& Camer
             throw std::runtime_error("Failed to record command buffer");
         }
 
-        VKCORE::TransitionImageLayout(CommandBuffer, Gbuffers[CurrentFrame].NormalAttachment.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+        VkViewport Viewport{};
+        Viewport.x = 0.0f;
+        Viewport.y = 0.0f;
+        Viewport.width = static_cast<float>(rendererContext->SwapChain.Extent.width);
+        Viewport.height = static_cast<float>(rendererContext->SwapChain.Extent.height);
+        Viewport.minDepth = 0.0f;
+        Viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(CommandBuffer, 0, 1, &Viewport);
 
-        VKCORE::TransitionImageLayout(CommandBuffer, Gbuffers[CurrentFrame].PositionAttachment.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+        VkRect2D Scissor{};
+        Scissor.offset = { 0,0 };
+        Scissor.extent = rendererContext->SwapChain.Extent;
+        vkCmdSetScissor(CommandBuffer, 0, 1, &Scissor);
 
-        VKCORE::TransitionImageLayout(CommandBuffer, DepthImage.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, 0,
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        Matrixes MatrixUBO;
+        MatrixUBO.ViewMatrix = Camera.ViewMatrix;
+        MatrixUBO.ProjectionMatrix = Camera.ProjectionMatrix;
+        memcpy(UBOmapped[CurrentFrame], &MatrixUBO, sizeof(MatrixUBO));
 
-        RenderGeometryPass(Scene, Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
+        if (!Scene.Entities.empty())
+        {
+            VKCORE::TransitionImageLayout(CommandBuffer, Gbuffers[CurrentFrame].NormalAttachment.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
+                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-        VKCORE::TransitionImageLayout(CommandBuffer, Gbuffers[CurrentFrame].NormalAttachment.Image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+            VKCORE::TransitionImageLayout(CommandBuffer, Gbuffers[CurrentFrame].PositionAttachment.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
+                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-        VKCORE::TransitionImageLayout(CommandBuffer, Gbuffers[CurrentFrame].PositionAttachment.Image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+            VKCORE::TransitionImageLayout(CommandBuffer, DepthImage.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, 0,
+                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-        VKCORE::TransitionImageLayout(CommandBuffer, SwapChain.SwapChainImages[CurrentImageIndex], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+            RenderGeometryPass(Scene, Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
 
-        RenderLightingPass(CommandBuffer, CurrentImageIndex, CurrentFrame);
+            VKCORE::TransitionImageLayout(CommandBuffer, Gbuffers[CurrentFrame].NormalAttachment.Image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-        VKCORE::TransitionImageLayout(CommandBuffer, SwapChain.SwapChainImages[CurrentImageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            VKCORE::TransitionImageLayout(CommandBuffer, Gbuffers[CurrentFrame].PositionAttachment.Image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+            VKCORE::TransitionImageLayout(CommandBuffer, rendererContext->SwapChain.SwapChainImages[CurrentImageIndex], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
+                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+            LightingPassUBOdata lightingPassUboData{};
+            lightingPassUboData.CameraDirection = glm::vec4(Camera.CameraDirection, 1.0f);
+            lightingPassUboData.CameraPosition = glm::vec4(Camera.CameraPosition, 1.0f);
+            lightingPassUboData.StaticLightCount = static_cast<int>(Scene.StaticLights.size());
+            lightingPassUboData.DynamicLightCount = static_cast<int>(Scene.DynamicLights.size());
+            memcpy(LightingPassUBOs[CurrentFrame].MappedMemory, &lightingPassUboData, sizeof(LightingPassUBOdata));
+
+            RenderLightingPass(Scene,Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
+        }
+        if (EnablePhysicsDebugDrawing) RenderPhysicsDebugPass(Scene, Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
+
+        VKCORE::TransitionImageLayout(CommandBuffer, rendererContext->SwapChain.SwapChainImages[CurrentImageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 
         if (vkEndCommandBuffer(CommandBuffer) != VK_SUCCESS)
@@ -153,14 +243,14 @@ void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene,VKSCENE::Camera3D& Camer
 
     VKCORE::RenderFrame(
         LogicalDevice,
-        DeviceContext.GraphicsQueue,
-        DeviceContext.PresentQueue,
+        rendererContext->DeviceContext.GraphicsQueue,
+        rendererContext->DeviceContext.PresentQueue,
         CommandBuffers,
         { {0,RenderTask} },
         onRecreateSwapChain,
         SyncObjects,
-        SwapChain,
-        Window,
+        rendererContext->SwapChain,
+        rendererContext->Window,
         CurrentFrame,
         MAX_FRAMES_IN_FLIGHT
     );
@@ -175,13 +265,8 @@ void VKAPP::Renderer::RenderGeometryPass(
     uint32_t CurrentFrame
 )
 {
-    Matrixes MatrixUBO;
-    MatrixUBO.ViewMatrix = Camera.ViewMatrix;
-    MatrixUBO.ProjectionMatrix = Camera.ProjectionMatrix;
-    memcpy(UBOmapped[CurrentFrame], &MatrixUBO, sizeof(MatrixUBO));
-
     std::array<VkClearValue, 3> ClearColors{};
-    ClearColors[0].color = { {0.0f,0.0f,0.0f,1.0f} };
+    ClearColors[0].color = { {0.0f,0.0f,0.0f,0.0f} };
     ClearColors[1].color = { {0.0f,0.0f,0.0f,1.0f} };
     ClearColors[2].depthStencil = { 1.0f,0 };
 
@@ -208,7 +293,7 @@ void VKAPP::Renderer::RenderGeometryPass(
         ClearColors[2]
     );
 
-    RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)SwapChain.Extent.width, (uint32_t)SwapChain.Extent.height} });
+    RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)rendererContext->SwapChain.Extent.width, (uint32_t)rendererContext->SwapChain.Extent.height} });
 
     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GbufferGraphicsPipeline.pipeline);
 
@@ -217,19 +302,6 @@ void VKAPP::Renderer::RenderGeometryPass(
     vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, Offsets);
     vkCmdBindIndexBuffer(CommandBuffer, Scene.SceneIndexBuffer.BufferObject, 0, VK_INDEX_TYPE_UINT32);
 
-    VkViewport Viewport{};
-    Viewport.x = 0.0f;
-    Viewport.y = 0.0f;
-    Viewport.width = static_cast<float>(SwapChain.Extent.width);
-    Viewport.height = static_cast<float>(SwapChain.Extent.height);
-    Viewport.minDepth = 0.0f;
-    Viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(CommandBuffer, 0, 1, &Viewport);
-
-    VkRect2D Scissor{};
-    Scissor.offset = { 0,0 };
-    Scissor.extent = SwapChain.Extent;
-    vkCmdSetScissor(CommandBuffer, 0, 1, &Scissor);
     vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GbufferGraphicsPipeline.Layout,0,1,&GbufferPassDescriptorSets[CurrentFrame],0,nullptr);
 
     for (auto& Entity : Scene.Entities)
@@ -259,7 +331,7 @@ void VKAPP::Renderer::RenderGeometryPass(
 
     RenderingPass.EndRendering(CommandBuffer);
 }
-void VKAPP::Renderer::RenderLightingPass(VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)
+void VKAPP::Renderer::RenderLightingPass(VKSCENE::Scene &Scene,VKSCENE::Camera3D &Camera,VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)
 {
     std::array<VkClearValue, 2> ClearColors{};
     ClearColors[0].color = { {0.0f,0.0f,0.0f,1.0f} };
@@ -267,123 +339,70 @@ void VKAPP::Renderer::RenderLightingPass(VkCommandBuffer& CommandBuffer, uint32_
 
     VKCORE::DynamicRenderingPass RenderingPass;
     RenderingPass.AppendAttachment(
-        SwapChain.SwapChainImagesViews[CurrentImageIndex],
+        rendererContext->SwapChain.SwapChainImagesViews[CurrentImageIndex],
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR,
         VK_ATTACHMENT_STORE_OP_STORE,
         ClearColors[0]
     );
 
-    RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)SwapChain.Extent.width, (uint32_t)SwapChain.Extent.height} });
+    RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)rendererContext->SwapChain.Extent.width, (uint32_t)rendererContext->SwapChain.Extent.height} });
 
     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, LightingGraphicsPipeline.pipeline);
 
     VkBuffer VertexBuffers[] = { QuadVertexBuffer.BufferObject };
     VkDeviceSize Offsets[] = { 0 };
     vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, Offsets);
-
-    VkViewport Viewport{};
-    Viewport.x = 0.0f;
-    Viewport.y = 0.0f;
-    Viewport.width = static_cast<float>(SwapChain.Extent.width);
-    Viewport.height = static_cast<float>(SwapChain.Extent.height);
-    Viewport.minDepth = 0.0f;
-    Viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(CommandBuffer, 0, 1, &Viewport);
-
-    VkRect2D Scissor{};
-    Scissor.offset = { 0,0 };
-    Scissor.extent = SwapChain.Extent;
-    vkCmdSetScissor(CommandBuffer, 0, 1, &Scissor);
-    vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, LightingGraphicsPipeline.Layout, 0, 1, &LightingPassDescriptorSets[CurrentFrame], 0, nullptr);
+    VkDescriptorSet DescriptorSets[] = { LightingPassDescriptorSets[CurrentFrame],Scene.DescriptorSets[CurrentFrame] };
+    vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, LightingGraphicsPipeline.Layout, 0, 2, DescriptorSets, 0, nullptr);
 
     vkCmdDraw(CommandBuffer,4,1,0,0);
 
     RenderingPass.EndRendering(CommandBuffer);
+}
+void VKAPP::Renderer::RenderPhysicsDebugPass(VKSCENE::Scene& Scene, VKSCENE::Camera3D& Camera, VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)
+{
+    auto& DebugDrawer = Scene.DebugDrawer;
+    if (!DebugDrawer) return;
+    memcpy(
+        PhysicsDebugLineVertexBuffers[CurrentFrame].MappedMemory,
+        DebugDrawer->DebugLines.data(), 
+        sizeof(VKPHYSICS::DebugLineVertexInfo) * glm::min((int)DebugDrawer->DebugLines.size(),MaxLines)
+    );
+
+    std::array<VkClearValue, 2> ClearColors{};
+    ClearColors[0].color = { {0.0f,0.0f,0.0f,1.0f} };
+    ClearColors[1].depthStencil = { 1.0f,0 };
+
+    VKCORE::DynamicRenderingPass RenderingPass;
+    RenderingPass.AppendAttachment(
+        rendererContext->SwapChain.SwapChainImagesViews[CurrentImageIndex],
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        ClearColors[0]
+    );
+    RenderingPass.AppendAttachment(
+        DepthImage.ImageView,
+        VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+        VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        ClearColors[1]
+    );
+
+    RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)rendererContext->SwapChain.Extent.width, (uint32_t)rendererContext->SwapChain.Extent.height} });
+
+    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PhysicsDebugGraphicsPipeline.pipeline);
+
+    VkBuffer VertexBuffers[] = { PhysicsDebugLineVertexBuffers[CurrentFrame].Buffer.BufferObject };
+    VkDeviceSize Offsets[] = { 0 };
+    vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, Offsets);
+    vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PhysicsDebugGraphicsPipeline.Layout, 0, 1, &GbufferPassDescriptorSets[CurrentFrame], 0, nullptr);
+
+    vkCmdDraw(CommandBuffer,glm::min((int)DebugDrawer->DebugLines.size(), MaxLines), 1, 0, 0);
+
+    RenderingPass.EndRendering(CommandBuffer);
 };
-
-void VKAPP::Renderer::CreateSceneBuffers(VKSCENE::Scene& Scene)
-{
-    std::vector<VKSCENE::Model3D*> Models(Scene.Entities.size());
-    for (size_t i = 0; i < Scene.Entities.size(); i++)
-    {
-        Models[i] = &Scene.Entities[i]->Model;
-    }
-
-    VKSCENE::BatchInfo ModelBatch = VKSCENE::BatchModels(Models);
-    VkDeviceSize VertexBufferSize = ModelBatch.Vertices.size() * sizeof(VKSCENE::Vertex3D);
-    VkDeviceSize IndexBufferSize = ModelBatch.Indices.size() * sizeof(uint32_t);
-
-    VKCORE::UploadDataToDeviceLocalBuffer(
-        LogicalDevice,
-        PhysicalDevice,
-        CommandPool.commandPool,
-        DeviceContext.GraphicsQueue,
-        ModelBatch.Vertices.data(),
-        VertexBufferSize,
-        Scene.SceneVertexBuffer,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-    );
-
-    VKCORE::UploadDataToDeviceLocalBuffer(
-        LogicalDevice,
-        PhysicalDevice,
-        CommandPool.commandPool,
-        DeviceContext.GraphicsQueue,
-        ModelBatch.Indices.data(),
-        IndexBufferSize,
-        Scene.SceneIndexBuffer,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT
-    );
-}
-
-void VKAPP::Renderer::AppendSceneBuffersDestroyList(VKSCENE::Scene& Scene)
-{
-    SceneBufferDestroyList.push_back(&Scene.SceneVertexBuffer);
-    SceneBufferDestroyList.push_back(&Scene.SceneIndexBuffer);
-}
-
-void VKAPP::Renderer::InitializeCoreSystems(bool EnableValidationLayers)
-{
-    if (!glfwInit())
-    {
-        throw std::runtime_error("Unable to initialize GLFW");
-    }
-
-    VKCORE::VulkanWindowCreateInfo WindowCreateInfo{};
-    WindowCreateInfo.WindowInitialHeight = 800;
-    WindowCreateInfo.WindowInitialWidth = 1000;
-    WindowCreateInfo.WindowsName = "Hello World";
-    Window.Create(WindowCreateInfo);
-
-    VKCORE::VulkanInstanceCreateInfo InstanceCreateInfo{};
-    InstanceCreateInfo.APIVersion = VK_API_VERSION_1_3;
-    InstanceCreateInfo.ApplicationName = "Application";
-    InstanceCreateInfo.ApplicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-    InstanceCreateInfo.EngineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-    InstanceCreateInfo.EngineName = "No Engine";
-    InstanceCreateInfo.EnableValidationLayers = EnableValidationLayers;
-    InstanceCreateInfo.ValidationLayersToEnable = { "VK_LAYER_KHRONOS_validation" };
-    Instance.Create(InstanceCreateInfo);
-
-    Surface.Create(Instance.instance, Window.window);
-
-    VKCORE::VulkanDeviceCreateInfo DeviceCreateInfo{};
-    DeviceCreateInfo.DeviceExtensionsToEnable = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME };
-    DeviceCreateInfo.QueuePriority = 1.0f;
-    DeviceContext.Create(DeviceCreateInfo, Surface.surface, Instance.instance);
-
-    LogicalDevice = DeviceContext.logicalDevice;
-    PhysicalDevice = DeviceContext.physicalDevice;
-    SwapChain.Create(PhysicalDevice, LogicalDevice, Surface.surface, Window.window);
-
-    QueueFamilyIndices = VKCORE::FindQueueFamilies(PhysicalDevice, Surface.surface);
-    GraphicsQueueIndex = QueueFamilyIndices.GraphicsFamily.value();
-    CommandPool.Create(GraphicsQueueIndex, LogicalDevice);
-
-    CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    VKCORE::AllocateCommandBuffers(CommandPool.commandPool, LogicalDevice, CommandBuffers);
-}
 
 void VKAPP::Renderer::InitializePipelines()
 {
@@ -393,6 +412,9 @@ void VKAPP::Renderer::InitializePipelines()
     VKCORE::ShaderModule GbufferVertexShaderModule("shaders\\GeometryBufferShader.vert", "shaders\\GeometryBufferShaderVert.spv", true, LogicalDevice);
     VKCORE::ShaderModule GbufferFragmentShaderModule("shaders\\GeometryBufferShader.frag", "shaders\\GeometryBufferShaderFrag.spv", true, LogicalDevice);
 
+    VKCORE::ShaderModule PhysicsDebugVertexShaderModule("shaders\\PhysicsDebugShader.vert", "shaders\\PhysicsDebugShaderVert.spv", true, LogicalDevice);
+    VKCORE::ShaderModule PhysicsDebugFragmentShaderModule("shaders\\PhysicsDebugShader.frag", "shaders\\PhysicsDebugShaderFrag.spv", true, LogicalDevice);
+
     VkPushConstantRange PushConstantRange{};
     PushConstantRange.stageFlags = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
     PushConstantRange.size = sizeof(glm::mat4);
@@ -401,8 +423,8 @@ void VKAPP::Renderer::InitializePipelines()
     VKCORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
     PipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
     PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    PipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
-    PipelineCreateInfo.ViewportHeight = static_cast<float>(SwapChain.Extent.height);
+    PipelineCreateInfo.ViewportWidth = static_cast<float>(rendererContext->SwapChain.Extent.width);
+    PipelineCreateInfo.ViewportHeight = static_cast<float>(rendererContext->SwapChain.Extent.height);
     PipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
     PipelineCreateInfo.ShaderModules = { {&GbufferVertexShaderModule,VK_SHADER_STAGE_VERTEX_BIT} ,{&GbufferFragmentShaderModule,VK_SHADER_STAGE_FRAGMENT_BIT} };
     PipelineCreateInfo.DynamicRenderingColorAttachmentCount = 2;
@@ -410,12 +432,12 @@ void VKAPP::Renderer::InitializePipelines()
     PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = DepthImageFormat;
     PipelineCreateInfo.RenderPass = nullptr;
     PipelineCreateInfo.ScissorOffset = { 0,0 };
-    PipelineCreateInfo.ScissorExtent = { SwapChain.Extent.width ,SwapChain.Extent.height };
+    PipelineCreateInfo.ScissorExtent = { rendererContext->SwapChain.Extent.width ,rendererContext->SwapChain.Extent.height };
     PipelineCreateInfo.ViewportMinDepth = 0.0f;
     PipelineCreateInfo.ViewportMaxDepth = 1.0f;
     PipelineCreateInfo.AttributeDescriptions = VKSCENE::Vertex3D::GetAttributeDescriptions();
     PipelineCreateInfo.BindingDescription = VKSCENE::Vertex3D::GetBindingDescription();
-    PipelineCreateInfo.DescriptorSetLayouts = GbufferPassLayouts;
+    PipelineCreateInfo.DescriptorSetLayouts = { GbufferPassLayout.descriptorSetLayout };
     PipelineCreateInfo.PushConstantRanges = { PushConstantRange };
     GbufferGraphicsPipeline.Create(PipelineCreateInfo, LogicalDevice);
 
@@ -433,39 +455,56 @@ void VKAPP::Renderer::InitializePipelines()
     PipelineCreateInfo.EnableDepthTesting = VK_FALSE;
     PipelineCreateInfo.EnableDepthWriting = VK_FALSE;
     PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    PipelineCreateInfo.DescriptorSetLayouts = LightingPassLayouts;
+    PipelineCreateInfo.DescriptorSetLayouts = {LightingPassLayout.descriptorSetLayout,rendererContext->SceneDescriptorSetLayout.descriptorSetLayout};
     PipelineCreateInfo.PushConstantRanges = {};
     LightingGraphicsPipeline.Create(PipelineCreateInfo, LogicalDevice);
+
+    VKCORE::VertexInputDescription LineVertexDescription{};
+    LineVertexDescription.SetBindingDescription(0, sizeof(VKPHYSICS::DebugLineVertexInfo), VK_VERTEX_INPUT_RATE_VERTEX);
+    LineVertexDescription.AppendAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
+    LineVertexDescription.AppendAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3);
+
+    PipelineCreateInfo.PushConstantRanges = {};
+    PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = DepthImageFormat;
+    PipelineCreateInfo.EnableDepthTesting = VK_TRUE;
+    PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    PipelineCreateInfo.ShaderModules = { {&PhysicsDebugVertexShaderModule,VK_SHADER_STAGE_VERTEX_BIT} ,{&PhysicsDebugFragmentShaderModule,VK_SHADER_STAGE_FRAGMENT_BIT} };
+    PipelineCreateInfo.DescriptorSetLayouts = {GbufferPassLayout.descriptorSetLayout};
+    PipelineCreateInfo.AttributeDescriptions = LineVertexDescription.AttributeDescriptions;
+    PipelineCreateInfo.BindingDescription = LineVertexDescription.BindingDescription;
+    PhysicsDebugGraphicsPipeline.Create(PipelineCreateInfo, LogicalDevice);
 
     LightingVertexShaderModule.Destroy(LogicalDevice);
     LightingFragmentShaderModule.Destroy(LogicalDevice);
     GbufferVertexShaderModule.Destroy(LogicalDevice);
     GbufferFragmentShaderModule.Destroy(LogicalDevice);
+    PhysicsDebugVertexShaderModule.Destroy(LogicalDevice);
+    PhysicsDebugFragmentShaderModule.Destroy(LogicalDevice);
 }
 
 void VKAPP::Renderer::OnRecreateSwapChain() {
     int width = 0, height = 0;
-    glfwGetFramebufferSize(Window.window, &width, &height);
+    glfwGetFramebufferSize(rendererContext->Window.window, &width, &height);
     while (width == 0 || height == 0)
     {
-        glfwGetFramebufferSize(Window.window, &width, &height);
+        glfwGetFramebufferSize(rendererContext->Window.window, &width, &height);
         glfwWaitEvents();
     }
     vkDeviceWaitIdle(LogicalDevice);
 
-    SwapChain.Destroy(LogicalDevice);
+    rendererContext->SwapChain.Destroy(LogicalDevice);
     DepthImage.Destroy(LogicalDevice);
 
-    SwapChain.Create(PhysicalDevice, LogicalDevice, Surface.surface, Window.window);
+    rendererContext->SwapChain.Create(PhysicalDevice, LogicalDevice, rendererContext->Surface.surface, rendererContext->Window.window);
 
-    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, SwapChain.Extent.width, SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage.Image, DepthImage.ImageMemory);
     DepthImage.ImageView = VKCORE::CreateImageView(DepthImage.Image, DepthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
 
     for (auto& Gbuffer : Gbuffers)
     {
         Gbuffer.Destroy(LogicalDevice);
-        Gbuffer.Create(PhysicalDevice, LogicalDevice, SwapChain.Extent.width, SwapChain.Extent.height);
+        Gbuffer.Create(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height);
     }
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -478,7 +517,6 @@ void VKAPP::Renderer::OnRecreateSwapChain() {
 
 void VKAPP::Renderer::Destroy()
 {
-    vkDeviceWaitIdle(LogicalDevice);
     VKCORE::DestroyFrameSyncObjects(LogicalDevice, SyncObjects);
     DepthImage.Destroy(LogicalDevice);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -491,22 +529,22 @@ void VKAPP::Renderer::Destroy()
         Gbuffer.Destroy(LogicalDevice);
     }
     Gbuffers.clear();
-    for (auto& SceneBuffer : SceneBufferDestroyList)
-    {
-        SceneBuffer->Destroy(LogicalDevice);
-    }
-    SceneBufferDestroyList.clear();
     LightingPassLayout.Destroy(LogicalDevice);
     GbufferPassLayout.Destroy(LogicalDevice);
+    for (auto& LightingPassUBO : LightingPassUBOs)
+    {
+        LightingPassUBO.Buffer.Destroy(LogicalDevice);
+    }
+    if (EnablePhysicsDebugDrawing)
+    {
+        for (auto& PhysicsDebugLineVertexBuffer : PhysicsDebugLineVertexBuffers)
+        {
+            PhysicsDebugLineVertexBuffer.Buffer.Destroy(LogicalDevice);
+        }
+    }
     descriptorPool.Destroy(LogicalDevice);
-    CommandPool.Destroy(LogicalDevice);
     QuadVertexBuffer.Destroy(LogicalDevice);
     LightingGraphicsPipeline.Destroy(LogicalDevice);
     GbufferGraphicsPipeline.Destroy(LogicalDevice);
-    Surface.Destroy(Instance.instance);
-    SwapChain.Destroy(LogicalDevice);
-    DeviceContext.Destroy();
-    Instance.Destroy();
-    Window.Destroy();
-    glfwTerminate();
+    PhysicsDebugGraphicsPipeline.Destroy(LogicalDevice);
 };

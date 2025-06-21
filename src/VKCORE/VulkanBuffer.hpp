@@ -10,10 +10,23 @@ namespace VKCORE
 	/// </summary>
 	struct Buffer
 	{
-		VkBuffer BufferObject;
-		VkDeviceMemory BufferMemory;
+		VkBuffer BufferObject = VK_NULL_HANDLE;
+		VkDeviceMemory BufferMemory = VK_NULL_HANDLE;
 
 		void Destroy(VkDevice &LogicalDevice);
+	};
+
+	struct PersistentBuffer
+	{
+		VKCORE::Buffer Buffer;
+		void* MappedMemory = nullptr;
+
+		void Map(
+			VkDevice& LogicalDevice,
+			VkDeviceSize Offset,
+			VkDeviceSize Size,
+			VkMemoryMapFlags Flags
+		);
 	};
 
 	uint32_t FindMemoryType(VkPhysicalDevice& PhysicalDevice, uint32_t TypeFilter, VkMemoryPropertyFlags Properties);
@@ -56,6 +69,17 @@ namespace VKCORE
 	/// <param name="DestinationBuffer">Reference to the destination buffer that will receive the uploaded data.</param>
 	/// <param name="UsageFlags">Buffer usage flags specifying how the destination buffer will be used.</param>
 	void UploadDataToDeviceLocalBuffer(
+		VkDevice LogicalDevice,
+		VkPhysicalDevice PhysicalDevice,
+		VkCommandPool CommandPool,
+		VkQueue Queue,
+		const void* Data,
+		VkDeviceSize Size,
+		VKCORE::Buffer& DestinationBuffer,
+		VkBufferUsageFlags UsageFlags
+	);
+
+	void UploadDataToExistingDeviceLocalBuffer(
 		VkDevice LogicalDevice,
 		VkPhysicalDevice PhysicalDevice,
 		VkCommandPool CommandPool,

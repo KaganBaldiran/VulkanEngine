@@ -24,7 +24,7 @@ void VKSCENE::Camera3D::Create(VKCORE::Window& window)
     AllowMove = glm::vec4(1.0f);
 }
 
-void VKSCENE::Camera3D::Update(VKCORE::Window& window)
+void VKSCENE::Camera3D::Update(VKCORE::Window& window,float Sensitivity,float DeltaTime)
 {
     if (FirstTurn)
     {
@@ -38,31 +38,29 @@ void VKSCENE::Camera3D::Update(VKCORE::Window& window)
     CameraRight = glm::normalize(glm::cross(CameraDirection, CameraDirection.y < 0.9999 ? Up : glm::vec3(0.0f, 0.0f, 1.0f)));
     CameraUp = glm::normalize(glm::cross(CameraDirection, CameraRight));
 
-    const float PositionSensitivity = 0.1f;
-
     if (glfwGetKey(window.window, GLFW_KEY_UP) == GLFW_PRESS && AllowMove.x)
     {
-        CameraPosition += CameraDirection * PositionSensitivity;
+        CameraPosition += CameraDirection * Sensitivity * DeltaTime;
     }
     if (glfwGetKey(window.window, GLFW_KEY_DOWN) == GLFW_PRESS && AllowMove.w)
     {
-        CameraPosition -= CameraDirection * PositionSensitivity;
+        CameraPosition -= CameraDirection * Sensitivity * DeltaTime;
     }
     if (glfwGetKey(window.window, GLFW_KEY_LEFT) == GLFW_PRESS && AllowMove.y)
     {
-        CameraPosition -= CameraRight * PositionSensitivity;
+        CameraPosition -= CameraRight * Sensitivity * DeltaTime;
     }
     if (glfwGetKey(window.window, GLFW_KEY_RIGHT) == GLFW_PRESS && AllowMove.z)
     {
-        CameraPosition += CameraRight * PositionSensitivity;
+        CameraPosition += CameraRight * Sensitivity * DeltaTime;
     }
     if (glfwGetKey(window.window, GLFW_KEY_SPACE) == GLFW_PRESS)
     {
-        CameraPosition += Up * PositionSensitivity;
+        CameraPosition += Up * Sensitivity * DeltaTime;
     }
     if (glfwGetKey(window.window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
     {
-        CameraPosition -= Up * PositionSensitivity;
+        CameraPosition -= Up * Sensitivity * DeltaTime;
     }
     if (glfwGetKey(window.window, GLFW_KEY_ESCAPE) == GLFW_PRESS && AllowPressExit)
     {
@@ -79,9 +77,8 @@ void VKSCENE::Camera3D::Update(VKCORE::Window& window)
         LastX = window.MousePosition.x;
         LastY = window.MousePosition.y;
 
-        const float Sensitivity = 0.1f;
-        Xoffset *= Sensitivity;
-        Yoffset *= Sensitivity;
+        Xoffset *= Sensitivity * DeltaTime;
+        Yoffset *= Sensitivity * DeltaTime;
 
         Yaw += Xoffset;
         Pitch -= Yoffset;
@@ -93,7 +90,7 @@ void VKSCENE::Camera3D::Update(VKCORE::Window& window)
         CameraDirection.y = glm::sin(glm::radians(Pitch));
         CameraDirection = glm::normalize(CameraDirection);
 
-        FOV -= (double)window.IsScrollY;
+        FOV -= (double)window.IsScrollY * DeltaTime * Sensitivity;
         window.IsScrollY = 0;
         FOV = glm::clamp(FOV, 0.1, 180.0);
     }

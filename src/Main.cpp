@@ -35,8 +35,14 @@ int main()
 {
     try
     {
+        if (!glfwInit())
+        {
+            throw std::runtime_error("Unable to initialize GLFW");
+        }
+
+        VKAPP::RendererContext RendererContext(true);
         VKAPP::Renderer Renderer;
-        Renderer.Init(true);
+        Renderer.Initialize(RendererContext,false);
 
         VKSCENE::Entity Sponza;
         VKSCENE::Entity Shovel;
@@ -50,14 +56,41 @@ int main()
         Sponza.Model.transformation.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
         Shovel.Model.transformation.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
 
+        VKSCENE::Camera3D Camera(RendererContext.Window);
+
+        VKSCENE::Light Light0;
+        Light0.SetColor(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+        Light0.SetIntensity(5.0f);
+        Light0.SetDirection(glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
+        Light0.SetType(VKSCENE::DIRECTIONAL_LIGHT);
+
+        VKSCENE::Light Light1;
+        Light1.SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+        Light1.SetIntensity(5.0f);
+        Light1.SetDirection(glm::vec4(0.3f, 0.5f, 0.0f, 0.0f));
+        Light1.SetType(VKSCENE::DIRECTIONAL_LIGHT);
+
+        VKSCENE::Light Light2;
+        Light2.SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+        Light2.SetIntensity(5.0f);
+        Light2.SetDirection(glm::vec4(0.8f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
+        Light2.SetType(VKSCENE::DIRECTIONAL_LIGHT);
+
         VKSCENE::Scene Scene0;
+        Scene0.Create(RendererContext);
         Scene0.Entities.push_back(&Sponza);
         Scene0.Entities.push_back(&Shovel);
-        Renderer.CreateSceneBuffers(Scene0);
-
-        VKSCENE::Camera3D Camera(Renderer.Window);
-
         
+        Scene0.CreateLightBuffers(RendererContext, 2, 1);
+        Scene0.CreateMeshBuffers(RendererContext);
+
+        Scene0.StaticLights.push_back(&Light0);
+        Scene0.StaticLights.push_back(&Light1);
+        Scene0.UpdateStaticLightBuffers(RendererContext);
+
+        Scene0.DynamicLights.push_back(&Light2);
+        Scene0.UpdateDynamicLightBuffers();
+
         PhysicsContext PhyContext;
         PhyContext.DynamicsWorld->setGravity({ 0,-10,0 });
         btAlignedObjectArray<btCollisionShape*> CollisionShapes;
@@ -78,6 +111,7 @@ int main()
             }
         }
         std::unique_ptr<btBvhTriangleMeshShape> StaticMeshShape = std::make_unique<btBvhTriangleMeshShape>(TriangleMesh.get(),true);
+        //StaticMeshShape->setLocalScaling(btVector3(4.0f,4.0f,4.0f));
         StaticMeshShape->setLocalScaling(btVector3(0.1f,0.1f,0.1f));
         CollisionShapes.push_back(StaticMeshShape.get());
 
@@ -90,10 +124,24 @@ int main()
         std::unique_ptr<btRigidBody> GroundRigidBody = std::make_unique<btRigidBody>(GroundRigidBodyCreateInfo);
 
         PhyContext.DynamicsWorld->addRigidBody(GroundRigidBody.get());
-        
-        while (!glfwWindowShouldClose(Renderer.Window.window))
+
+        float DeltaTime = 0.0f;
+        float LastFrame = 0.0f;
+
+        VKPHYSICS::DebugDrawer PhysicsDebugDrawer;
+
+        PhysicsDebugDrawer.setDebugMode(btIDebugDraw::DBG_DrawAabb | btIDebugDraw::DBG_DrawWireframe);
+        PhyContext.DynamicsWorld->setDebugDrawer(&PhysicsDebugDrawer);
+        Scene0.DebugDrawer = &PhysicsDebugDrawer;
+         
+        while (!glfwWindowShouldClose(RendererContext.Window.window))
         {
-            
+            float CurrentTime = glfwGetTime();
+            DeltaTime = CurrentTime - LastFrame;
+            LastFrame = CurrentTime;
+
+            //std::cout << "Delta time: " << DeltaTime << std::endl;
+
             glm::vec4 AllowMove = { 1,1,1,1 };
             btVector3 From = { Camera.CameraPosition.x,Camera.CameraPosition.y ,Camera.CameraPosition.z };
             btVector3 To = From + btVector3{ Camera.CameraDirection.x, Camera.CameraDirection.y, Camera.CameraDirection.z };
@@ -117,14 +165,22 @@ int main()
             if (RayCallBack3.hasHit()) AllowMove.w = 0;
           
             Camera.AllowMove = AllowMove;
-            
-            Camera.Update(Renderer.Window);
-            Camera.UpdateMatrix({ Renderer.SwapChain.Extent.width,Renderer.SwapChain.Extent.height });
+            //PhyContext.DynamicsWorld->debugDrawWorld();
+            Light2.SetDirection(glm::vec4(1.0f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
+            Scene0.UpdateDynamicFrameLightBuffers(Renderer.CurrentFrame);
+
+            Camera.Update(RendererContext.Window,50.0f,DeltaTime);
+            Camera.UpdateMatrix({ RendererContext.SwapChain.Extent.width,RendererContext.SwapChain.Extent.height });
             Renderer.RenderFrame(Scene0, Camera);
+
+            //PhysicsDebugDrawer.ClearDebugBuffers();
         }
 
-        Renderer.AppendSceneBuffersDestroyList(Scene0);
+        RendererContext.WaitDeviceIdle();
+        Scene0.Destroy(RendererContext);
         Renderer.Destroy();
+        RendererContext.Destroy();
+        glfwTerminate();
     }
     catch (const std::exception& e)
     {

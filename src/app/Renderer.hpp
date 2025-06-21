@@ -26,12 +26,12 @@
 #include "../vkscene/Mesh.hpp"
 #include "../vkscene/Camera.hpp"
 
+#include "GeometryBuffer.hpp"
+#include "RendererContext.hpp"
 
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btVector3.h>
 #include <LinearMath/btAlignedObjectArray.h>
-
-const int MAX_FRAMES_IN_FLIGHT = 3;
 
 #ifdef NDEBUG
 const bool EnableValidationLayers = false;
@@ -42,42 +42,33 @@ const bool EnableValidationLayers = true;
 namespace VKAPP
 { 
     struct Matrixes;
-    struct GeometryBuffer;
-
-    static float QuadVertices[] = {
-        // positions        // texture Coords
-        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-         1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-         1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-    };
+    struct PersistentBuffer;
 
     class Renderer
     {
     public:
-        void Init(bool EnableValidationLayers);
+        void Initialize(RendererContext& DestinationRendererContext,bool EnablePhysicsDebugDrawing);
         void RenderFrame(VKSCENE::Scene &Scene,VKSCENE::Camera3D &Camera);
         void Destroy();
 
-        void CreateSceneBuffers(VKSCENE::Scene& Scene);
-        void AppendSceneBuffersDestroyList(VKSCENE::Scene& Scene);
-
-        VKCORE::Window Window;
-        VKCORE::Instance Instance;
-        VKCORE::Surface Surface;
-        VKCORE::DeviceContext DeviceContext;
-
+        bool EnablePhysicsDebugDrawing;
+        RendererContext* rendererContext = nullptr;
+      
+        //References
         VkDevice LogicalDevice;
         VkPhysicalDevice PhysicalDevice;
-        VKCORE::SwapChain SwapChain;
-        VKCORE::QueueFamilyIndices QueueFamilyIndices;
         uint32_t GraphicsQueueIndex;
 
-        VKCORE::CommandPool CommandPool;
         std::vector<VkCommandBuffer> CommandBuffers;
 
         std::vector<VKCORE::Buffer> UBO;
         std::vector<void*> UBOmapped;
+
+        std::vector<VKCORE::PersistentBuffer> LightingPassUBOs;
+
+        std::vector<VKCORE::PersistentBuffer> PhysicsDebugLineVertexBuffers;
+        int MaxLines;
+        VkDeviceSize PhysicsDebugLineVertexBuffersize;
 
         std::vector<GeometryBuffer> Gbuffers;
 
@@ -95,13 +86,13 @@ namespace VKAPP
 
         VKCORE::GraphicsPipeline GbufferGraphicsPipeline;
         VKCORE::GraphicsPipeline LightingGraphicsPipeline;
+        VKCORE::GraphicsPipeline PhysicsDebugGraphicsPipeline;
 
         std::vector<VKCORE::FrameSyncObjects> SyncObjects;
         uint32_t CurrentFrame = 0;
 
         VKCORE::Buffer QuadVertexBuffer{};
     private:
-        void InitializeCoreSystems(bool EnableValidationLayers);
         void InitializePipelines();
         void OnRecreateSwapChain();
 
@@ -114,6 +105,16 @@ namespace VKAPP
         );
 
         void RenderLightingPass(
+            VKSCENE::Scene& Scene,
+            VKSCENE::Camera3D &Camera,
+            VkCommandBuffer& CommandBuffer,
+            uint32_t CurrentImageIndex,
+            uint32_t CurrentFrame
+        );
+
+        void RenderPhysicsDebugPass(
+            VKSCENE::Scene& Scene,
+            VKSCENE::Camera3D& Camera,
             VkCommandBuffer& CommandBuffer,
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame
@@ -123,55 +124,7 @@ namespace VKAPP
         std::vector<VKCORE::Buffer*> SceneBufferDestroyList;
     };
 
-    struct GeometryBuffer
-    {
-        VKCORE::TextureData PositionAttachment;
-        VKCORE::TextureData NormalAttachment;
-
-        void Create(
-            VkPhysicalDevice& PhysicalDevice,
-            VkDevice& LogicalDevice,
-            const uint32_t& Width,
-            const uint32_t& Height
-        )
-        {
-            VKCORE::CreateImage(
-                PhysicalDevice,
-                LogicalDevice,
-                Width,
-                Height,
-                VK_IMAGE_TILING_OPTIMAL,
-                VK_FORMAT_R32G32B32A32_SFLOAT,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                PositionAttachment.Image,
-                PositionAttachment.ImageMemory
-            );
-            PositionAttachment.ImageView = VKCORE::CreateImageView(PositionAttachment.Image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-            VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, PositionAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-
-            VKCORE::CreateImage(
-                PhysicalDevice,
-                LogicalDevice,
-                Width,
-                Height,
-                VK_IMAGE_TILING_OPTIMAL,
-                VK_FORMAT_R32G32B32A32_SFLOAT,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                NormalAttachment.Image,
-                NormalAttachment.ImageMemory
-            );
-            NormalAttachment.ImageView = VKCORE::CreateImageView(NormalAttachment.Image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-            VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, NormalAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-        }
-
-        void Destroy(VkDevice& LogicalDevice)
-        {
-            PositionAttachment.Destroy(LogicalDevice);
-            NormalAttachment.Destroy(LogicalDevice);
-        }
-    };
+    
 
     struct Matrixes {
         glm::mat4 ViewMatrix;

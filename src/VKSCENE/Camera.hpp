@@ -16,7 +16,7 @@ namespace VKSCENE
 		Camera3D(VKCORE::Window &window);
 		Camera3D() = default;
 		void Create(VKCORE::Window& window);
-		void Update(VKCORE::Window &window);
+		void Update(VKCORE::Window &window,float Sensitivity,float DeltaTime);
 		void UpdateMatrix(glm::vec2 Extent);
 		glm::vec3 CameraPosition;
 		glm::vec3 CameraDirection;

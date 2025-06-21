@@ -13,6 +13,12 @@ namespace VKCORE
 		VkShaderStageFlagBits Usage;
 	};
 
+    struct DescriptorSetLayoutInfo
+    {
+        VkDescriptorSetLayout DescriptorSet;
+        uint32_t DescriptorSetCount;
+    };
+
     struct GraphicsPipelineCreateInfo
     {
         std::vector<VkDynamicState> DynamicStates = {
