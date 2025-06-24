@@ -13,7 +13,16 @@ namespace VKCORE
     struct VulkanCreateInfo;
     struct VulkanPresentContext;
 
-    VkImageView CreateImageView(VkImage& Image, VkFormat Format, VkImageAspectFlags AspectMask, VkDevice& LogicalDevice);
+    VkImageView CreateImageView(
+        VkImage& Image, 
+        VkFormat Format, 
+        VkImageViewType ViewType,
+        VkImageAspectFlags AspectMask, 
+        VkDevice& LogicalDevice,
+        uint32_t LayerCount = 1,
+        uint32_t BaseArrayLayer = 0
+    );
+
     VulkanResult CreateSwapChainImageViews(
         std::vector<VkImage>& swapChainImages,
         std::vector<VkImageView>& swapChainImageViews,

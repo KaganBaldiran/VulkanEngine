@@ -32,6 +32,7 @@ namespace VKSCENE
 {
 	//Forward Declarations
 	class Camera3D;
+	class Cubemap;
 
 	struct ModelImportInfo
 	{
@@ -73,6 +74,8 @@ namespace VKSCENE
 		std::vector<Light*> StaticLights;
 		std::vector<Light*> DynamicLights;
 		VKPHYSICS::DebugDrawer* DebugDrawer = nullptr;
+		void SetCubemap(Cubemap& DestinationCubeMap,VKAPP::RendererContext& RendererContext);
+		Cubemap* SceneCubeMap;
 
 		void UpdateDynamicLightBuffers();
 		void UpdateDynamicFrameLightBuffers(uint32_t CurrentFrame);

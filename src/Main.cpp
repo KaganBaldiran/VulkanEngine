@@ -6,7 +6,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../include/stbi/stb_image.h"
 
-
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btVector3.h>
 #include <LinearMath/btAlignedObjectArray.h>
@@ -57,6 +56,8 @@ int main()
         Shovel.Model.transformation.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
 
         VKSCENE::Camera3D Camera(RendererContext.Window);
+        VKSCENE::Cubemap Cubemap0(RendererContext,1024, 1024);
+        VKSCENE::ImportHDRI("resources\\boma_4k.hdr", Cubemap0, RendererContext);
 
         VKSCENE::Light Light0;
         Light0.SetColor(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
@@ -90,6 +91,8 @@ int main()
 
         Scene0.DynamicLights.push_back(&Light2);
         Scene0.UpdateDynamicLightBuffers();
+
+        Scene0.SetCubemap(Cubemap0,RendererContext);
 
         PhysicsContext PhyContext;
         PhyContext.DynamicsWorld->setGravity({ 0,-10,0 });
@@ -166,6 +169,7 @@ int main()
           
             Camera.AllowMove = AllowMove;
             //PhyContext.DynamicsWorld->debugDrawWorld();
+            //PhyContext.DynamicsWorld->debugDrawObject(GroundTransform, StaticMeshShape.get(), { 1.0f,0.0f,0.0f });
             Light2.SetDirection(glm::vec4(1.0f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
             Scene0.UpdateDynamicFrameLightBuffers(Renderer.CurrentFrame);
 
@@ -177,6 +181,7 @@ int main()
         }
 
         RendererContext.WaitDeviceIdle();
+        Cubemap0.Destroy(RendererContext);
         Scene0.Destroy(RendererContext);
         Renderer.Destroy();
         RendererContext.Destroy();

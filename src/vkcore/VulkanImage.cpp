@@ -26,7 +26,20 @@ VkFormat VKCORE::FindSupportedFormat(VkPhysicalDevice &PhysicalDevice,const std:
     }
 }
 
-void VKCORE::CreateImage(VkPhysicalDevice &PhysicalDevice, VkDevice& LogicalDevice, const uint32_t& Width, const uint32_t& Height, VkImageTiling Tiling, VkFormat Format, VkImageUsageFlags Usage, VkMemoryPropertyFlags Properties, VkImage& Image, VkDeviceMemory& ImageMemory)
+void VKCORE::CreateImage(
+    VkPhysicalDevice &PhysicalDevice, 
+    VkDevice& LogicalDevice, 
+    const uint32_t& Width, 
+    const uint32_t& Height, 
+    VkImageTiling Tiling, 
+    VkFormat Format, 
+    VkImageUsageFlags Usage, 
+    VkMemoryPropertyFlags Properties, 
+    VkImage& Image,
+    VkDeviceMemory& ImageMemory,
+    uint32_t LayerCount,
+    VkImageCreateFlags Flags
+)
 {
     VkImageCreateInfo ImageCreateInfo{};
     ImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -36,13 +49,13 @@ void VKCORE::CreateImage(VkPhysicalDevice &PhysicalDevice, VkDevice& LogicalDevi
     ImageCreateInfo.extent.width = static_cast<uint32_t>(Width);
     ImageCreateInfo.extent.height = static_cast<uint32_t>(Height);
     ImageCreateInfo.extent.depth = 1;
-    ImageCreateInfo.arrayLayers = 1;
+    ImageCreateInfo.arrayLayers = LayerCount;
     ImageCreateInfo.tiling = Tiling;
     ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     ImageCreateInfo.usage = Usage;
     ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    ImageCreateInfo.flags = 0;
+    ImageCreateInfo.flags = Flags;
 
     if (vkCreateImage(LogicalDevice, &ImageCreateInfo, nullptr, &Image) != VK_SUCCESS)
     {
@@ -66,7 +79,7 @@ void VKCORE::CreateImage(VkPhysicalDevice &PhysicalDevice, VkDevice& LogicalDevi
 }
 
 void VKCORE::TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkAccessFlags SrcAccessMask,
-    VkAccessFlags DstAccessMask, VkPipelineStageFlags SrcStage, VkPipelineStageFlags DstStage, VkImageAspectFlags AspectMask)
+    VkAccessFlags DstAccessMask, VkPipelineStageFlags SrcStage, VkPipelineStageFlags DstStage, VkImageAspectFlags AspectMask,uint32_t LayerCount)
 {
     VkImageMemoryBarrier ImageBarrier{};
     ImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -79,7 +92,7 @@ void VKCORE::TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& I
     ImageBarrier.subresourceRange.baseMipLevel = 0;
     ImageBarrier.subresourceRange.levelCount = 1;
     ImageBarrier.subresourceRange.baseArrayLayer = 0;
-    ImageBarrier.subresourceRange.layerCount = 1;
+    ImageBarrier.subresourceRange.layerCount = LayerCount;
     ImageBarrier.srcAccessMask = SrcAccessMask;
     ImageBarrier.dstAccessMask = DstAccessMask;
 
@@ -169,7 +182,7 @@ void VKCORE::CreateTextureImage(const char* ImageFilePath,VkPhysicalDevice& Phys
 
     VKCORE::ExecuteSingleTimeCommand(LogicalDevice,CopyCommand, CommandPool, GraphicsQueue);
 
-    DestinationTexture.ImageView = VKCORE::CreateImageView(DestinationTexture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT,LogicalDevice);
+    DestinationTexture.ImageView = VKCORE::CreateImageView(DestinationTexture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT,LogicalDevice);
     VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice,DestinationTexture.Sampler,VK_FILTER_LINEAR,VK_SAMPLER_ADDRESS_MODE_REPEAT);
     
     StagingBuffer.Destroy(LogicalDevice);

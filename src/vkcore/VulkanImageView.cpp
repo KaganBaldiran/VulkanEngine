@@ -2,7 +2,7 @@
 #include "VulkanImageView.hpp"
 #include <vector>
 
-VkImageView VKCORE::CreateImageView(VkImage& Image, VkFormat Format, VkImageAspectFlags AspectMask, VkDevice& LogicalDevice)
+VkImageView VKCORE::CreateImageView(VkImage& Image, VkFormat Format,VkImageViewType ViewType, VkImageAspectFlags AspectMask, VkDevice& LogicalDevice,uint32_t LayerCount,uint32_t BaseArrayLayer)
 {
     VkImageViewCreateInfo ImageViewCreateInfo{};
     ImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -10,10 +10,10 @@ VkImageView VKCORE::CreateImageView(VkImage& Image, VkFormat Format, VkImageAspe
     ImageViewCreateInfo.image = Image;
     ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
     ImageViewCreateInfo.subresourceRange.levelCount = 1;
-    ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    ImageViewCreateInfo.subresourceRange.layerCount = 1;
+    ImageViewCreateInfo.subresourceRange.baseArrayLayer = BaseArrayLayer;
+    ImageViewCreateInfo.subresourceRange.layerCount = LayerCount;
     ImageViewCreateInfo.subresourceRange.aspectMask = AspectMask;
-    ImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    ImageViewCreateInfo.viewType = ViewType;
 
     ImageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
     ImageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -41,6 +41,7 @@ VKCORE::VulkanResult VKCORE::CreateSwapChainImageViews(
         swapChainImageViews[i] = VKCORE::CreateImageView(
             swapChainImages[i],
             surfaceFormat,
+            VK_IMAGE_VIEW_TYPE_2D,
             VK_IMAGE_ASPECT_COLOR_BIT,
             logicalDevice
         );

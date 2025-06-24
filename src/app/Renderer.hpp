@@ -25,6 +25,7 @@
 #include "../vkscene/Scene.hpp"
 #include "../vkscene/Mesh.hpp"
 #include "../vkscene/Camera.hpp"
+#include "../vkscene/Cubemap.hpp"
 
 #include "GeometryBuffer.hpp"
 #include "RendererContext.hpp"
@@ -90,8 +91,6 @@ namespace VKAPP
 
         std::vector<VKCORE::FrameSyncObjects> SyncObjects;
         uint32_t CurrentFrame = 0;
-
-        VKCORE::Buffer QuadVertexBuffer{};
     private:
         void InitializePipelines();
         void OnRecreateSwapChain();

@@ -18,9 +18,22 @@ namespace VKCORE
 
 	VkFormat FindSupportedFormat(VkPhysicalDevice& PhysicalDevice,const std::vector<VkFormat>& Candidates, VkImageTiling Tiling, VkFormatFeatureFlags Features);
 	void CopyBufferToImage(VkCommandBuffer& DstCommandBuffer, VkBuffer& SrcBuffer, VkImage& DstImage, uint32_t Width, uint32_t Height);
-    void CreateImage(VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, const uint32_t& Width, const uint32_t& Height, VkImageTiling Tiling, VkFormat Format, VkImageUsageFlags Usage, VkMemoryPropertyFlags Properties, VkImage& Image, VkDeviceMemory& ImageMemory);
+	void CreateImage(
+		VkPhysicalDevice& PhysicalDevice,
+		VkDevice& LogicalDevice,
+		const uint32_t& Width,
+		const uint32_t& Height,
+		VkImageTiling Tiling,
+		VkFormat Format,
+		VkImageUsageFlags Usage,
+		VkMemoryPropertyFlags Properties,
+		VkImage& Image,
+		VkDeviceMemory& ImageMemory,
+		uint32_t LayerCount = 1,
+		VkImageCreateFlags Flags = 0
+	);
     void TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkAccessFlags SrcAccessMask,
-        VkAccessFlags DstAccessMask, VkPipelineStageFlags SrcStage, VkPipelineStageFlags DstStage, VkImageAspectFlags AspectMask);
+        VkAccessFlags DstAccessMask, VkPipelineStageFlags SrcStage, VkPipelineStageFlags DstStage, VkImageAspectFlags AspectMask, uint32_t LayerCount = 1);
     void CreateTextureSampler(VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkSampler& DestinationSampler, VkFilter Filter, VkSamplerAddressMode AddressMode);
 	void CreateTextureImage(const char* ImageFilePath, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture);
 }

@@ -15,14 +15,6 @@
 #include <queue>
 #include <future>
 
-static float QuadVertices[] = {
-    // positions        // texture Coords
-    -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-     1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-     1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-};
-
 struct LightingPassUBOdata
 {
     glm::vec4 CameraDirection;
@@ -122,7 +114,7 @@ void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,boo
         VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     VKCORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage.Image, DepthImage.ImageMemory);
-    DepthImage.ImageView = VKCORE::CreateImageView(DepthImage.Image, DepthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
+    DepthImage.ImageView = VKCORE::CreateImageView(DepthImage.Image, DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
 
     InitializePipelines();
 
@@ -130,17 +122,6 @@ void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,boo
     SyncObject.FenceCreateFlag = VK_FENCE_CREATE_SIGNALED_BIT;
     SyncObjects.resize(MAX_FRAMES_IN_FLIGHT, SyncObject);
     VKCORE::AllocateFrameSyncObjects(LogicalDevice, SyncObjects);
-
-    VKCORE::UploadDataToDeviceLocalBuffer(
-        LogicalDevice,
-        PhysicalDevice,
-        rendererContext->CommandPool.commandPool,
-        rendererContext->DeviceContext.GraphicsQueue,
-        QuadVertices,
-        sizeof(QuadVertices),
-        QuadVertexBuffer,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-    );
 
     if (EnablePhysicsDebugDrawing)
     {
@@ -350,7 +331,7 @@ void VKAPP::Renderer::RenderLightingPass(VKSCENE::Scene &Scene,VKSCENE::Camera3D
 
     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, LightingGraphicsPipeline.pipeline);
 
-    VkBuffer VertexBuffers[] = { QuadVertexBuffer.BufferObject };
+    VkBuffer VertexBuffers[] = { rendererContext->QuadVertexBuffer.BufferObject };
     VkDeviceSize Offsets[] = { 0 };
     vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, Offsets);
     VkDescriptorSet DescriptorSets[] = { LightingPassDescriptorSets[CurrentFrame],Scene.DescriptorSets[CurrentFrame] };
@@ -441,16 +422,11 @@ void VKAPP::Renderer::InitializePipelines()
     PipelineCreateInfo.PushConstantRanges = { PushConstantRange };
     GbufferGraphicsPipeline.Create(PipelineCreateInfo, LogicalDevice);
 
-    VKCORE::VertexInputDescription QuadVertexDescription{};
-    QuadVertexDescription.SetBindingDescription(0, sizeof(float) * 5, VK_VERTEX_INPUT_RATE_VERTEX);
-    QuadVertexDescription.AppendAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
-    QuadVertexDescription.AppendAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3);
-
     PipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
     PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R8G8B8A8_SRGB };
     PipelineCreateInfo.ShaderModules = { {&LightingVertexShaderModule,VK_SHADER_STAGE_VERTEX_BIT} ,{&LightingFragmentShaderModule,VK_SHADER_STAGE_FRAGMENT_BIT} };
-    PipelineCreateInfo.AttributeDescriptions = QuadVertexDescription.AttributeDescriptions;
-    PipelineCreateInfo.BindingDescription = QuadVertexDescription.BindingDescription;
+    PipelineCreateInfo.AttributeDescriptions = rendererContext->QuadVertexDescription.AttributeDescriptions;
+    PipelineCreateInfo.BindingDescription = rendererContext->QuadVertexDescription.BindingDescription;
     PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
     PipelineCreateInfo.EnableDepthTesting = VK_FALSE;
     PipelineCreateInfo.EnableDepthWriting = VK_FALSE;
@@ -499,7 +475,7 @@ void VKAPP::Renderer::OnRecreateSwapChain() {
 
     VKCORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage.Image, DepthImage.ImageMemory);
-    DepthImage.ImageView = VKCORE::CreateImageView(DepthImage.Image, DepthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
+    DepthImage.ImageView = VKCORE::CreateImageView(DepthImage.Image, DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
 
     for (auto& Gbuffer : Gbuffers)
     {
@@ -543,7 +519,6 @@ void VKAPP::Renderer::Destroy()
         }
     }
     descriptorPool.Destroy(LogicalDevice);
-    QuadVertexBuffer.Destroy(LogicalDevice);
     LightingGraphicsPipeline.Destroy(LogicalDevice);
     GbufferGraphicsPipeline.Destroy(LogicalDevice);
     PhysicsDebugGraphicsPipeline.Destroy(LogicalDevice);

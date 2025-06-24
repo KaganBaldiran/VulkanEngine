@@ -4,6 +4,7 @@
 #include "Camera.hpp"
 #include "Mesh.hpp"
 #include "../app/RendererContext.hpp"
+#include "Cubemap.hpp"
 
 void VKSCENE::MeshImporter::AppendImportTask(ModelImportInfo ImportInfo)
 {
@@ -42,7 +43,8 @@ void VKSCENE::Scene::Create(VKAPP::RendererContext& RendererContext)
 {
     //Light SSBO descriptor set
     DescriptorPool.Create(
-        { {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,2 * MAX_FRAMES_IN_FLIGHT} },
+        { {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,2 * MAX_FRAMES_IN_FLIGHT},
+         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,MAX_FRAMES_IN_FLIGHT} },
         MAX_FRAMES_IN_FLIGHT, RendererContext.DeviceContext.logicalDevice
     );
 
@@ -55,6 +57,16 @@ void VKSCENE::Scene::Destroy(VKAPP::RendererContext& RendererContext)
     DescriptorPool.Destroy(RendererContext.DeviceContext.logicalDevice);
     DestroyMeshBuffers(RendererContext);
     DestroyLightBuffers(RendererContext);
+}
+
+void VKSCENE::Scene::SetCubemap(Cubemap& DestinationCubeMap, VKAPP::RendererContext& RendererContext)
+{
+    SceneCubeMap = &DestinationCubeMap;
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        VKCORE::DescriptorSetWriteImage CubemapTextureWrite(SceneCubeMap->SampleImageView, SceneCubeMap->Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        VKCORE::WriteDescriptorSets(RendererContext.DeviceContext.logicalDevice, {}, { CubemapTextureWrite });
+    }
 }
 
 void VKSCENE::Scene::UpdateDynamicLightBuffers()
