@@ -186,6 +186,7 @@ VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
 
     VkPhysicalDeviceFeatures DeviceFeatures{};
     DeviceFeatures.samplerAnisotropy = VK_TRUE;
+    DeviceFeatures.multiDrawIndirect = VK_TRUE;
 
     VkDeviceCreateInfo DeviceCreateInfo{};
     DeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

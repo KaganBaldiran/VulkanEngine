@@ -3,8 +3,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "SceneResource.hpp"
+
 namespace VKSCENE
 {
+	//Forward Declaration
+	class ResourceDependencyManager;
+
 	enum LightType
 	{
 		DIRECTIONAL_LIGHT = 0,
@@ -19,8 +24,13 @@ namespace VKSCENE
 		LightType Type = DIRECTIONAL_LIGHT;
 	};
 
-	struct Light
+	class Light : public SceneResource
 	{
+	public:
+		Light(ResourceDependencyManager& DependencyManager);
+		Light() = default;
+		void Create(ResourceDependencyManager& DependencyManager);
+
 		LightData Data;
 		bool Updated = false;
 

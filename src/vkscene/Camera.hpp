@@ -2,6 +2,9 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "SceneResource.hpp"
+
 namespace VKCORE
 {
 	//Forward Declarations
@@ -10,12 +13,15 @@ namespace VKCORE
 
 namespace VKSCENE
 {
-	class Camera3D
+	//Forward Declarations
+	class ResourceDependencyManager;
+
+	class Camera3D : public SceneResource
 	{
 	public:
-		Camera3D(VKCORE::Window &window);
+		Camera3D(VKCORE::Window &window , ResourceDependencyManager& DependencyManager);
 		Camera3D() = default;
-		void Create(VKCORE::Window& window);
+		void Create(VKCORE::Window& window,ResourceDependencyManager& DependencyManager);
 		void Update(VKCORE::Window &window,float Sensitivity,float DeltaTime);
 		void UpdateMatrix(glm::vec2 Extent);
 		glm::vec3 CameraPosition;

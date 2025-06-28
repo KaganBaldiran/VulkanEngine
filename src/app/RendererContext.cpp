@@ -90,10 +90,15 @@ void VKAPP::RendererContext::Create(bool EnableValidationLayers)
 
     //Layout needed for the scene descriptor sets
     SceneDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 0, VK_SHADER_STAGE_FRAGMENT_BIT);
-    SceneDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
+    SceneDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
     SceneDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 2, VK_SHADER_STAGE_FRAGMENT_BIT);
     SceneDescriptorSetLayout.CreateLayout(DeviceContext.logicalDevice);
     SceneDescriptorSetLayouts.resize(MAX_FRAMES_IN_FLIGHT, SceneDescriptorSetLayout.descriptorSetLayout);
+
+    //Layout needed for the indirect descriptor sets
+    IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 0, VK_SHADER_STAGE_VERTEX_BIT);
+    IndirectDescriptorSetLayout.CreateLayout(DeviceContext.logicalDevice);
+    IndirectDescriptorSetLayouts.resize(MAX_FRAMES_IN_FLIGHT, IndirectDescriptorSetLayout.descriptorSetLayout);
 
     //Quad buffer
     VKCORE::UploadDataToDeviceLocalBuffer(
@@ -127,9 +132,11 @@ void VKAPP::RendererContext::Destroy()
     HDRIrenderPassLayout.Destroy(DeviceContext.logicalDevice);
     HDRIrenderPassDescriptorPool.Destroy(DeviceContext.logicalDevice);
     HDRIrenderGraphicsPipeline.Destroy(DeviceContext.logicalDevice);
+    HDRIconvoluteGraphicsPipeline.Destroy(DeviceContext.logicalDevice);
     QuadVertexBuffer.Destroy(DeviceContext.logicalDevice);
     CubeVertexBuffer.Destroy(DeviceContext.logicalDevice);
     SceneDescriptorSetLayout.Destroy(DeviceContext.logicalDevice);
+    IndirectDescriptorSetLayout.Destroy(DeviceContext.logicalDevice);
     CommandPool.Destroy(DeviceContext.logicalDevice);
     Surface.Destroy(Instance.instance);
     SwapChain.Destroy(DeviceContext.logicalDevice);
@@ -187,7 +194,7 @@ void VKAPP::RendererContext::CreateHDRIrenderPassResources()
     PipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
     PipelineCreateInfo.ShaderModules = { {&HDRIrenderVertexShader,VK_SHADER_STAGE_VERTEX_BIT} ,{&HDRIrenderFragmentShader,VK_SHADER_STAGE_FRAGMENT_BIT} };
     PipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
-    PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R32G32B32A32_SFLOAT };
+    PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R16G16B16A16_SFLOAT };
     PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
     PipelineCreateInfo.EnableDepthTesting = VK_FALSE;
     PipelineCreateInfo.EnableDepthWriting = VK_FALSE;
@@ -204,4 +211,15 @@ void VKAPP::RendererContext::CreateHDRIrenderPassResources()
 
     HDRIrenderVertexShader.Destroy(DeviceContext.logicalDevice);
     HDRIrenderFragmentShader.Destroy(DeviceContext.logicalDevice);
+
+    //HDRI convolution pass pipeline
+    VKCORE::ShaderModule HDRIconvolutionVertexShader("shaders\\HDRIconvolutionShader.vert", "shaders\\HDRIconvolutionVertexShader.spv", true, DeviceContext.logicalDevice);
+    VKCORE::ShaderModule HDRIconvolutionFragmentShader("shaders\\HDRIconvolutionShader.frag", "shaders\\HDRIconvolutionFragmentShader.spv", true, DeviceContext.logicalDevice);
+
+    PipelineCreateInfo.ShaderModules = { {&HDRIconvolutionVertexShader,VK_SHADER_STAGE_VERTEX_BIT} ,{&HDRIconvolutionFragmentShader,VK_SHADER_STAGE_FRAGMENT_BIT} };
+    PipelineCreateInfo.PushConstantRanges = {};
+    HDRIconvoluteGraphicsPipeline.Create(PipelineCreateInfo, DeviceContext.logicalDevice);
+
+    HDRIconvolutionVertexShader.Destroy(DeviceContext.logicalDevice);
+    HDRIconvolutionFragmentShader.Destroy(DeviceContext.logicalDevice);
 };

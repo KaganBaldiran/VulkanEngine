@@ -15,14 +15,15 @@ layout(binding = 0,set = 0) uniform Matrixes{
     mat4 ProjectionMatrix;
 };
 
-layout(push_constant) uniform PushConstants {
-    mat4 ModelMatrix;
-} PC;
+layout(std140,binding = 0,set = 1) readonly buffer ModelMatrixesBuffer{
+    mat4 ModelMatrixes[];
+};
 
 void main() {
-    vec4 Pos = ProjectionMatrix * ViewMatrix * PC.ModelMatrix * vec4(InPosition.xyz, 1.0);
+    mat4 ModelMatrix = ModelMatrixes[gl_InstanceIndex];
+    vec4 Pos = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(InPosition.xyz, 1.0);
     OutPosition = InPosition.xyz;
     gl_Position = Pos;
-    OutNormals = normalize(transpose(inverse(mat3(PC.ModelMatrix))) * Normals);
+    OutNormals = normalize(transpose(inverse(mat3(ModelMatrix))) * Normals);
     OutUVcoords = UVcoords;
 }

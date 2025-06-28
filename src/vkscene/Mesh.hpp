@@ -8,6 +8,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+#include <future>
+#include <queue>
 
 namespace VKSCENE
 {
@@ -58,6 +60,22 @@ namespace VKSCENE
     {
         std::vector<Mesh> Meshes;
         Transformation transformation;
+    };
+
+    struct ModelImportInfo
+    {
+        VKSCENE::Model3D* DestinationModel;
+        const char* ModelFilePath;
+    };
+
+    struct MeshImporter
+    {
+        void AppendImportTask(ModelImportInfo ImportInfo);
+        void SubmitImport();
+        void WaitImportIdle();
+        std::vector<std::future<void>> Futures;
+        std::queue<ModelImportInfo> ImportQueue;
+        double StartingTime;
     };
 
     struct BatchInfo

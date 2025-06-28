@@ -143,7 +143,7 @@ void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,boo
     }
 }
 
-void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene,VKSCENE::Camera3D& Camera)
+void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene)
 {
     auto RenderTask = [&](VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame) {
         VkCommandBufferBeginInfo CommandBufferBeginInfo{};
@@ -171,8 +171,8 @@ void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene,VKSCENE::Camera3D& Camer
         vkCmdSetScissor(CommandBuffer, 0, 1, &Scissor);
 
         Matrixes MatrixUBO;
-        MatrixUBO.ViewMatrix = Camera.ViewMatrix;
-        MatrixUBO.ProjectionMatrix = Camera.ProjectionMatrix;
+        MatrixUBO.ViewMatrix = Scene.Camera->ViewMatrix;
+        MatrixUBO.ProjectionMatrix = Scene.Camera->ProjectionMatrix;
         memcpy(UBOmapped[CurrentFrame], &MatrixUBO, sizeof(MatrixUBO));
 
         if (!Scene.Entities.empty())
@@ -186,7 +186,7 @@ void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene,VKSCENE::Camera3D& Camer
             VKCORE::TransitionImageLayout(CommandBuffer, DepthImage.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, 0,
                 VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-            RenderGeometryPass(Scene, Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
+            RenderGeometryPass(Scene, *Scene.Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
 
             VKCORE::TransitionImageLayout(CommandBuffer, Gbuffers[CurrentFrame].NormalAttachment.Image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                 VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -198,15 +198,15 @@ void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene,VKSCENE::Camera3D& Camer
                 VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 
             LightingPassUBOdata lightingPassUboData{};
-            lightingPassUboData.CameraDirection = glm::vec4(Camera.CameraDirection, 1.0f);
-            lightingPassUboData.CameraPosition = glm::vec4(Camera.CameraPosition, 1.0f);
+            lightingPassUboData.CameraDirection = glm::vec4(Scene.Camera->CameraDirection, 1.0f);
+            lightingPassUboData.CameraPosition = glm::vec4(Scene.Camera->CameraPosition, 1.0f);
             lightingPassUboData.StaticLightCount = static_cast<int>(Scene.StaticLights.size());
             lightingPassUboData.DynamicLightCount = static_cast<int>(Scene.DynamicLights.size());
             memcpy(LightingPassUBOs[CurrentFrame].MappedMemory, &lightingPassUboData, sizeof(LightingPassUBOdata));
 
-            RenderLightingPass(Scene,Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
+            RenderLightingPass(Scene, *Scene.Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
         }
-        if (EnablePhysicsDebugDrawing) RenderPhysicsDebugPass(Scene, Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
+        if (EnablePhysicsDebugDrawing) RenderPhysicsDebugPass(Scene, *Scene.Camera, CommandBuffer, CurrentImageIndex, CurrentFrame);
 
         VKCORE::TransitionImageLayout(CommandBuffer, rendererContext->SwapChain.SwapChainImages[CurrentImageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -283,8 +283,10 @@ void VKAPP::Renderer::RenderGeometryPass(
     vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, Offsets);
     vkCmdBindIndexBuffer(CommandBuffer, Scene.SceneIndexBuffer.BufferObject, 0, VK_INDEX_TYPE_UINT32);
 
-    vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GbufferGraphicsPipeline.Layout,0,1,&GbufferPassDescriptorSets[CurrentFrame],0,nullptr);
+    VkDescriptorSet DescriptorSets[] = { GbufferPassDescriptorSets[CurrentFrame],Scene.IndirectDescriptorSets[CurrentFrame] };
+    vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GbufferGraphicsPipeline.Layout,0,2,DescriptorSets,0,nullptr);
 
+    /*
     for (auto& Entity : Scene.Entities)
     {
         auto& Model = Entity->Model;
@@ -309,6 +311,15 @@ void VKAPP::Renderer::RenderGeometryPass(
             );
         }
     }
+    */
+
+    vkCmdDrawIndexedIndirect(
+        CommandBuffer,
+        Scene.SceneIndirectCommandBuffer.BufferObject,
+        0,
+        Scene.EnabledMeshCount,
+        sizeof(VkDrawIndexedIndirectCommand)
+    );
 
     RenderingPass.EndRendering(CommandBuffer);
 }
@@ -334,7 +345,7 @@ void VKAPP::Renderer::RenderLightingPass(VKSCENE::Scene &Scene,VKSCENE::Camera3D
     VkBuffer VertexBuffers[] = { rendererContext->QuadVertexBuffer.BufferObject };
     VkDeviceSize Offsets[] = { 0 };
     vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, Offsets);
-    VkDescriptorSet DescriptorSets[] = { LightingPassDescriptorSets[CurrentFrame],Scene.DescriptorSets[CurrentFrame] };
+    VkDescriptorSet DescriptorSets[] = { LightingPassDescriptorSets[CurrentFrame],Scene.SceneDescriptorSets[CurrentFrame] };
     vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, LightingGraphicsPipeline.Layout, 0, 2, DescriptorSets, 0, nullptr);
 
     vkCmdDraw(CommandBuffer,4,1,0,0);
@@ -418,8 +429,8 @@ void VKAPP::Renderer::InitializePipelines()
     PipelineCreateInfo.ViewportMaxDepth = 1.0f;
     PipelineCreateInfo.AttributeDescriptions = VKSCENE::Vertex3D::GetAttributeDescriptions();
     PipelineCreateInfo.BindingDescription = VKSCENE::Vertex3D::GetBindingDescription();
-    PipelineCreateInfo.DescriptorSetLayouts = { GbufferPassLayout.descriptorSetLayout };
-    PipelineCreateInfo.PushConstantRanges = { PushConstantRange };
+    PipelineCreateInfo.DescriptorSetLayouts = { GbufferPassLayout.descriptorSetLayout,rendererContext->IndirectDescriptorSetLayout.descriptorSetLayout};
+    PipelineCreateInfo.PushConstantRanges = {};
     GbufferGraphicsPipeline.Create(PipelineCreateInfo, LogicalDevice);
 
     PipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;

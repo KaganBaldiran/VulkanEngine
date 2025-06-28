@@ -22,11 +22,11 @@ struct Light
 	int Type;
 };
 
-layout(std140 ,set = 1,binding = 0) buffer StaticLightBuffers{
+layout(std140 ,set = 1,binding = 0) readonly buffer StaticLightBuffers{
     Light StaticLights[];
 };
 
-layout(std140 ,set = 1,binding = 1) buffer DynamicLightBuffers{
+layout(std140 ,set = 1,binding = 1) readonly buffer DynamicLightBuffers{
     Light DynamicLights[];
 };
 
@@ -97,7 +97,7 @@ vec3 CookTorranceBRDF(vec3 Normal, vec3 ViewDirection,vec3 Position,vec3 LightDi
        L = normalize(LightDirection - Position);    
     }
 
-    float NdotL = dot(Normal, LightDirection);
+    float NdotL = dot(Normal, L);
     if (NdotL <= 0.0)
         return vec3(0.0);
 
@@ -119,24 +119,23 @@ vec3 CookTorranceBRDF(vec3 Normal, vec3 ViewDirection,vec3 Position,vec3 LightDi
 void main() {
     vec4 Normal = texture(NormalBuffer,OutUVcoords);
     float Alpha = Normal.w;
-   //if(Alpha <= 0.0f) discard;
+    if(Alpha <= 0.0f) discard;
     vec3 Position = texture(PositionBuffer,OutUVcoords).xyz;
 
-    const vec3 LightDirections[2] = {vec3(0.3f,0.8f,0.0f),vec3(0.7f,0.2f,0.5f)};
-    const vec3 LightColors[2] = {vec3(0.3f,0.8f,0.7f),vec3(0.9f,0.9f,0.9f)};
-
+    vec3 N = normalize(Normal.xyz);
     vec3 V = normalize(CameraPosition.xyz - Position);
     vec3 Lo = vec3(0.0f);
+
+    vec3 Albedo = vec3(1.0f);
+    float Roughness = 0.5f;
+    float Metallic = 0.0f;
+
     Light CurrentLight;
-
-    
-
-
     for(int i=0;i < StaticLightCount;i++)
     {
        CurrentLight = StaticLights[i];
        Lo += CookTorranceBRDF(
-                Normal.xyz, 
+                N, 
                 V,
                 Position,
                 CurrentLight.PositionOrDirection.xyz,
@@ -145,14 +144,14 @@ void main() {
                 0.5f,
                 0.0f,
                 vec3(1.0f),
-                0.04f
+                1.5f
             );
     }
     for(int i=0;i < DynamicLightCount;i++)
     {
        CurrentLight = DynamicLights[i];
        Lo += CookTorranceBRDF(
-                Normal.xyz, 
+                N, 
                 V,
                 Position,
                 CurrentLight.PositionOrDirection.xyz,
@@ -161,12 +160,17 @@ void main() {
                 0.5f,
                 0.0f,
                 vec3(1.0f),
-                0.04f
+                1.5f
        );   
     }
-    float AmbientLight = 0.2f;
+    //vec3 I = normalize(Position.xyz - CameraPosition.xyz);
+    //vec3 R = reflect(I, normalize(Normal.xyz));
+    vec3 F0 = mix(vec3(0.04f), Albedo, Metallic);
+    vec3 FresnelSpecular = fresnelSchlickRoughness(max(dot(N,V),0.0f),F0,Roughness);
+    vec3 FresnelDiffuse = (1.0 - FresnelSpecular) * (1.0 - Metallic);
+    vec3 Irradiance = texture(Cubemap,N).xyz;
+    vec3 Diffuse = Irradiance * Albedo;
+    vec3 Ambient = (FresnelDiffuse * Diffuse);
+    outColor = vec4(Ambient + Lo,1.0f);
     //outColor = vec4(vec3(Lo),1.0f);
-    vec3 I = normalize(Position.xyz - CameraPosition.xyz);
-    vec3 R = reflect(I, normalize(Normal.xyz));
-    outColor = vec4(texture(Cubemap,normalize(R)).xyz,1.0f);
 }

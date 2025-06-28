@@ -1,12 +1,14 @@
 #include "Camera.hpp"
 #include "../vkcore/VulkanWindow.hpp"
 
-VKSCENE::Camera3D::Camera3D(VKCORE::Window& window)
+#include "DependencyManager.hpp"
+
+VKSCENE::Camera3D::Camera3D(VKCORE::Window& window, ResourceDependencyManager& DependencyManager)
 {
-    Create(window);
+    Create(window, DependencyManager);
 }
 
-void VKSCENE::Camera3D::Create(VKCORE::Window& window)
+void VKSCENE::Camera3D::Create(VKCORE::Window& window, ResourceDependencyManager& DependencyManager)
 {
     CameraPosition = { 0.0f,0.0f,0.0f };
     CameraDirection = { 0.0f,0.0f,-1.0f };
@@ -22,6 +24,9 @@ void VKSCENE::Camera3D::Create(VKCORE::Window& window)
     AllowPressExit = true;
     FirstTurn = true;
     AllowMove = glm::vec4(1.0f);
+
+    this->dependencyManager = &DependencyManager;
+    resourceType = RESOURCE_TYPE_CAMERA;
 }
 
 void VKSCENE::Camera3D::Update(VKCORE::Window& window,float Sensitivity,float DeltaTime)

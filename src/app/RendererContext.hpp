@@ -48,11 +48,15 @@ namespace VKAPP
         VKCORE::DescriptorSetLayout SceneDescriptorSetLayout;
         std::vector<VkDescriptorSetLayout> SceneDescriptorSetLayouts;
 
+        VKCORE::DescriptorSetLayout IndirectDescriptorSetLayout;
+        std::vector<VkDescriptorSetLayout> IndirectDescriptorSetLayouts;
+
         VKCORE::DescriptorPool HDRIrenderPassDescriptorPool;
         VKCORE::DescriptorSetLayout HDRIrenderPassLayout;
         std::vector<VkDescriptorSet> HDRIrenderPassDescriptorSets;
 
         VKCORE::GraphicsPipeline HDRIrenderGraphicsPipeline;
+        VKCORE::GraphicsPipeline HDRIconvoluteGraphicsPipeline;
         VKCORE::VertexInputDescription QuadVertexDescription{};
         VKCORE::VertexInputDescription CubeVertexDescription{};
 

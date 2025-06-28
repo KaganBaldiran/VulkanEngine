@@ -14,6 +14,7 @@
 #include "../vkcore/VulkanDescriptorSetLayout.hpp"
 
 #include "Light.hpp"
+#include "Entity.hpp"
 
 namespace VKCORE
 {
@@ -33,30 +34,7 @@ namespace VKSCENE
 	//Forward Declarations
 	class Camera3D;
 	class Cubemap;
-
-	struct ModelImportInfo
-	{
-		VKSCENE::Model3D* DestinationModel;
-		const char* ModelFilePath;
-	};
-
-	struct MeshImporter
-	{
-		void AppendImportTask(ModelImportInfo ImportInfo);
-		void SubmitImport();
-		void WaitImportIdle();
-		std::vector<std::future<void>> Futures;
-		std::queue<ModelImportInfo> ImportQueue;
-		double StartingTime;
-	};
-
-	class Entity
-	{
-	public:
-		std::string Name;
-		VKSCENE::Model3D Model;
-	private:
-	};
+	class SceneResource;
 
 	/// <summary>
 	/// Represents a 3D scene containing entities and lights, and manages related GPU resources for rendering.
@@ -64,38 +42,59 @@ namespace VKSCENE
 	class Scene
 	{
 		friend class VKAPP::Renderer;
+		friend class ResourceDependencyManager;
 	public:
-		Scene() = default;
 		Scene(VKAPP::RendererContext& RendererContext);
+		Scene() = default;
 		void Create(VKAPP::RendererContext& RendererContext);
-		void Destroy(VKAPP::RendererContext& RendererContext);
+		void Destroy();
 
-		std::vector<Entity*> Entities;
-		std::vector<Light*> StaticLights;
-		std::vector<Light*> DynamicLights;
+		//std::vector<Entity*> Entities;
+		//std::vector<Light*> StaticLights;
+		//std::vector<Light*> DynamicLights;
+
+		std::unordered_map<uint64_t, Entity*> Entities;
+		std::unordered_map<uint64_t, Light*> StaticLights;
+		std::unordered_map<uint64_t, Light*> DynamicLights;
+
 		VKPHYSICS::DebugDrawer* DebugDrawer = nullptr;
-		void SetCubemap(Cubemap& DestinationCubeMap,VKAPP::RendererContext& RendererContext);
+		void SetCubemap(Cubemap& DestinationCubeMap);
+		void SetCamera(Camera3D &Camera);
+
 		Cubemap* SceneCubeMap;
+		Camera3D* Camera;
 
 		void UpdateDynamicLightBuffers();
 		void UpdateDynamicFrameLightBuffers(uint32_t CurrentFrame);
-		void UpdateStaticLightBuffers(VKAPP::RendererContext& RendererContext);
-		void UpdateStaticFrameLightBuffers(VKAPP::RendererContext& RendererContext, uint32_t CurrentFrame);
-		void CreateMeshBuffers(VKAPP::RendererContext &RendererContext);
-		void UpdateMeshBuffers(VKAPP::RendererContext& RendererContext);
-		void CreateLightBuffers(VKAPP::RendererContext &RendererContext,uint32_t MaxStaticLightCount, uint32_t MaxDynamicLightCount);
-		void DestroyMeshBuffers(VKAPP::RendererContext& RendererContext);
-		void DestroyLightBuffers(VKAPP::RendererContext& RendererContext);
+		void UpdateStaticLightBuffers();
+		void UpdateStaticFrameLightBuffers(uint32_t CurrentFrame);
+		void CreateMeshBuffers();
+		void UpdateMeshBuffers();
+		void CreateLightBuffers(uint32_t MaxStaticLightCount, uint32_t MaxDynamicLightCount);
+		void DestroyMeshBuffers();
+		void DestroyLightBuffers();
+		void UpdateMeshTransformations(uint32_t CurrentFrame);
 
+		bool DrawCubeMap;
 	private:
 		VKCORE::Buffer SceneIndexBuffer{};
 		VKCORE::Buffer SceneVertexBuffer{};
+		VKCORE::Buffer SceneIndirectCommandBuffer{};
+		std::vector<VKCORE::PersistentBuffer> SceneModelMatricesBuffer{};
 
 		std::vector<VKCORE::PersistentBuffer> DynamicLightSSBO{};
 		std::vector<VKCORE::Buffer> StaticLightSSBO{};
 		VKCORE::PersistentBuffer StaticLightStagingBuffer{};
 
 		VKCORE::DescriptorPool DescriptorPool;
-		std::vector<VkDescriptorSet> DescriptorSets;
+		std::vector<VkDescriptorSet> SceneDescriptorSets;
+
+		std::vector<VkDescriptorSet> IndirectDescriptorSets;
+
+		uint32_t EnabledMeshCount;
+		std::vector<VKSCENE::Model3D*> Models;
+
+		VKAPP::RendererContext* RendererContext;
+		VKSCENE::ResourceDependencyManager* DependencyManager = nullptr;
 	};
 }

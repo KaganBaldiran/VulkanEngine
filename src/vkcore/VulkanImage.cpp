@@ -79,7 +79,7 @@ void VKCORE::CreateImage(
 }
 
 void VKCORE::TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkAccessFlags SrcAccessMask,
-    VkAccessFlags DstAccessMask, VkPipelineStageFlags SrcStage, VkPipelineStageFlags DstStage, VkImageAspectFlags AspectMask,uint32_t LayerCount)
+    VkAccessFlags DstAccessMask, VkPipelineStageFlags SrcStage, VkPipelineStageFlags DstStage, VkImageAspectFlags AspectMask,uint32_t LayerCount,uint32_t BaseArrayLayer)
 {
     VkImageMemoryBarrier ImageBarrier{};
     ImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -91,7 +91,7 @@ void VKCORE::TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& I
     ImageBarrier.subresourceRange.aspectMask = AspectMask;
     ImageBarrier.subresourceRange.baseMipLevel = 0;
     ImageBarrier.subresourceRange.levelCount = 1;
-    ImageBarrier.subresourceRange.baseArrayLayer = 0;
+    ImageBarrier.subresourceRange.baseArrayLayer = BaseArrayLayer;
     ImageBarrier.subresourceRange.layerCount = LayerCount;
     ImageBarrier.srcAccessMask = SrcAccessMask;
     ImageBarrier.dstAccessMask = DstAccessMask;

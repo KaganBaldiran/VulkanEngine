@@ -49,7 +49,7 @@ namespace VKAPP
     {
     public:
         void Initialize(RendererContext& DestinationRendererContext,bool EnablePhysicsDebugDrawing);
-        void RenderFrame(VKSCENE::Scene &Scene,VKSCENE::Camera3D &Camera);
+        void RenderFrame(VKSCENE::Scene &Scene);
         void Destroy();
 
         bool EnablePhysicsDebugDrawing;

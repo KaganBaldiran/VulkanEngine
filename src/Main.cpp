@@ -1,4 +1,5 @@
 #include "app/Renderer.hpp"
+#include "vkscene/DependencyManager.hpp"
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -43,8 +44,10 @@ int main()
         VKAPP::Renderer Renderer;
         Renderer.Initialize(RendererContext,false);
 
-        VKSCENE::Entity Sponza;
-        VKSCENE::Entity Shovel;
+        VKSCENE::ResourceDependencyManager DependencyManager(RendererContext);
+
+        VKSCENE::Entity Sponza(DependencyManager);
+        VKSCENE::Entity Shovel(DependencyManager);
 
         VKSCENE::MeshImporter Importer;
         Importer.AppendImportTask({ &Sponza.Model , "resources\\sponza.obj" });
@@ -55,44 +58,49 @@ int main()
         Sponza.Model.transformation.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
         Shovel.Model.transformation.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
 
-        VKSCENE::Camera3D Camera(RendererContext.Window);
-        VKSCENE::Cubemap Cubemap0(RendererContext,1024, 1024);
+        VKSCENE::Camera3D Camera(RendererContext.Window,DependencyManager);
+        VKSCENE::Cubemap Cubemap0(RendererContext,DependencyManager,1024, 1024);
         VKSCENE::ImportHDRI("resources\\boma_4k.hdr", Cubemap0, RendererContext);
 
-        VKSCENE::Light Light0;
-        Light0.SetColor(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        Light0.SetIntensity(5.0f);
-        Light0.SetDirection(glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
+        VKSCENE::Cubemap Cubemap1(RendererContext,DependencyManager,1024, 1024);
+        VKSCENE::ImportHDRI("resources\\rustig_koppie_puresky_2k.hdr", Cubemap1, RendererContext);
+
+        VKSCENE::Light Light0(DependencyManager);
+        Light0.SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        Light0.SetIntensity(1.0f);
+        Light0.SetDirection(glm::vec4(0.0f, 1.0f, 0.7f, 0.0f));
         Light0.SetType(VKSCENE::DIRECTIONAL_LIGHT);
 
-        VKSCENE::Light Light1;
+        VKSCENE::Light Light1(DependencyManager);
         Light1.SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
         Light1.SetIntensity(5.0f);
         Light1.SetDirection(glm::vec4(0.3f, 0.5f, 0.0f, 0.0f));
         Light1.SetType(VKSCENE::DIRECTIONAL_LIGHT);
 
-        VKSCENE::Light Light2;
+        VKSCENE::Light Light2(DependencyManager);
         Light2.SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-        Light2.SetIntensity(5.0f);
+        Light2.SetIntensity(1.0f);
         Light2.SetDirection(glm::vec4(0.8f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
         Light2.SetType(VKSCENE::DIRECTIONAL_LIGHT);
 
         VKSCENE::Scene Scene0;
         Scene0.Create(RendererContext);
-        Scene0.Entities.push_back(&Sponza);
-        Scene0.Entities.push_back(&Shovel);
+        Scene0.CreateLightBuffers(2, 1);
+
+        DependencyManager.LinkSceneResource(Sponza, Scene0);
+        DependencyManager.LinkSceneResource(Shovel, Scene0);
         
-        Scene0.CreateLightBuffers(RendererContext, 2, 1);
-        Scene0.CreateMeshBuffers(RendererContext);
+        Scene0.CreateMeshBuffers();
 
-        Scene0.StaticLights.push_back(&Light0);
-        Scene0.StaticLights.push_back(&Light1);
-        Scene0.UpdateStaticLightBuffers(RendererContext);
+        DependencyManager.LinkSceneResource(Light0, Scene0,VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_STATIC);
+        //DependencyManager.LinkSceneResource(Light1, Scene0,VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_STATIC);
+        Scene0.UpdateStaticLightBuffers();
 
-        Scene0.DynamicLights.push_back(&Light2);
+        DependencyManager.LinkSceneResource(Light2, Scene0, VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_DYNAMIC);
         Scene0.UpdateDynamicLightBuffers();
 
-        Scene0.SetCubemap(Cubemap0,RendererContext);
+        DependencyManager.LinkSceneResource(Cubemap0, Scene0);
+        DependencyManager.LinkSceneResource(Camera, Scene0);
 
         PhysicsContext PhyContext;
         PhyContext.DynamicsWorld->setGravity({ 0,-10,0 });
@@ -172,17 +180,42 @@ int main()
             //PhyContext.DynamicsWorld->debugDrawObject(GroundTransform, StaticMeshShape.get(), { 1.0f,0.0f,0.0f });
             Light2.SetDirection(glm::vec4(1.0f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
             Scene0.UpdateDynamicFrameLightBuffers(Renderer.CurrentFrame);
+            static bool AllowKey1 = true;
+            if (!AllowKey1 && glfwGetKey(RendererContext.Window.window, GLFW_KEY_1) == GLFW_RELEASE)
+            {
+                AllowKey1 = true;
+            }
+            if (AllowKey1 && glfwGetKey(RendererContext.Window.window, GLFW_KEY_1) == GLFW_PRESS)
+            {
+                DependencyManager.LinkSceneResource(Cubemap1, Scene0);
+                AllowKey1 = false;
+            }
+
+            static bool AllowKey0 = true;
+            if (!AllowKey0 && glfwGetKey(RendererContext.Window.window, GLFW_KEY_0) == GLFW_RELEASE)
+            {
+                AllowKey0 = true;
+            }
+            if (AllowKey0 && glfwGetKey(RendererContext.Window.window, GLFW_KEY_0) == GLFW_PRESS)
+            {
+                DependencyManager.LinkSceneResource(Cubemap0, Scene0);
+                AllowKey0 = false;
+            }
+
+            Scene0.UpdateMeshTransformations(Renderer.CurrentFrame);
 
             Camera.Update(RendererContext.Window,50.0f,DeltaTime);
             Camera.UpdateMatrix({ RendererContext.SwapChain.Extent.width,RendererContext.SwapChain.Extent.height });
-            Renderer.RenderFrame(Scene0, Camera);
+            Renderer.RenderFrame(Scene0);
 
+            DependencyManager.UpdateDependencies();
             //PhysicsDebugDrawer.ClearDebugBuffers();
         }
 
         RendererContext.WaitDeviceIdle();
         Cubemap0.Destroy(RendererContext);
-        Scene0.Destroy(RendererContext);
+        Cubemap1.Destroy(RendererContext);
+        Scene0.Destroy();
         Renderer.Destroy();
         RendererContext.Destroy();
         glfwTerminate();

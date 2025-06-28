@@ -70,6 +70,7 @@ namespace VKCORE
         void Create(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance);
         void Destroy();
 
+
         VkDevice logicalDevice;
         VkPhysicalDevice physicalDevice;
         VkQueue PresentQueue;
