@@ -1,5 +1,6 @@
 #include "app/Renderer.hpp"
 #include "vkscene/DependencyManager.hpp"
+#include "vkscene/MaterialManager.hpp"
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -11,25 +12,7 @@
 #include <LinearMath/btVector3.h>
 #include <LinearMath/btAlignedObjectArray.h>
 
-class PhysicsContext
-{
-public:
-    std::shared_ptr<btDefaultCollisionConfiguration> CollisionConfiguration;
-    std::shared_ptr<btCollisionDispatcher> Dispatcher;
-    std::shared_ptr<btBroadphaseInterface> OverlappingPairCache;
-    std::shared_ptr<btSequentialImpulseConstraintSolver> Solver;
-    std::shared_ptr<btDiscreteDynamicsWorld> DynamicsWorld;
-
-    PhysicsContext()
-    {
-        CollisionConfiguration = std::make_shared<btDefaultCollisionConfiguration>();
-        Dispatcher = std::make_shared < btCollisionDispatcher>(CollisionConfiguration.get());
-        OverlappingPairCache = std::make_shared<btDbvtBroadphase>();
-        Solver = std::make_shared<btSequentialImpulseConstraintSolver>();
-        DynamicsWorld = std::make_shared<btDiscreteDynamicsWorld>(Dispatcher.get(), OverlappingPairCache.get(), 
-            Solver.get(), CollisionConfiguration.get());
-    };
-};
+#include "vkphysics/PhysicsContext.hpp"
 
 int main()
 {
@@ -49,11 +32,14 @@ int main()
         VKSCENE::Entity Sponza(DependencyManager);
         VKSCENE::Entity Shovel(DependencyManager);
 
-        VKSCENE::MeshImporter Importer;
+        VKSCENE::TextureImportManager TextureImportManager(RendererContext);
+        VKSCENE::MeshImporter Importer(TextureImportManager);
         Importer.AppendImportTask({ &Sponza.Model , "resources\\sponza.obj" });
         Importer.AppendImportTask({ &Shovel.Model , "resources\\shovel2.obj" });
         Importer.SubmitImport();
         Importer.WaitImportIdle();
+        
+        TextureImportManager.SubmitImport();
        
         Sponza.Model.transformation.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
         Shovel.Model.transformation.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
@@ -86,14 +72,16 @@ int main()
         VKSCENE::Scene Scene0;
         Scene0.Create(RendererContext);
         Scene0.CreateLightBuffers(2, 1);
+        Scene0.CreateMeshTextureDescriptors(1000);
 
         DependencyManager.LinkSceneResource(Sponza, Scene0);
         DependencyManager.LinkSceneResource(Shovel, Scene0);
+        Scene0.UpdateTextureDescriptors(TextureImportManager);
         
         Scene0.CreateMeshBuffers();
 
         DependencyManager.LinkSceneResource(Light0, Scene0,VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_STATIC);
-        //DependencyManager.LinkSceneResource(Light1, Scene0,VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_STATIC);
+        DependencyManager.LinkSceneResource(Light1, Scene0,VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_STATIC);
         Scene0.UpdateStaticLightBuffers();
 
         DependencyManager.LinkSceneResource(Light2, Scene0, VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_DYNAMIC);
@@ -102,7 +90,7 @@ int main()
         DependencyManager.LinkSceneResource(Cubemap0, Scene0);
         DependencyManager.LinkSceneResource(Camera, Scene0);
 
-        PhysicsContext PhyContext;
+        VKPHYSICS::PhysicsContext PhyContext;
         PhyContext.DynamicsWorld->setGravity({ 0,-10,0 });
         btAlignedObjectArray<btCollisionShape*> CollisionShapes;
 
@@ -213,6 +201,7 @@ int main()
         }
 
         RendererContext.WaitDeviceIdle();
+        TextureImportManager.Destroy();
         Cubemap0.Destroy(RendererContext);
         Cubemap1.Destroy(RendererContext);
         Scene0.Destroy();

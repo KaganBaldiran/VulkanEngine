@@ -19,10 +19,15 @@ namespace VKCORE
 
     struct QueueFamilyIndices {
         std::optional<uint32_t> GraphicsFamily;
+        std::optional<uint32_t> ComputeFamily;
         std::optional<uint32_t> PresentFamily;
 
+        bool HasGraphics() { return GraphicsFamily.has_value(); };
+        bool HasCompute() { return ComputeFamily.has_value(); };
+        bool HasPresent() { return PresentFamily.has_value(); };
+
         bool isComplete() {
-            return GraphicsFamily.has_value() && PresentFamily.has_value();
+            return GraphicsFamily.has_value() && PresentFamily.has_value() && ComputeFamily.has_value();
         }
     };
 
@@ -46,7 +51,8 @@ namespace VKCORE
         VkSurfaceKHR Surface,
         VkDevice& LogicalDevice,
         VkQueue& GraphicsQueue,
-        VkQueue& PresentQueue
+        VkQueue& PresentQueue,
+        VkQueue& ComputeQueue
     );
 
 

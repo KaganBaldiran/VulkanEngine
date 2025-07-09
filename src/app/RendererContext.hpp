@@ -23,10 +23,16 @@
 
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
+namespace VKSCENE
+{
+    class Scene;
+}
+
 namespace VKAPP
 {
 	class RendererContext
 	{
+        friend class VKSCENE::Scene;
 	public:
         RendererContext(bool EnableValidationLayers);
         RendererContext() = default;
@@ -45,6 +51,8 @@ namespace VKAPP
         VKCORE::QueueFamilyIndices QueueFamilyIndices;
         bool EnableValidationLayers;
 
+        VkFormat DepthImageFormat;
+
         VKCORE::DescriptorSetLayout SceneDescriptorSetLayout;
         std::vector<VkDescriptorSetLayout> SceneDescriptorSetLayouts;
 
@@ -60,9 +68,15 @@ namespace VKAPP
         VKCORE::VertexInputDescription QuadVertexDescription{};
         VKCORE::VertexInputDescription CubeVertexDescription{};
 
+        VKCORE::DescriptorSetLayout GbufferPassLayout;
+        std::unordered_map<uint32_t,VKCORE::GraphicsPipeline> GbufferPassPassPipelines;
+        VKCORE::ShaderModule GbufferVertexShaderModule;
+        VKCORE::ShaderModule GbufferFragmentShaderModule;
+
         VKCORE::Buffer QuadVertexBuffer{};
         VKCORE::Buffer CubeVertexBuffer{};
 	private:
         void CreateHDRIrenderPassResources();
+        VKCORE::GraphicsPipeline* AppendGbufferPassPipeline(VkDescriptorSetLayout Layout,uint32_t MaxTextureCount);
 	};
 }

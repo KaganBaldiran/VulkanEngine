@@ -30,6 +30,10 @@ VKCORE::QueueFamilyIndices VKCORE::FindQueueFamilies(VkPhysicalDevice Device,VkS
         {
             Indices.GraphicsFamily = i;
         }
+        if (QueueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)
+        {
+            Indices.ComputeFamily = i;
+        }
         if (DoesSupportPresent)
         {
             Indices.PresentFamily = i;
@@ -165,7 +169,9 @@ VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
     VkSurfaceKHR Surface,
     VkDevice& LogicalDevice,
     VkQueue& GraphicsQueue,
-    VkQueue& PresentQueue)
+    VkQueue& PresentQueue,
+    VkQueue& ComputeQueue
+)
 {
     VKCORE::QueueFamilyIndices indices = VKCORE::FindQueueFamilies(PhysicalDevice, Surface);
 
@@ -196,9 +202,18 @@ VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
     DeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(CreateInfo.DeviceExtensionsToEnable.size());
     DeviceCreateInfo.ppEnabledExtensionNames = CreateInfo.DeviceExtensionsToEnable.data();
 
+    VkPhysicalDeviceDescriptorIndexingFeatures PhysicalDeviceDescriptorIndexingFeatures{};
+    PhysicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    PhysicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
+    PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+    PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    PhysicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+
     VkPhysicalDeviceDynamicRenderingFeaturesKHR DynamicRenderingFeatures{};
     DynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
     DynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+    DynamicRenderingFeatures.pNext = &PhysicalDeviceDescriptorIndexingFeatures;
 
     DeviceCreateInfo.pNext = &DynamicRenderingFeatures;
 
@@ -207,8 +222,9 @@ VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
         return { VK_INCOMPLETE, "Failed to create the logical device!" };
     }
 
-    vkGetDeviceQueue(LogicalDevice, indices.GraphicsFamily.value(), 0, &GraphicsQueue);
-    vkGetDeviceQueue(LogicalDevice, indices.PresentFamily.value(), 0, &PresentQueue);
+    if (indices.HasGraphics()) vkGetDeviceQueue(LogicalDevice, indices.GraphicsFamily.value(), 0, &GraphicsQueue);
+    if (indices.HasPresent()) vkGetDeviceQueue(LogicalDevice, indices.PresentFamily.value(), 0, &PresentQueue);
+    if (indices.HasCompute()) vkGetDeviceQueue(LogicalDevice, indices.ComputeFamily.value(), 0, &ComputeQueue);
 
     return VULKAN_SUCCESS;
 }
@@ -237,7 +253,7 @@ VKCORE::DeviceContext::DeviceContext(VulkanDeviceCreateInfo& CreateInfo, VkSurfa
 void VKCORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
 {
     PickPhysicalDevice(CreateInfo, Instance, physicalDevice, Surface);
-    CreateLogicalDevice(CreateInfo, physicalDevice, Surface, logicalDevice, GraphicsQueue, PresentQueue);
+    CreateLogicalDevice(CreateInfo, physicalDevice, Surface, logicalDevice, GraphicsQueue, PresentQueue,ComputeQueue);
 }
 
 void VKCORE::DeviceContext::Destroy()

@@ -56,3 +56,48 @@ void VKCORE::ExecuteSingleTimeCommand(VkDevice &LogicalDevice,std::function<void
     vkDestroyFence(LogicalDevice, Fence, nullptr);
     vkFreeCommandBuffers(LogicalDevice, Pool, 1, &SingleUseCommandBuffer);
 }
+
+void VKCORE::ExecuteSingleTimeCommandAsync(VkDevice& LogicalDevice, std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandPool& Pool, VkQueue& Queue, std::mutex& Mutex)
+{
+    VkFence Fence{};
+    VkFenceCreateInfo FenceCreateInfo{};
+    FenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+    if (vkCreateFence(LogicalDevice, &FenceCreateInfo, nullptr, &Fence) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Error creating a single time fence!");
+    }
+
+    VkCommandBufferAllocateInfo CommandBufferAllocateInfo{};
+    CommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    CommandBufferAllocateInfo.commandPool = Pool;
+    CommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    CommandBufferAllocateInfo.commandBufferCount = 1;
+
+    VkCommandBuffer SingleUseCommandBuffer;
+    vkAllocateCommandBuffers(LogicalDevice, &CommandBufferAllocateInfo, &SingleUseCommandBuffer);
+
+    VkCommandBufferBeginInfo CommandBufferBeginInfo{};
+    CommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    CommandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(SingleUseCommandBuffer, &CommandBufferBeginInfo);
+
+    Task(SingleUseCommandBuffer);
+
+    vkEndCommandBuffer(SingleUseCommandBuffer);
+
+    VkSubmitInfo CommandBufferSubmitInfo{};
+    CommandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    CommandBufferSubmitInfo.commandBufferCount = 1;
+    CommandBufferSubmitInfo.pCommandBuffers = &SingleUseCommandBuffer;
+
+    {
+        std::unique_lock<std::mutex> lock(Mutex);
+        vkQueueSubmit(Queue, 1, &CommandBufferSubmitInfo, Fence);
+    }
+    vkWaitForFences(LogicalDevice, 1, &Fence, VK_TRUE, UINT64_MAX);
+
+    vkDestroyFence(LogicalDevice, Fence, nullptr);
+    vkFreeCommandBuffers(LogicalDevice, Pool, 1, &SingleUseCommandBuffer);
+}

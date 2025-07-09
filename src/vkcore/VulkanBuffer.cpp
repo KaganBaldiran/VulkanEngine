@@ -66,17 +66,38 @@ void VKCORE::CopyBuffer(
     VkDeviceSize Size,
     VkDevice &LogicalDevice,
     VkCommandPool &CommandPool,
-    VkQueue & Queue
+    VkQueue & Queue,
+    VkDeviceSize SrcOffset,
+    VkDeviceSize DstOffset
 )
 {
     auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
         VkBufferCopy CopyRegion{};
-        CopyRegion.srcOffset = 0;
-        CopyRegion.dstOffset = 0;
+        CopyRegion.srcOffset = SrcOffset;
+        CopyRegion.dstOffset = DstOffset;
         CopyRegion.size = Size;
         vkCmdCopyBuffer(CommandBuffer, SourceBuffer, DestinationBuffer, 1, &CopyRegion);
     };
     VKCORE::ExecuteSingleTimeCommand(LogicalDevice,CopyCommand, CommandPool, Queue);
+}
+
+void VKCORE::CopyBuffer(std::vector<VkBufferCopy> CopyRegions, VkBuffer SourceBuffer, VkBuffer DestinationBuffer, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& Queue)
+{
+    auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
+        vkCmdCopyBuffer(CommandBuffer, SourceBuffer, DestinationBuffer, static_cast<uint32_t>(CopyRegions.size()), CopyRegions.data());
+    };
+    VKCORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, Queue);
+}
+
+void VKCORE::CopyBuffer(std::vector<BufferCopyInfo> CopyInfos, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& Queue)
+{
+    auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
+        for (auto& CopyInfo : CopyInfos)
+        {
+            vkCmdCopyBuffer(CommandBuffer, CopyInfo.SourceBuffer, CopyInfo.DestinationBuffer, static_cast<uint32_t>(CopyInfo.CopyRegions.size()), CopyInfo.CopyRegions.data());
+        }
+    };
+    VKCORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, Queue);
 }
 
 void VKCORE::CreateStagingBuffer(VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkDeviceSize Size,VKCORE::Buffer &DestinationBuffer)

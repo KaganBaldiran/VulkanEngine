@@ -11,6 +11,8 @@ namespace VKAPP
     struct GeometryBuffer
     {
         VKCORE::TextureData PositionAttachment;
+        VKCORE::TextureData AlbedoAttachment;
+        VKCORE::TextureData RoughnessMetallicAttachment;
         VKCORE::TextureData NormalAttachment;
 
         void Create(

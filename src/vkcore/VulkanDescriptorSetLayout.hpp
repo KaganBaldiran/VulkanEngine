@@ -16,7 +16,7 @@ namespace VKCORE
 		friend class DescriptorSet;
 	public:
 		void AppendLayoutBinding(VkDescriptorType DescriptorType, uint32_t DescriptorCount, uint32_t Binding, VkShaderStageFlags ShaderStage);
-		void CreateLayout(VkDevice& LogicalDevice);
+		void CreateLayout(VkDevice& LogicalDevice, VkDescriptorSetLayoutCreateFlags Flags = 0, void* Next = nullptr);
 		void Destroy(VkDevice& LogicalDevice);
 		VkDescriptorSetLayout descriptorSetLayout;
 	private:

@@ -12,17 +12,21 @@ void VKCORE::DescriptorSetLayout::AppendLayoutBinding(VkDescriptorType Descripto
     this->Bindings.push_back(NewLayoutBinding);
 }
 
-void VKCORE::DescriptorSetLayout::CreateLayout(VkDevice& LogicalDevice)
+void VKCORE::DescriptorSetLayout::CreateLayout(VkDevice& LogicalDevice,VkDescriptorSetLayoutCreateFlags Flags,void *Next)
 {
     VkDescriptorSetLayoutCreateInfo LayoutCreateInfo{};
     LayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     LayoutCreateInfo.bindingCount = static_cast<uint32_t>(Bindings.size());
     LayoutCreateInfo.pBindings = Bindings.data();
+    LayoutCreateInfo.flags = Flags;
+    LayoutCreateInfo.pNext = Next;
 
     if (vkCreateDescriptorSetLayout(LogicalDevice, &LayoutCreateInfo, nullptr, &this->descriptorSetLayout) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create descriptor set layout!");
     }
+
+    Bindings.clear();
 }
 
 void VKCORE::DescriptorSetLayout::Destroy(VkDevice& LogicalDevice)

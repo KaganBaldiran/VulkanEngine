@@ -47,6 +47,20 @@ void VKCORE::AllocateDescriptorSets(VkDevice& LogicalDevice, uint32_t Descriptor
     }
 }
 
+void VKCORE::AllocateDescriptorSets(VkDevice& LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool& DescriptorPool, VkDescriptorSetLayout Layout, VkDescriptorSet& DestinationSet)
+{
+    VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo{};
+    DescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    DescriptorSetAllocateInfo.descriptorPool = DescriptorPool;
+    DescriptorSetAllocateInfo.descriptorSetCount = DescriptorSetsCount;
+    DescriptorSetAllocateInfo.pSetLayouts = &Layout;
+
+    if (vkAllocateDescriptorSets(LogicalDevice, &DescriptorSetAllocateInfo, &DestinationSet) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to allocate descriptor sets!");
+    }
+}
+
 VKCORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(Buffer& SourceBuffer,VkDeviceSize BufferRange,uint32_t Binding,VkDescriptorSet& DestinationSet,VkDescriptorType Type)
 {
     Create(SourceBuffer, BufferRange, Binding, DestinationSet, Type);
@@ -69,12 +83,30 @@ void VKCORE::DescriptorSetWriteBuffer::Create(Buffer& SourceBuffer, VkDeviceSize
     DescriptorWrite.pTexelBufferView = nullptr;
 }
 
-VKCORE::DescriptorSetWriteImage::DescriptorSetWriteImage(VkImageView& TextureImageView,VkSampler &TextureSampler, VkImageLayout TextureImageLayout,uint32_t Binding, VkDescriptorSet& DestinationSet, VkDescriptorType Type)
+VKCORE::DescriptorSetWriteImage::DescriptorSetWriteImage(
+    VkImageView& TextureImageView,
+    VkSampler &TextureSampler, 
+    VkImageLayout TextureImageLayout,
+    uint32_t Binding, 
+    VkDescriptorSet& DestinationSet, 
+    VkDescriptorType Type,
+    uint32_t DstArrayElement,
+    uint32_t DescriptorCount
+)
 {
-    Create(TextureImageView, TextureSampler, TextureImageLayout, Binding, DestinationSet, Type);
+    Create(TextureImageView, TextureSampler, TextureImageLayout, Binding, DestinationSet, Type,DstArrayElement,DescriptorCount);
 }
 
-void VKCORE::DescriptorSetWriteImage::Create(VkImageView& TextureImageView, VkSampler& TextureSampler, VkImageLayout TextureImageLayout, uint32_t Binding, VkDescriptorSet& DestinationSet, VkDescriptorType Type)
+void VKCORE::DescriptorSetWriteImage::Create(
+    VkImageView& TextureImageView, 
+    VkSampler& TextureSampler, 
+    VkImageLayout TextureImageLayout, 
+    uint32_t Binding, 
+    VkDescriptorSet& DestinationSet, 
+    VkDescriptorType Type,
+    uint32_t DstArrayElement,
+    uint32_t DescriptorCount
+)
 {
     DescriptorCombinedSamplerImageInfo.sampler = TextureSampler;
     DescriptorCombinedSamplerImageInfo.imageView = TextureImageView;
@@ -83,9 +115,9 @@ void VKCORE::DescriptorSetWriteImage::Create(VkImageView& TextureImageView, VkSa
     DescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     DescriptorWrite.dstSet = DestinationSet;
     DescriptorWrite.dstBinding = Binding;
-    DescriptorWrite.dstArrayElement = 0;
+    DescriptorWrite.dstArrayElement = DstArrayElement;
     DescriptorWrite.descriptorType = Type;
-    DescriptorWrite.descriptorCount = 1;
+    DescriptorWrite.descriptorCount = DescriptorCount;
     DescriptorWrite.pBufferInfo = nullptr;
     DescriptorWrite.pImageInfo = &DescriptorCombinedSamplerImageInfo;
     DescriptorWrite.pTexelBufferView = nullptr;

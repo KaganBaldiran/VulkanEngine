@@ -45,6 +45,31 @@ namespace VKCORE
 		VkDeviceSize Size,
 		VkDevice& LogicalDevice,
 		VkCommandPool& CommandPool,
+		VkQueue& Queue,
+		VkDeviceSize SrcOffset = 0,
+		VkDeviceSize DstOffset = 0
+	);
+
+	void CopyBuffer(
+		std::vector<VkBufferCopy> CopyRegions,
+		VkBuffer SourceBuffer,
+		VkBuffer DestinationBuffer,
+		VkDevice& LogicalDevice,
+		VkCommandPool& CommandPool,
+		VkQueue& Queue
+	);
+
+	struct BufferCopyInfo
+	{
+		std::vector<VkBufferCopy> CopyRegions;
+		VkBuffer SourceBuffer;
+		VkBuffer DestinationBuffer;
+	};
+
+	void CopyBuffer(
+		std::vector<BufferCopyInfo> CopyInfos,
+		VkDevice& LogicalDevice,
+		VkCommandPool& CommandPool,
 		VkQueue& Queue
 	);
 

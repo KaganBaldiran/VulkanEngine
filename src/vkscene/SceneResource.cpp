@@ -14,6 +14,6 @@ void VKSCENE::SceneResource::SetDirty()
 
 uint64_t VKSCENE::SceneResource::GenerateResourceID()
 {
-	static uint64_t Iterator = 0;
+	static uint64_t Iterator = 1;
 	return Iterator++;
 }

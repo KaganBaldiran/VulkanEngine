@@ -73,7 +73,7 @@ void VKSCENE::Cubemap::CreateCubemapTexture(VKAPP::RendererContext& RendererCont
 			VK_IMAGE_VIEW_TYPE_2D,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			RendererContext.DeviceContext.logicalDevice,
-			6,
+			1,
 			i
 		);
 	}
@@ -122,7 +122,7 @@ void VKSCENE::Cubemap::CreateConvolutionTexture(VKAPP::RendererContext& Renderer
 			VK_IMAGE_VIEW_TYPE_2D,
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			RendererContext.DeviceContext.logicalDevice,
-			6,
+			1,
 			i
 		);
 	}

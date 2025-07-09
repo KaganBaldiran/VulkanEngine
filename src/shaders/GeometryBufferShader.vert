@@ -21,8 +21,9 @@ layout(std140,binding = 0,set = 1) readonly buffer ModelMatrixesBuffer{
 
 void main() {
     mat4 ModelMatrix = ModelMatrixes[gl_InstanceIndex];
-    vec4 Pos = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(InPosition.xyz, 1.0);
-    OutPosition = InPosition.xyz;
+    vec3 GlobalPosition = vec3(ModelMatrix * vec4(InPosition.xyz, 1.0));
+    vec4 Pos = ProjectionMatrix * ViewMatrix * vec4(GlobalPosition.xyz, 1.0);
+    OutPosition = GlobalPosition;
     gl_Position = Pos;
     OutNormals = normalize(transpose(inverse(mat3(ModelMatrix))) * Normals);
     OutUVcoords = UVcoords;

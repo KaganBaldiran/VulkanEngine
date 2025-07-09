@@ -1,4 +1,5 @@
 #include "RendererContext.hpp"
+#include "../vkscene/Mesh.hpp"
 
 static float QuadVertices[] = {
     // positions        // texture Coords
@@ -97,6 +98,7 @@ void VKAPP::RendererContext::Create(bool EnableValidationLayers)
 
     //Layout needed for the indirect descriptor sets
     IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 0, VK_SHADER_STAGE_VERTEX_BIT);
+    IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 1, VK_SHADER_STAGE_VERTEX_BIT);
     IndirectDescriptorSetLayout.CreateLayout(DeviceContext.logicalDevice);
     IndirectDescriptorSetLayouts.resize(MAX_FRAMES_IN_FLIGHT, IndirectDescriptorSetLayout.descriptorSetLayout);
 
@@ -124,11 +126,27 @@ void VKAPP::RendererContext::Create(bool EnableValidationLayers)
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
     );
 
+    DepthImageFormat = VKCORE::FindSupportedFormat(DeviceContext.physicalDevice, { VK_FORMAT_D32_SFLOAT,VK_FORMAT_D32_SFLOAT_S8_UINT,VK_FORMAT_D24_UNORM_S8_UINT },
+        VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+    GbufferPassLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 0, VK_SHADER_STAGE_VERTEX_BIT);
+    GbufferPassLayout.CreateLayout(DeviceContext.logicalDevice);
+
+    GbufferVertexShaderModule.Create("shaders\\GeometryBufferShader.vert", "shaders\\GeometryBufferShaderVert.spv", true, DeviceContext.logicalDevice);
+    GbufferFragmentShaderModule.Create("shaders\\GeometryBufferShader.frag", "shaders\\GeometryBufferShaderFrag.spv", true, DeviceContext.logicalDevice);
+
     CreateHDRIrenderPassResources();
 }
 
 void VKAPP::RendererContext::Destroy()
 {
+    GbufferPassLayout.Destroy(DeviceContext.logicalDevice);
+    GbufferVertexShaderModule.Destroy(DeviceContext.logicalDevice);
+    GbufferFragmentShaderModule.Destroy(DeviceContext.logicalDevice);
+    for (auto& [ID, Pipeline] : GbufferPassPassPipelines)
+    {
+        Pipeline.Destroy(DeviceContext.logicalDevice);
+    }
     HDRIrenderPassLayout.Destroy(DeviceContext.logicalDevice);
     HDRIrenderPassDescriptorPool.Destroy(DeviceContext.logicalDevice);
     HDRIrenderGraphicsPipeline.Destroy(DeviceContext.logicalDevice);
@@ -222,4 +240,43 @@ void VKAPP::RendererContext::CreateHDRIrenderPassResources()
 
     HDRIconvolutionVertexShader.Destroy(DeviceContext.logicalDevice);
     HDRIconvolutionFragmentShader.Destroy(DeviceContext.logicalDevice);
+}
+
+VKCORE::GraphicsPipeline* VKAPP::RendererContext::AppendGbufferPassPipeline(VkDescriptorSetLayout Layout, uint32_t MaxTextureCount)
+{
+    auto& Iterator = GbufferPassPassPipelines.find(MaxTextureCount);
+    if (Iterator != GbufferPassPassPipelines.end())
+    {
+        return &GbufferPassPassPipelines[MaxTextureCount];
+    }
+
+    VkPushConstantRange PushConstantRange{};
+    PushConstantRange.stageFlags = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+    PushConstantRange.size = sizeof(glm::mat4);
+    PushConstantRange.offset = 0;
+
+    std::vector<VkFormat> ColorAttachmentsFormats = { VK_FORMAT_R32G32B32A32_SFLOAT ,VK_FORMAT_R16G16B16A16_SFLOAT ,VK_FORMAT_R8G8B8A8_UNORM , VK_FORMAT_R8G8B8A8_UNORM };
+    VKCORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
+    PipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
+    PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    PipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
+    PipelineCreateInfo.ViewportHeight = static_cast<float>(SwapChain.Extent.height);
+    PipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
+    PipelineCreateInfo.ShaderModules = { {&GbufferVertexShaderModule,VK_SHADER_STAGE_VERTEX_BIT} ,{&GbufferFragmentShaderModule,VK_SHADER_STAGE_FRAGMENT_BIT} };
+    PipelineCreateInfo.DynamicRenderingColorAttachmentCount = static_cast<uint32_t>(ColorAttachmentsFormats.size());
+    PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = ColorAttachmentsFormats;
+    PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = DepthImageFormat;
+    PipelineCreateInfo.RenderPass = nullptr;
+    PipelineCreateInfo.ScissorOffset = { 0,0 };
+    PipelineCreateInfo.ScissorExtent = { SwapChain.Extent.width ,SwapChain.Extent.height };
+    PipelineCreateInfo.ViewportMinDepth = 0.0f;
+    PipelineCreateInfo.ViewportMaxDepth = 1.0f;
+    PipelineCreateInfo.AttributeDescriptions = VKSCENE::Vertex3D::GetAttributeDescriptions();
+    PipelineCreateInfo.BindingDescription = VKSCENE::Vertex3D::GetBindingDescription();
+    PipelineCreateInfo.DescriptorSetLayouts = { GbufferPassLayout.descriptorSetLayout,IndirectDescriptorSetLayout.descriptorSetLayout,Layout };
+    PipelineCreateInfo.PushConstantRanges = {};
+    VKCORE::GraphicsPipeline GbufferGraphicsPipeline(PipelineCreateInfo, DeviceContext.logicalDevice);
+    GbufferPassPassPipelines[MaxTextureCount] = GbufferGraphicsPipeline;
+
+    return &GbufferPassPassPipelines[MaxTextureCount];
 };

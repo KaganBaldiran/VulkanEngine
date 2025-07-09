@@ -184,5 +184,14 @@ void VKCORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, Vk
 
 void VKCORE::GraphicsPipeline::Destroy(VkDevice& LogicalDevice)
 {
-    vkDestroyPipeline(LogicalDevice, this->pipeline, nullptr);
+    if (Layout != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineLayout(LogicalDevice, this->Layout, nullptr);
+        Layout = VK_NULL_HANDLE;
+    }
+    if (pipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(LogicalDevice, this->pipeline, nullptr);
+        pipeline = VK_NULL_HANDLE;
+    }
 }

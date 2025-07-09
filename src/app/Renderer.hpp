@@ -21,6 +21,7 @@
 #include "../vkcore/VulkanRender.hpp"
 #include "../vkcore/VulkanBuffer.hpp"
 #include "../vkcore/VertexInputDescription.hpp"
+#include "../vkcore/VulkanSynchoronization.hpp"
 
 #include "../vkscene/Scene.hpp"
 #include "../vkscene/Mesh.hpp"
@@ -78,16 +79,15 @@ namespace VKAPP
         std::vector<VkDescriptorSet> LightingPassDescriptorSets;
         std::vector<VkDescriptorSetLayout> LightingPassLayouts;
 
-        VKCORE::DescriptorSetLayout GbufferPassLayout;;
         std::vector<VkDescriptorSet> GbufferPassDescriptorSets;
         std::vector<VkDescriptorSetLayout> GbufferPassLayouts;
 
         VKCORE::TextureData DepthImage{};
-        VkFormat DepthImageFormat;
 
-        VKCORE::GraphicsPipeline GbufferGraphicsPipeline;
-        VKCORE::GraphicsPipeline LightingGraphicsPipeline;
+        VKCORE::GraphicsPipeline LightingPassGraphicsPipeline;
         VKCORE::GraphicsPipeline PhysicsDebugGraphicsPipeline;
+
+        VKCORE::PipelineBarrier2 PipelineBarrier2;
 
         std::vector<VKCORE::FrameSyncObjects> SyncObjects;
         uint32_t CurrentFrame = 0;
@@ -122,8 +122,6 @@ namespace VKAPP
         std::queue<std::function<void(VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)>> RenderTasks;
         std::vector<VKCORE::Buffer*> SceneBufferDestroyList;
     };
-
-    
 
     struct Matrixes {
         glm::mat4 ViewMatrix;

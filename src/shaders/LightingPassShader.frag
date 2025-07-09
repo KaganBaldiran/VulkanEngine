@@ -4,15 +4,17 @@ layout(location = 0) out vec4 outColor;
 
 layout(location = 0) in vec2 OutUVcoords;
 
-layout(set = 0,binding = 0) uniform sampler2D NormalBuffer;
-layout(set = 0,binding = 1) uniform sampler2D PositionBuffer;
-
-layout(set = 0,binding = 2) uniform FrameData{
+layout(set = 0,binding = 0) uniform FrameData{
     vec4 CameraDirection;
     vec4 CameraPosition;
     int StaticLightCount;
     int DynamicLightCount;
 };
+
+layout(set = 0,binding = 1) uniform sampler2D NormalBuffer;
+layout(set = 0,binding = 2) uniform sampler2D PositionBuffer;
+layout(set = 0,binding = 3) uniform sampler2D AlbedoBuffer;
+layout(set = 0,binding = 4) uniform sampler2D RoughnessMetallicBuffer;
 
 struct Light
 {
@@ -126,7 +128,7 @@ void main() {
     vec3 V = normalize(CameraPosition.xyz - Position);
     vec3 Lo = vec3(0.0f);
 
-    vec3 Albedo = vec3(1.0f);
+    vec3 Albedo = texture(AlbedoBuffer,OutUVcoords).xyz;
     float Roughness = 0.5f;
     float Metallic = 0.0f;
 
@@ -141,9 +143,9 @@ void main() {
                 CurrentLight.PositionOrDirection.xyz,
                 CurrentLight.Color.xyz * CurrentLight.Intensity,
                 CurrentLight.Type,
-                0.5f,
-                0.0f,
-                vec3(1.0f),
+                Roughness,
+                Metallic,
+                Albedo,
                 1.5f
             );
     }
@@ -157,9 +159,9 @@ void main() {
                 CurrentLight.PositionOrDirection.xyz,
                 CurrentLight.Color.xyz * CurrentLight.Intensity,
                 CurrentLight.Type,
-                0.5f,
-                0.0f,
-                vec3(1.0f),
+                Roughness,
+                Metallic,
+                Albedo,
                 1.5f
        );   
     }
@@ -172,5 +174,4 @@ void main() {
     vec3 Diffuse = Irradiance * Albedo;
     vec3 Ambient = (FresnelDiffuse * Diffuse);
     outColor = vec4(Ambient + Lo,1.0f);
-    //outColor = vec4(vec3(Lo),1.0f);
 }

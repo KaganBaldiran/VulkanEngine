@@ -6,6 +6,17 @@
 #include "VulkanImageView.hpp"
 #include "VulkanCommandBuffer.hpp"
 
+int VKCORE::ReadTexture(const char* FileName, VKCORE::RawImageData& DestinationImageData)
+{
+    DestinationImageData.Pixels = stbi_load(FileName, &DestinationImageData.Width, &DestinationImageData.Height, &DestinationImageData.ChannelCount, STBI_rgb_alpha);
+    if (!DestinationImageData.Pixels)
+    {
+        std::cout << "Unable to load the image(" + std::string(FileName) + ")" << std::endl;
+        return -1;
+    }
+    return 0;
+}
+
 VkFormat VKCORE::FindSupportedFormat(VkPhysicalDevice &PhysicalDevice,const std::vector<VkFormat>& Candidates, VkImageTiling Tiling, VkFormatFeatureFlags Features)
 {
     for (auto Format : Candidates)
@@ -76,6 +87,51 @@ void VKCORE::CreateImage(
     }
 
     vkBindImageMemory(LogicalDevice, Image, ImageMemory, 0);
+}
+
+void VKCORE::BlitImage(
+    VkCommandBuffer &CommandBuffer,
+    VkImage SrcImage,
+    VkImage DstImage,
+    glm::ivec3 SrcOffset,
+    glm::ivec3 SrcSizes,
+    glm::ivec3 DstOffset,
+    glm::ivec3 DstSizes,
+    VkImageAspectFlags SrcAspectMask,
+    uint32_t SrcMipLevel,
+    uint32_t SrcBaseArrayLayer,
+    uint32_t SrcLayerCount,
+    VkImageAspectFlags DstAspectMask,
+    uint32_t DstMipLevel,
+    uint32_t DstBaseArrayLayer,
+    uint32_t DstLayerCount,
+    VkFilter Filter
+)
+{
+    VkImageBlit Blit{};
+    Blit.srcOffsets[0] = { 0,0,0 };
+    Blit.srcOffsets[1] = { SrcSizes.x,SrcSizes.y,SrcSizes.z };
+    Blit.srcSubresource.aspectMask = SrcAspectMask;
+    Blit.srcSubresource.mipLevel = SrcMipLevel;
+    Blit.srcSubresource.baseArrayLayer = SrcBaseArrayLayer;
+    Blit.srcSubresource.layerCount = SrcLayerCount;
+    Blit.dstOffsets[0] = { DstOffset.x,DstOffset.y,DstOffset.z };
+    Blit.dstOffsets[1] = { DstSizes.x,DstSizes.y ,DstSizes.z };
+    Blit.dstSubresource.aspectMask = DstAspectMask;
+    Blit.dstSubresource.mipLevel = DstMipLevel;
+    Blit.dstSubresource.baseArrayLayer = DstBaseArrayLayer;
+    Blit.dstSubresource.layerCount = DstLayerCount;
+
+    vkCmdBlitImage(
+        CommandBuffer,
+        SrcImage,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        DstImage,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        1, 
+        &Blit, 
+        Filter
+    );
 }
 
 void VKCORE::TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkAccessFlags SrcAccessMask,
@@ -150,41 +206,77 @@ void VKCORE::CopyBufferToImage(VkCommandBuffer& DstCommandBuffer, VkBuffer& SrcB
 
 void VKCORE::CreateTextureImage(const char* ImageFilePath,VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice,VkCommandPool &CommandPool,VkQueue &GraphicsQueue,TextureData &DestinationTexture)
 {
-    int Width, Height, ChannelCount;
-    auto Pixels = stbi_load(ImageFilePath, &Width, &Height, &ChannelCount, STBI_rgb_alpha);
-    VkDeviceSize ImageSize = Width * Height * 4;
+    RawImageData ImageData;
+    ImageData.Pixels = stbi_load(ImageFilePath, &ImageData.Width, &ImageData.Height, &ImageData.ChannelCount, STBI_rgb_alpha);
+    VkDeviceSize ImageSize = ImageData.Width * ImageData.Height * 4;
 
-    if (!Pixels)
+    if (!ImageData.Pixels)
     {
         throw std::runtime_error("Unable to load the image(" + std::string(ImageFilePath) + ")");
     }
+    CreateTextureImage(ImageData, PhysicalDevice, LogicalDevice, CommandPool, GraphicsQueue, DestinationTexture);
+    stbi_image_free(ImageData.Pixels);
+}
+
+void VKCORE::CreateTextureImage(RawImageData& ImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture)
+{
+    VkDeviceSize ImageSize = ImageData.Width * ImageData.Height * 4;
 
     VKCORE::Buffer StagingBuffer;
     VKCORE::CreateBuffer(PhysicalDevice, LogicalDevice, ImageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, StagingBuffer);
 
     void* Data;
     vkMapMemory(LogicalDevice, StagingBuffer.BufferMemory, 0, ImageSize, 0, &Data);
-    memcpy(Data, Pixels, ImageSize);
+    memcpy(Data, ImageData.Pixels, ImageSize);
     vkUnmapMemory(LogicalDevice, StagingBuffer.BufferMemory);
 
-    stbi_image_free(Pixels);
-
-    VKCORE::CreateImage(PhysicalDevice,LogicalDevice,Width, Height, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, ImageData.Width, ImageData.Height, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DestinationTexture.Image, DestinationTexture.ImageMemory);
 
     auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
-        VKCORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image , VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
+        VKCORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
             VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
-        VKCORE::CopyBufferToImage(CommandBuffer, StagingBuffer.BufferObject, DestinationTexture.Image, Width, Height);
+        VKCORE::CopyBufferToImage(CommandBuffer, StagingBuffer.BufferObject, DestinationTexture.Image, ImageData.Width, ImageData.Height);
         VKCORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
         };
 
-    VKCORE::ExecuteSingleTimeCommand(LogicalDevice,CopyCommand, CommandPool, GraphicsQueue);
+    VKCORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, GraphicsQueue);
 
-    DestinationTexture.ImageView = VKCORE::CreateImageView(DestinationTexture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT,LogicalDevice);
-    VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice,DestinationTexture.Sampler,VK_FILTER_LINEAR,VK_SAMPLER_ADDRESS_MODE_REPEAT);
-    
+    DestinationTexture.ImageView = VKCORE::CreateImageView(DestinationTexture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, DestinationTexture.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+
+    StagingBuffer.Destroy(LogicalDevice);
+}
+
+void VKCORE::CreateTextureImageAsync(RawImageData& ImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture, std::mutex& Mutex)
+{
+    VkDeviceSize ImageSize = ImageData.Width * ImageData.Height * 4;
+
+    VKCORE::Buffer StagingBuffer;
+    VKCORE::CreateBuffer(PhysicalDevice, LogicalDevice, ImageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, StagingBuffer);
+
+    void* Data;
+    vkMapMemory(LogicalDevice, StagingBuffer.BufferMemory, 0, ImageSize, 0, &Data);
+    memcpy(Data, ImageData.Pixels, ImageSize);
+    vkUnmapMemory(LogicalDevice, StagingBuffer.BufferMemory);
+
+    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, ImageData.Width, ImageData.Height, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DestinationTexture.Image, DestinationTexture.ImageMemory);
+
+    auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
+        VKCORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
+            VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+        VKCORE::CopyBufferToImage(CommandBuffer, StagingBuffer.BufferObject, DestinationTexture.Image, ImageData.Width, ImageData.Height);
+        VKCORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+    };
+
+    VKCORE::ExecuteSingleTimeCommandAsync(LogicalDevice, CopyCommand, CommandPool, GraphicsQueue,Mutex);
+
+    DestinationTexture.ImageView = VKCORE::CreateImageView(DestinationTexture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, DestinationTexture.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+
     StagingBuffer.Destroy(LogicalDevice);
 }
 

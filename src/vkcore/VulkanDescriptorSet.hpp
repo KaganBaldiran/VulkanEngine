@@ -32,7 +32,16 @@ namespace VKCORE
 	{
 		friend void WriteDescriptorSets(VkDevice& LogicalDevice,std::vector<DescriptorSetWriteBuffer> BufferWrites, std::vector<DescriptorSetWriteImage> ImageWrites);
 	public:
-		DescriptorSetWriteImage(VkImageView& TextureImageView, VkSampler& TextureSampler, VkImageLayout TextureImageLayout, uint32_t Binding, VkDescriptorSet& DestinationSet, VkDescriptorType Type);
+		DescriptorSetWriteImage(
+			VkImageView& TextureImageView, 
+			VkSampler& TextureSampler, 
+			VkImageLayout TextureImageLayout, 
+			uint32_t Binding, 
+			VkDescriptorSet& DestinationSet, 
+			VkDescriptorType Type,
+			uint32_t DstArrayElement = 0,
+			uint32_t DescriptorCount = 1
+		);
 		DescriptorSetWriteImage() = default;
 		void Create(
 			VkImageView& TextureImageView, 
@@ -40,7 +49,9 @@ namespace VKCORE
 			VkImageLayout TextureImageLayout, 
 			uint32_t Binding, 
 			VkDescriptorSet& DestinationSet, 
-			VkDescriptorType Type
+			VkDescriptorType Type,
+			uint32_t DstArrayElement = 0,
+			uint32_t DescriptorCount = 1
 		);
 	private:
 		VkDescriptorImageInfo DescriptorCombinedSamplerImageInfo{};
@@ -49,5 +60,6 @@ namespace VKCORE
 
     void AllocateDescriptorSets(VkDevice& LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool& DescriptorPool, std::vector<VkDescriptorSetLayout> Layouts, std::vector<VkDescriptorSet>& DestinationSets);
     void AllocateDescriptorSets(VkDevice& LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool& DescriptorPool,VkDescriptorSetLayout Layout, std::vector<VkDescriptorSet>& DestinationSets);
+    void AllocateDescriptorSets(VkDevice& LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool& DescriptorPool,VkDescriptorSetLayout Layout, VkDescriptorSet& DestinationSet);
     void WriteDescriptorSets(VkDevice& LogicalDevice,std::vector<DescriptorSetWriteBuffer> BufferWrites, std::vector<DescriptorSetWriteImage> ImageWrites);
 }

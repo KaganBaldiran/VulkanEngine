@@ -71,6 +71,7 @@ namespace VKSCENE
 		std::set<Scene*> GetLinkedResourceScenes(SceneResource &Resource);
 	private:
 		void MarkResourceDirty(SceneResource &Resource);
+		bool IsResourceDirty(uint64_t ResourceID);
 
 		std::unordered_map<SceneResource*, std::set<Scene*>> ResourceSceneLinks;
 		std::unordered_map<std::string,SceneResource*> NameResourceLinks;

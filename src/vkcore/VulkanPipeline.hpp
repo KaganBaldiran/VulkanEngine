@@ -61,8 +61,8 @@ namespace VKCORE
 		GraphicsPipeline() = default;
 		void Create(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice);
 		void Destroy(VkDevice& LogicalDevice);
-		VkPipeline pipeline;
-		VkPipelineLayout Layout;
+		VkPipeline pipeline = VK_NULL_HANDLE;
+		VkPipelineLayout Layout = VK_NULL_HANDLE;
 	private:
 	};
 }

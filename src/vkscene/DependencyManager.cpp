@@ -191,4 +191,9 @@ void VKSCENE::ResourceDependencyManager::MarkResourceDirty(SceneResource& Resour
 	DirtyResourceFlags.set(Resource.ResourceID, true);
 }
 
+bool VKSCENE::ResourceDependencyManager::IsResourceDirty(uint64_t ResourceID)
+{
+	return static_cast<bool>(DirtyResourceFlags[ResourceID]);
+}
+
 
