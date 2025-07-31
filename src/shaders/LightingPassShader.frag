@@ -119,18 +119,21 @@ vec3 CookTorranceBRDF(vec3 Normal, vec3 ViewDirection,vec3 Position,vec3 LightDi
 }
 
 void main() {
+
     vec4 Normal = texture(NormalBuffer,OutUVcoords);
+    //outColor = vec4(Normal.xyz,1.0f);
     float Alpha = Normal.w;
     if(Alpha <= 0.0f) discard;
     vec3 Position = texture(PositionBuffer,OutUVcoords).xyz;
+    vec2 RoughnessMetallic = texture(RoughnessMetallicBuffer,OutUVcoords).xy;
 
     vec3 N = normalize(Normal.xyz);
     vec3 V = normalize(CameraPosition.xyz - Position);
     vec3 Lo = vec3(0.0f);
 
     vec3 Albedo = texture(AlbedoBuffer,OutUVcoords).xyz;
-    float Roughness = 0.5f;
-    float Metallic = 0.0f;
+    float Roughness = RoughnessMetallic.x;
+    float Metallic = RoughnessMetallic.y;
 
     Light CurrentLight;
     for(int i=0;i < StaticLightCount;i++)
