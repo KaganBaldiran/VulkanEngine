@@ -15,6 +15,8 @@
 #include <queue>
 #include <future>
 
+#include "../Common/Log.hpp"
+
 struct LightingPassUBOdata
 {
     glm::vec4 CameraDirection;
@@ -137,6 +139,13 @@ void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,boo
             PhysicsDebugLineVertexBuffer.Map(LogicalDevice, 0, PhysicsDebugLineVertexBuffersize, 0);
         }
     }
+
+    VKCOMMON::LogMessage Message{};
+    Message.Severity = VKCOMMON::LOG_SEVERITY_INFO;
+    Message.Message = "Renderer initialized!";
+
+    VKCOMMON::Logger::Get().FileLog("Log.txt", Message);
+    VKCOMMON::Logger::Get().ConsoleLog(Message);
 }
 
 void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene)

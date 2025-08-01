@@ -2,6 +2,11 @@
 #include <iostream>
 #include "VulkanSwapChain.hpp"
 
+#include "../../Common/Log.hpp"
+#include "../../Common/CommonDefinitions.hpp"
+#include <vulkan/vk_enum_string_helper.h>
+
+
 VkResult VKCORE::CreateDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     auto Func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -187,7 +192,7 @@ VKCORE::Instance::Instance(VulkanInstanceCreateInfo &CreateInfo)
 void VKCORE::Instance::Create(VulkanInstanceCreateInfo& CreateInfo)
 {
     this->EnableValidationLayers = CreateInfo.EnableValidationLayers;
-    VKCORE::CreateVulkanInstance(CreateInfo, ValidationLayers, instance, nullptr);
+    VULKAN_ASSERT_RESULT(VKCORE::CreateVulkanInstance(CreateInfo, ValidationLayers, instance, nullptr));
     VKCORE::SetupDebugMessenger(instance, CreateInfo.EnableValidationLayers, ValidationLayers, DebugMessenger);
 }
 

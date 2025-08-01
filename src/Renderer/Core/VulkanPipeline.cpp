@@ -1,5 +1,9 @@
 #include "VulkanPipeline.hpp"
 
+#include "../../Common/Log.hpp"
+#include "../../Common/CommonDefinitions.hpp"
+#include <vulkan/vk_enum_string_helper.h>
+
 VKCORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice)
 {
     Create(CreateInfo, LogicalDevice);
@@ -95,16 +99,7 @@ void VKCORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, Vk
         BlendStateAttachment[i].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
         BlendStateAttachment[i].alphaBlendOp = VK_BLEND_OP_ADD;
     }
-    /*VkPipelineColorBlendAttachmentState ColorBlendAttachment{};
-    ColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    ColorBlendAttachment.blendEnable = VK_TRUE;
-    ColorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    ColorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    ColorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-    ColorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    ColorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    ColorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;*/
-
+   
     VkPipelineDepthStencilStateCreateInfo DepthStencilStateCreateInfo{};
     DepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     DepthStencilStateCreateInfo.depthTestEnable = CreateInfo.EnableDepthTesting;
@@ -137,6 +132,7 @@ void VKCORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, Vk
 
     if (vkCreatePipelineLayout(LogicalDevice, &PipelineLayoutCreateInfo, nullptr, &Layout) != VK_SUCCESS)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating graphics pipeline layout."));
         throw std::runtime_error("Failed to create pipeline layout!");
     }
 
@@ -178,12 +174,15 @@ void VKCORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, Vk
 
     if (vkCreateGraphicsPipelines(LogicalDevice, VK_NULL_HANDLE, 1, &PipelineCreateInfo, nullptr, &pipeline) != VK_SUCCESS)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating graphics pipeline."));
         throw std::runtime_error("Error creating the graphics pipeline!");
     }
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
 }
 
 void VKCORE::GraphicsPipeline::Destroy(VkDevice& LogicalDevice)
 {
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Destroyed graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
     if (Layout != VK_NULL_HANDLE)
     {
         vkDestroyPipelineLayout(LogicalDevice, this->Layout, nullptr);

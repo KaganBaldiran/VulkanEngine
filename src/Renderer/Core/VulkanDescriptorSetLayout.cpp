@@ -1,5 +1,9 @@
 #include "VulkanDescriptorSetLayout.hpp"
 
+#include "../../Common/Log.hpp"
+#include "../../Common/CommonDefinitions.hpp"
+#include <vulkan/vk_enum_string_helper.h>
+
 void VKCORE::DescriptorSetLayout::AppendLayoutBinding(VkDescriptorType DescriptorType, uint32_t DescriptorCount,uint32_t Binding,VkShaderStageFlags ShaderStage)
 {
     VkDescriptorSetLayoutBinding NewLayoutBinding{};
@@ -23,9 +27,11 @@ void VKCORE::DescriptorSetLayout::CreateLayout(VkDevice& LogicalDevice,VkDescrip
 
     if (vkCreateDescriptorSetLayout(LogicalDevice, &LayoutCreateInfo, nullptr, &this->descriptorSetLayout) != VK_SUCCESS)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating descriptor layout [binding count(" + std::to_string(Bindings.size()) + ")]."));
         throw std::runtime_error("Failed to create descriptor set layout!");
     }
 
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created descriptor layout [binding count(" + std::to_string(Bindings.size()) + ")]."));
     Bindings.clear();
 }
 

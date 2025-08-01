@@ -44,7 +44,8 @@ namespace VKCORE
 		VkImage& Image,
 		VkDeviceMemory& ImageMemory,
 		uint32_t LayerCount = 1,
-		VkImageCreateFlags Flags = 0
+		VkImageCreateFlags Flags = 0,
+		VkSampleCountFlagBits SampleCount = VK_SAMPLE_COUNT_1_BIT
 	);
 
 	void BlitImage(

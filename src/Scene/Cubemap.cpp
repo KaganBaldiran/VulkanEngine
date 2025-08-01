@@ -5,6 +5,9 @@
 
 #include "DependencyManager.hpp"
 
+#include "../Common/Log.hpp"
+#include "../Common/CommonDefinitions.hpp"
+
 VKSCENE::Cubemap::Cubemap(VKAPP::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height)
 {
 	Create(RendererContext,DependencyManager,Width, Height);
@@ -305,4 +308,5 @@ void VKSCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, 
 	);
 
 	HdriTextureData.Destroy(RendererContext.DeviceContext.logicalDevice);
+	LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("HDRI imported! [" + std::string(HDRIfilePath) + "]"));
 }

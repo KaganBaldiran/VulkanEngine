@@ -3,6 +3,9 @@
 #include <algorithm>
 #include "VulkanImageView.hpp"
 
+#include "../../Common/Log.hpp"
+#include "../../Common/CommonDefinitions.hpp"
+
 VkSurfaceFormatKHR VKCORE::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats)
 {
     for (const auto& AvailableFormat : AvailableFormats)
@@ -110,12 +113,15 @@ VKCORE::VulkanResult VKCORE::CreateSwapChain(
 
     if (vkCreateSwapchainKHR(logicalDevice, &swapChainCreateInfo, nullptr, &swapChain) != VK_SUCCESS)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Failed to create swap chain [" + std::to_string(reinterpret_cast<uintptr_t>(swapChain)) + "].");
         return { VK_INCOMPLETE, "Failed to create swap chain!" };
     }
 
     vkGetSwapchainImagesKHR(logicalDevice, swapChain, &swapChainImageCount, nullptr);
     swapChainImages.resize(swapChainImageCount);
     vkGetSwapchainImagesKHR(logicalDevice, swapChain, &swapChainImageCount, swapChainImages.data());
+
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Created swap chain [" + std::to_string(reinterpret_cast<uintptr_t>(swapChain)) + "].");
     return VULKAN_SUCCESS;
 }
 
@@ -148,6 +154,6 @@ void VKCORE::SwapChain::Create(
 )
 {
     if (swapChain) return;
-    CreateSwapChain(PhysicalDevice, LogicalDevice, Surface, Window, swapChain, SwapChainImages, SurfaceFormat, PresentMode, Extent);
-    CreateSwapChainImageViews(SwapChainImages, SwapChainImagesViews, SurfaceFormat.format, LogicalDevice);
+    VULKAN_ASSERT_RESULT(CreateSwapChain(PhysicalDevice, LogicalDevice, Surface, Window, swapChain, SwapChainImages, SurfaceFormat, PresentMode, Extent));
+    VULKAN_ASSERT_RESULT(CreateSwapChainImageViews(SwapChainImages, SwapChainImagesViews, SurfaceFormat.format, LogicalDevice));
 }

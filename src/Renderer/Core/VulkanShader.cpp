@@ -1,6 +1,9 @@
 #include "VulkanShader.hpp"
 #include <fstream>
 
+#include "../../Common/Log.hpp"
+#include "../../Common/CommonDefinitions.hpp"
+
 VkShaderModule VKCORE::CreateModule(const std::vector<char>& CodeSource,VkDevice& LogicalDevice)
 {
     VkShaderModuleCreateInfo ShaderModuleCreateInfo{};
@@ -12,7 +15,9 @@ VkShaderModule VKCORE::CreateModule(const std::vector<char>& CodeSource,VkDevice
     if (vkCreateShaderModule(LogicalDevice, &ShaderModuleCreateInfo, nullptr, &Module) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create a shader module!");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Shader module created [" + std::to_string(reinterpret_cast<uintptr_t>(Module)) + "]."));
     }
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Shader module created [" + std::to_string(reinterpret_cast<uintptr_t>(Module)) + "]."));
     return Module;
 }
 
@@ -39,8 +44,11 @@ int VKCORE::CompileGLSL(const std::string& SourceFileName, const std::string& De
     int Result = std::system(Command.c_str());
     if (Result != 0)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed to compile shader [" + SourceFileName + " -> " + DestinationFileName + "]."));
         throw std::runtime_error("Failed to compile glsl into spir-v");
     }
+
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Shader [" + SourceFileName + " -> " + DestinationFileName + "] compiled."));
 }
 
 VKCORE::ShaderModule::ShaderModule(const char* FileName, const char* SpirvFileName, bool CompileShaderIntoSpirv, VkDevice& LogicalDevice)

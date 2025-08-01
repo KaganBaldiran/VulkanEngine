@@ -1,5 +1,9 @@
 #include "VulkanWindow.hpp"
 
+#include "../../Common/Log.hpp"
+#include "../../Common/CommonDefinitions.hpp"
+#include <vulkan/vk_enum_string_helper.h>
+
 static void FramebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
     auto Window = reinterpret_cast<VKCORE::Window*>(glfwGetWindowUserPointer(window));
@@ -30,8 +34,10 @@ VKCORE::VulkanResult VKCORE::CreateWindow(GLFWwindow** Window, uint32_t Width, u
     *Window = glfwCreateWindow(Width, Height, WindowName, nullptr, nullptr);
     if (Window == NULL)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, std::string("Failed creating window [" + std::string(WindowName) + "]."));
         return { VK_INCOMPLETE,"Unable to create window!" };
     }
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created window [" + std::string(WindowName) + "]."));
     return VULKAN_SUCCESS;
 }
 
@@ -42,7 +48,7 @@ VKCORE::Window::Window(VulkanWindowCreateInfo& CreateInfo)
 
 void VKCORE::Window::Create(VulkanWindowCreateInfo& CreateInfo)
 {
-    CreateWindow(&window, CreateInfo.WindowInitialWidth, CreateInfo.WindowInitialHeight, CreateInfo.WindowsName.c_str(), FrameBufferResizedCallback);
+    VULKAN_ASSERT_RESULT(CreateWindow(&window, CreateInfo.WindowInitialWidth, CreateInfo.WindowInitialHeight, CreateInfo.WindowsName.c_str(), FrameBufferResizedCallback));
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, FramebufferResizeCallback);
     glfwSetCursorPosCallback(window, Mouse_Callback);

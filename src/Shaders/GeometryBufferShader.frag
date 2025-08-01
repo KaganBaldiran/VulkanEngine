@@ -28,13 +28,14 @@ void main() {
     int OpacityTextureIndex = TextureIndexes[(MeshIndex * 5) + 4];
 
     Normal = vec4(OutNormals,1.0f);
-    
-    if(AlbedoTextureIndex >= 0)  Albedo = vec4(texture(Textures[nonuniformEXT(AlbedoTextureIndex)],1.0 - OutUVcoords).xyz,1.0f);
+    vec2 FlippedUV = vec2(OutUVcoords.x,1.0f - OutUVcoords.y);
+
+    if(AlbedoTextureIndex >= 0)  Albedo = vec4(texture(Textures[nonuniformEXT(AlbedoTextureIndex)],FlippedUV).xyz,1.0f);
     else Albedo = vec4(1.0f);
     
     if(NormalMapTextureIndex >= 0)  
     {
-        vec3 TextureNormal = texture(Textures[nonuniformEXT(NormalMapTextureIndex)],1.0 - OutUVcoords).xyz * 2.0 - 1.0; 
+        vec3 TextureNormal = texture(Textures[nonuniformEXT(NormalMapTextureIndex)],FlippedUV).xyz * 2.0 - 1.0; 
         mat3 TBNmatrix = mat3(OutTangent,OutBitangent,OutNormals);
         Normal = vec4(normalize(TBNmatrix * TextureNormal),1.0f);
     }
@@ -42,8 +43,8 @@ void main() {
     
     float Roughness = 0.5f;
     float Metallic = 0.0f;
-    if(RoughnessTextureIndex >= 0)  Roughness = texture(Textures[nonuniformEXT(RoughnessTextureIndex)],1.0 - OutUVcoords).x;
-    if(MetallicTextureIndex >= 0)  Metallic = texture(Textures[nonuniformEXT(MetallicTextureIndex)],1.0 - OutUVcoords).x;
+    if(RoughnessTextureIndex >= 0)  Roughness = texture(Textures[nonuniformEXT(RoughnessTextureIndex)],FlippedUV).x;
+    if(MetallicTextureIndex >= 0)  Metallic = texture(Textures[nonuniformEXT(MetallicTextureIndex)],FlippedUV).x;
 
     RoughnessMetallic = vec4(Roughness,Metallic,0.0f,1.0f);
 }

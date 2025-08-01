@@ -88,6 +88,7 @@ namespace VKSCENE
 	struct ModelMetaData
 	{
 		uint32_t Index,ReferenceCount = 0;
+		bool IsChanged = false;
 	};
 
 	struct ModelEntry

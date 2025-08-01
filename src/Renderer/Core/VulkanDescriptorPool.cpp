@@ -1,6 +1,10 @@
 #include "VulkanDescriptorPool.hpp"
 #include "VulkanDescriptorSetLayout.hpp"
 
+#include "../../Common/Log.hpp"
+#include "../../Common/CommonDefinitions.hpp"
+#include <vulkan/vk_enum_string_helper.h>
+
 VKCORE::DescriptorPool::DescriptorPool(const std::vector<std::pair<VkDescriptorType,uint32_t>> &PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice, VkDescriptorPoolCreateFlags Flags)
 {
     Create(PoolSizes, MaxSets, LogicalDevice,Flags);
@@ -16,6 +20,7 @@ void VKCORE::DescriptorPool::Create(const std::vector<std::pair<VkDescriptorType
     {
         Sizes[i].type = PoolSizes[i].first;
         Sizes[i].descriptorCount = PoolSizes[i].second;
+        Log += "(" + std::string(string_VkDescriptorType(Sizes[i].type)) + "," + std::to_string(Sizes[i].descriptorCount) + ")";
     }
 
     VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo{};
@@ -27,14 +32,18 @@ void VKCORE::DescriptorPool::Create(const std::vector<std::pair<VkDescriptorType
 
     if (vkCreateDescriptorPool(LogicalDevice, &DescriptorPoolCreateInfo, nullptr, &descriptorPool) != VK_SUCCESS)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating descriptor pool [" + Log + "]."));
         throw std::runtime_error("Failed to create a descriptor pool");
     }
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created descriptor pool [" + Log + "]."));
 }
 
 void VKCORE::DescriptorPool::Destroy(VkDevice& LogicalDevice)
 {
     if (descriptorPool)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Destroyed descriptor pool [" + Log + "]."));
+        Log.clear();
         vkDestroyDescriptorPool(LogicalDevice, this->descriptorPool, nullptr);
         descriptorPool = VK_NULL_HANDLE;
     }

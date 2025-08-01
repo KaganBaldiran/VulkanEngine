@@ -6,6 +6,9 @@
 #include <queue>
 #include "MaterialManager.hpp"
 
+#include "../Common/Log.hpp"
+#include "../Common/CommonDefinitions.hpp"
+
 void ProcessMeshMaterial(std::string MeshDirectory,VKSCENE::TextureImportManager& ImportManager, aiMaterial* SourceMaterial, VKSCENE::Material& DestinationMaterial);
 
 VKSCENE::MeshImporter::MeshImporter(TextureImportManager& ImportManager)
@@ -30,6 +33,7 @@ void VKSCENE::MeshImporter::SubmitImport()
     {
         auto Import = std::move(ImportQueue.front());
         Futures.push_back(std::async(std::launch::async, VKSCENE::Import3Dmodel, Import.ModelFilePath, std::ref(*Import.DestinationModel), std::ref(*ImportManager)));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Imported model [" + std::string(Import.ModelFilePath) + "].");
         ImportQueue.pop();
     }
 }
@@ -44,6 +48,7 @@ void VKSCENE::MeshImporter::WaitImportIdle()
 
     double DeltaTime = glfwGetTime() - StartingTime;
     std::cout << "Models were imported in: " << DeltaTime << " seconds" << std::endl;
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Models were imported in " + std::to_string(DeltaTime) + " seconds.");
 }
 
 VkVertexInputBindingDescription VKSCENE::Vertex2D::GetBindingDescription()

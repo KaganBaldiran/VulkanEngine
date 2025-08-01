@@ -114,6 +114,7 @@ void VKCORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion>& Region
 
 void VKCORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion*>& Regions)
 {
+    if (Regions.empty()) return;
     std::sort(Regions.begin(), Regions.end(), [&](auto& Region0, auto& Region1) {
         return Region0->Offset < Region1->Offset;
     });

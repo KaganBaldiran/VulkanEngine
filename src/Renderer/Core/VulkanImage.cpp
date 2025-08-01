@@ -6,6 +6,10 @@
 #include "VulkanImageView.hpp"
 #include "VulkanCommandBuffer.hpp"
 
+#include "../../Common/Log.hpp"
+#include "../../Common/CommonDefinitions.hpp"
+#include <vulkan/vk_enum_string_helper.h>
+
 int VKCORE::ReadTexture(const char* FileName, VKCORE::RawImageData& DestinationImageData)
 {
     DestinationImageData.Pixels = stbi_load(FileName, &DestinationImageData.Width, &DestinationImageData.Height, &DestinationImageData.ChannelCount, STBI_rgb_alpha);
@@ -49,7 +53,8 @@ void VKCORE::CreateImage(
     VkImage& Image,
     VkDeviceMemory& ImageMemory,
     uint32_t LayerCount,
-    VkImageCreateFlags Flags
+    VkImageCreateFlags Flags,
+    VkSampleCountFlagBits SampleCount
 )
 {
     VkImageCreateInfo ImageCreateInfo{};
@@ -65,11 +70,13 @@ void VKCORE::CreateImage(
     ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     ImageCreateInfo.usage = Usage;
     ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    ImageCreateInfo.samples = SampleCount;
     ImageCreateInfo.flags = Flags;
 
     if (vkCreateImage(LogicalDevice, &ImageCreateInfo, nullptr, &Image) != VK_SUCCESS)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed to create image [(" + std::to_string(Width) +
+            "x" + std::to_string(Height) + "),format(" + string_VkFormat(Format) + ")]."));
         throw std::runtime_error("Failed to create image!");
     }
 
@@ -83,10 +90,14 @@ void VKCORE::CreateImage(
 
     if (vkAllocateMemory(LogicalDevice, &ImageMemoryAllocationInfo, nullptr, &ImageMemory) != VK_SUCCESS)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed to allocate memory for image [size(" +
+                std::to_string(ImageMemoryRequirements.size) + "),format(" + string_VkFormat(Format) + ")]."));
         throw std::runtime_error("Failed to allocate memory for the image");
     }
 
     vkBindImageMemory(LogicalDevice, Image, ImageMemory, 0);
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Image created [(" + std::to_string(Width) +
+        "x" + std::to_string(Height) + "),format(" + string_VkFormat(Format) + ")]."));
 }
 
 void VKCORE::BlitImage(

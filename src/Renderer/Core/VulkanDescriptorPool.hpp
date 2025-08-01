@@ -15,5 +15,6 @@ namespace VKCORE
 		void Destroy(VkDevice& LogicalDevice);
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 	private:
+		std::string Log;
 	};
 }

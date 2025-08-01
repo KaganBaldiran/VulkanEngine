@@ -2,6 +2,10 @@
 #include <map>
 #include <set>
 
+#include "../../Common/Log.hpp"
+#include "../../Common/CommonDefinitions.hpp"
+#include <vulkan/vk_enum_string_helper.h>
+
 VKCORE::VulkanResult VKCORE::CreateSurface(VkInstance& Instance,GLFWwindow* Window,VkSurfaceKHR& Surface)
 {
     if (glfwCreateWindowSurface(Instance, Window, nullptr, &Surface) != VK_SUCCESS)
@@ -132,6 +136,7 @@ VKCORE::VulkanResult VKCORE::PickPhysicalDevice(VulkanDeviceCreateInfo& CreateIn
 
     if (DeviceCount == 0)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Failed to detect GPUs with Vulkan support!");
         return { VK_INCOMPLETE,"Failed to detect GPUs with Vulkan support!" };
     }
 
@@ -154,6 +159,7 @@ VKCORE::VulkanResult VKCORE::PickPhysicalDevice(VulkanDeviceCreateInfo& CreateIn
     }
     else
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Failed to detect a suitable physical device!");
         return { VK_INCOMPLETE,"Failed to detect a suitable physical device!" };
     }
 
@@ -216,13 +222,27 @@ VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
 
     if (vkCreateDevice(PhysicalDevice, &DeviceCreateInfo, nullptr, &LogicalDevice) != VK_SUCCESS)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Failed to create device.");
         return { VK_INCOMPLETE, "Failed to create the logical device!" };
     }
 
-    if (indices.HasGraphics()) vkGetDeviceQueue(LogicalDevice, indices.GraphicsFamily.value(), 0, &GraphicsQueue);
-    if (indices.HasPresent()) vkGetDeviceQueue(LogicalDevice, indices.PresentFamily.value(), 0, &PresentQueue);
-    if (indices.HasCompute()) vkGetDeviceQueue(LogicalDevice, indices.ComputeFamily.value(), 0, &ComputeQueue);
+    if (indices.HasGraphics())
+    {
+        vkGetDeviceQueue(LogicalDevice, indices.GraphicsFamily.value(), 0, &GraphicsQueue);
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected graphics queue [" + std::to_string(reinterpret_cast<uintptr_t>(GraphicsQueue)) + "].");
+    }
+    if (indices.HasPresent())
+    {
+        vkGetDeviceQueue(LogicalDevice, indices.PresentFamily.value(), 0, &PresentQueue);
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected present queue [" + std::to_string(reinterpret_cast<uintptr_t>(PresentQueue)) + "].");
+    }
+    if (indices.HasCompute())
+    {
+        vkGetDeviceQueue(LogicalDevice, indices.ComputeFamily.value(), 0, &ComputeQueue);
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected compute queue [" + std::to_string(reinterpret_cast<uintptr_t>(ComputeQueue)) + "].");
+    }
 
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Created device [" + std::to_string(reinterpret_cast<uintptr_t>(LogicalDevice)) + "].");
     return VULKAN_SUCCESS;
 }
 
@@ -249,19 +269,21 @@ VKCORE::DeviceContext::DeviceContext(VulkanDeviceCreateInfo& CreateInfo, VkSurfa
 
 void VKCORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
 {
-    PickPhysicalDevice(CreateInfo, Instance, physicalDevice, Surface);
+    VULKAN_ASSERT_RESULT(PickPhysicalDevice(CreateInfo, Instance, physicalDevice, Surface));
 
     vkGetPhysicalDeviceProperties(physicalDevice, &DeviceProperties);
     vkGetPhysicalDeviceFeatures(physicalDevice, &DeviceFeatures);
 
-    std::cout << "Physical Device: " << DeviceProperties.deviceName << std::endl;
+    
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected a suitable physical device [name(" + std::string(DeviceProperties.deviceName) + "), device type(" + string_VkPhysicalDeviceType(DeviceProperties.deviceType) + ")].");
     if (!DeviceFeatures.drawIndirectFirstInstance && !DeviceFeatures.shaderSampledImageArrayDynamicIndexing)
     {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Physical Device " + std::string(DeviceProperties.deviceName) + " doesn't support drawIndirectFirstInstance or shaderSampledImageArrayDynamicIndexing.");
         std::cout << "Physical Device '" << DeviceProperties.deviceName <<"' doesn't support drawIndirectFirstInstance or shaderSampledImageArrayDynamicIndexing! Exitting..." << std::endl;
         exit(-1);
     }
     
-    CreateLogicalDevice(CreateInfo, physicalDevice, Surface, logicalDevice, GraphicsQueue, PresentQueue,ComputeQueue);
+    VULKAN_ASSERT_RESULT(CreateLogicalDevice(CreateInfo, physicalDevice, Surface, logicalDevice, GraphicsQueue, PresentQueue,ComputeQueue));
 }
 
 void VKCORE::DeviceContext::Destroy()
