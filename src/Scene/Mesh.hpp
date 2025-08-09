@@ -13,7 +13,7 @@
 
 #include "Material.hpp"
 
-namespace VKSCENE
+namespace SCENE
 {
     class TextureImportManager;
 
@@ -95,7 +95,7 @@ namespace VKSCENE
 
     struct ModelImportInfo
     {
-        VKSCENE::Model3D* DestinationModel;
+        SCENE::Model3D* DestinationModel;
         const char* ModelFilePath;
     };
 
@@ -122,7 +122,7 @@ namespace VKSCENE
         std::vector<uint32_t> Indices;
     };
 
-    void Import3Dmodel(const char* FilePath, Model3D& DstModel,VKSCENE::TextureImportManager& ImportManager);
-    BatchInfo BatchModels(std::vector<VKSCENE::Model3D>& Models, std::vector<DrawInfo>& DestinationDrawInfos);
+    void Import3Dmodel(const char* FilePath, Model3D& DstModel,SCENE::TextureImportManager& ImportManager);
+    BatchInfo BatchModels(std::vector<SCENE::Model3D>& Models, std::vector<DrawInfo>& DestinationDrawInfos);
     BatchInfo BatchModels(std::vector<Model3D*> Models, std::vector<DrawInfo>& DestinationDrawInfos);
 }

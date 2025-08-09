@@ -1,6 +1,6 @@
 #include "Material.hpp"
 
-VKSCENE::Material::Material()
+SCENE::Material::Material()
 {
 	std::fill(ReferencedTextures.begin(), ReferencedTextures.end(), TEXTURE_UNLINKED);
 }

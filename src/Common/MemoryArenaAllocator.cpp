@@ -1,12 +1,12 @@
 #include "MemoryArenaAllocator.hpp"
 #include <algorithm>
 
-VKCORE::VirtualArenaAllocator::VirtualArenaAllocator(size_t InitialCapacityInBytes, size_t AllocationChunkSize)
+RENDERER_CORE::VirtualArenaAllocator::VirtualArenaAllocator(size_t InitialCapacityInBytes, size_t AllocationChunkSize)
 {
     Create(InitialCapacityInBytes, AllocationChunkSize);
 }
 
-void VKCORE::VirtualArenaAllocator::Create(size_t InitialCapacityInBytes, size_t AllocationChunkSize)
+void RENDERER_CORE::VirtualArenaAllocator::Create(size_t InitialCapacityInBytes, size_t AllocationChunkSize)
 {
     if (AllocationChunkSize == 0) throw std::runtime_error("Allocation chunk size can't be 0!");
     Capacity = InitialCapacityInBytes;
@@ -16,7 +16,7 @@ void VKCORE::VirtualArenaAllocator::Create(size_t InitialCapacityInBytes, size_t
     TotalFreeSpace = InitialCapacityInBytes;
 }
 
-VKCORE::MemoryRegion VKCORE::VirtualArenaAllocator::Allocate(size_t SizeInBytes)
+RENDERER_CORE::MemoryRegion RENDERER_CORE::VirtualArenaAllocator::Allocate(size_t SizeInBytes)
 {
     if(SizeInBytes == 0) return { 0,0 };
     while (true)
@@ -66,7 +66,7 @@ VKCORE::MemoryRegion VKCORE::VirtualArenaAllocator::Allocate(size_t SizeInBytes)
     return {0,0};
 }
 
-void VKCORE::VirtualArenaAllocator::Free(const MemoryRegion& RegionToFree)
+void RENDERER_CORE::VirtualArenaAllocator::Free(const MemoryRegion& RegionToFree)
 {
     if (RegionToFree.Size == 0) throw std::runtime_error("Invalid memory region!");
     FreeRegions.push_back(RegionToFree);
@@ -90,7 +90,7 @@ void VKCORE::VirtualArenaAllocator::Free(const MemoryRegion& RegionToFree)
     std::swap(FreeRegions, MergedFreeRegions);
 }
 
-void VKCORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion>& Regions)
+void RENDERER_CORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion>& Regions)
 {
     std::sort(Regions.begin(), Regions.end(), [&](auto& Region0, auto& Region1) {
         return Region0.Offset < Region1.Offset;
@@ -112,7 +112,7 @@ void VKCORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion>& Region
     TotalFreeSpace = Capacity - Offset;
 }
 
-void VKCORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion*>& Regions)
+void RENDERER_CORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion*>& Regions)
 {
     if (Regions.empty()) return;
     std::sort(Regions.begin(), Regions.end(), [&](auto& Region0, auto& Region1) {
@@ -132,7 +132,7 @@ void VKCORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion*>& Regio
     TotalFreeSpace = Capacity - Offset;
 }
 
-double VKCORE::VirtualArenaAllocator::GetFragmentationPercent()
+double RENDERER_CORE::VirtualArenaAllocator::GetFragmentationPercent()
 {
     size_t LargestFreeRegion = 0;
     for (auto& Region : FreeRegions)
@@ -144,7 +144,7 @@ double VKCORE::VirtualArenaAllocator::GetFragmentationPercent()
     return  1.0 - (static_cast<double>(LargestFreeRegion) / static_cast<double>(TotalFreeSpace));
 }
 
-void VKCORE::VirtualArenaAllocator::Reset()
+void RENDERER_CORE::VirtualArenaAllocator::Reset()
 {
     FreeRegions.clear();
     Capacity = this->ChunkSize;

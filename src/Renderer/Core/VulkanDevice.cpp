@@ -6,7 +6,7 @@
 #include "../../Common/CommonDefinitions.hpp"
 #include <vulkan/vk_enum_string_helper.h>
 
-VKCORE::VulkanResult VKCORE::CreateSurface(VkInstance& Instance,GLFWwindow* Window,VkSurfaceKHR& Surface)
+RENDERER_CORE::VulkanResult RENDERER_CORE::CreateSurface(VkInstance& Instance,GLFWwindow* Window,VkSurfaceKHR& Surface)
 {
     if (glfwCreateWindowSurface(Instance, Window, nullptr, &Surface) != VK_SUCCESS)
     {
@@ -15,9 +15,9 @@ VKCORE::VulkanResult VKCORE::CreateSurface(VkInstance& Instance,GLFWwindow* Wind
     return VULKAN_SUCCESS;
 }
 
-VKCORE::QueueFamilyIndices VKCORE::FindQueueFamilies(VkPhysicalDevice Device,VkSurfaceKHR &Surface)
+RENDERER_CORE::QueueFamilyIndices RENDERER_CORE::FindQueueFamilies(VkPhysicalDevice Device,VkSurfaceKHR &Surface)
 {
-    VKCORE::QueueFamilyIndices Indices;
+    RENDERER_CORE::QueueFamilyIndices Indices;
 
     uint32_t QueueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(Device, &QueueFamilyCount, nullptr);
@@ -34,7 +34,11 @@ VKCORE::QueueFamilyIndices VKCORE::FindQueueFamilies(VkPhysicalDevice Device,VkS
         {
             Indices.GraphicsFamily = i;
         }
-        if (QueueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)
+        if ((QueueFamily.queueFlags & (VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT)) == (VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT))
+        {
+            Indices.GraphicsComputeFamily = i;
+        }
+        if ((QueueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) && !(QueueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT))
         {
             Indices.ComputeFamily = i;
         }
@@ -52,7 +56,7 @@ VKCORE::QueueFamilyIndices VKCORE::FindQueueFamilies(VkPhysicalDevice Device,VkS
     return Indices;
 }
 
-bool VKCORE::CheckDeviceExtensionSupport(VkPhysicalDevice Device, const std::vector<const char*> &DeviceExtensions)
+bool RENDERER_CORE::CheckDeviceExtensionSupport(VkPhysicalDevice Device, const std::vector<const char*> &DeviceExtensions)
 {
     uint32_t ExtensionCount;
     vkEnumerateDeviceExtensionProperties(Device, nullptr, &ExtensionCount, nullptr);
@@ -70,9 +74,9 @@ bool VKCORE::CheckDeviceExtensionSupport(VkPhysicalDevice Device, const std::vec
     return RequiredExtensions.empty();
 }
 
-VKCORE::SwapChainSupportDetails VKCORE::QuerySwapChainSupport(VkPhysicalDevice Device,VkSurfaceKHR &Surface)
+RENDERER_CORE::SwapChainSupportDetails RENDERER_CORE::QuerySwapChainSupport(VkPhysicalDevice Device,VkSurfaceKHR &Surface)
 {
-    VKCORE::SwapChainSupportDetails Details;
+    RENDERER_CORE::SwapChainSupportDetails Details;
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Device, Surface, &Details.Capabilities);
 
@@ -97,7 +101,7 @@ VKCORE::SwapChainSupportDetails VKCORE::QuerySwapChainSupport(VkPhysicalDevice D
     return Details;
 }
 
-int VKCORE::CheckDeviceSuitability(VkPhysicalDevice Device,VkSurfaceKHR& Surface,const std::vector<const char*> DeviceExtensions)
+int RENDERER_CORE::CheckDeviceSuitability(VkPhysicalDevice Device,VkSurfaceKHR& Surface,const std::vector<const char*> DeviceExtensions)
 {
     VkPhysicalDeviceProperties DeviceProperties;
     vkGetPhysicalDeviceProperties(Device, &DeviceProperties);
@@ -113,23 +117,23 @@ int VKCORE::CheckDeviceSuitability(VkPhysicalDevice Device,VkSurfaceKHR& Surface
     }
 
     Score += DeviceProperties.limits.maxImageDimension2D;
-    VKCORE::QueueFamilyIndices indices = VKCORE::FindQueueFamilies(Device, Surface);
+    RENDERER_CORE::QueueFamilyIndices indices = RENDERER_CORE::FindQueueFamilies(Device, Surface);
 
-    bool IsExtensionsSupported = VKCORE::CheckDeviceExtensionSupport(Device, DeviceExtensions);
+    bool IsExtensionsSupported = RENDERER_CORE::CheckDeviceExtensionSupport(Device, DeviceExtensions);
 
     Score *= static_cast<int>(indices.GraphicsFamily.has_value());
     Score *= static_cast<int>(IsExtensionsSupported);
 
     if (IsExtensionsSupported)
     {
-        VKCORE::SwapChainSupportDetails SwapChainSupport = VKCORE::QuerySwapChainSupport(Device,Surface);
+        RENDERER_CORE::SwapChainSupportDetails SwapChainSupport = RENDERER_CORE::QuerySwapChainSupport(Device,Surface);
         Score *= static_cast<int>(!SwapChainSupport.Formats.empty() && !SwapChainSupport.PresentModes.empty());
     }
 
     return Score;
 }
 
-VKCORE::VulkanResult VKCORE::PickPhysicalDevice(VulkanDeviceCreateInfo& CreateInfo,VkInstance &Instance,VkPhysicalDevice& DestinationDevice,VkSurfaceKHR &Surface)
+RENDERER_CORE::VulkanResult RENDERER_CORE::PickPhysicalDevice(VulkanDeviceCreateInfo& CreateInfo,VkInstance &Instance,VkPhysicalDevice& DestinationDevice,VkSurfaceKHR &Surface)
 {
     uint32_t DeviceCount = 0;
     vkEnumeratePhysicalDevices(Instance, &DeviceCount, nullptr);
@@ -149,7 +153,7 @@ VKCORE::VulkanResult VKCORE::PickPhysicalDevice(VulkanDeviceCreateInfo& CreateIn
     {
         int Score;
         if (CreateInfo.PhysicalDeviceScoreEvalOperation) Score = CreateInfo.PhysicalDeviceScoreEvalOperation(Device, Surface);
-        else Score = VKCORE::CheckDeviceSuitability(Device, Surface,CreateInfo.DeviceExtensionsToEnable);
+        else Score = RENDERER_CORE::CheckDeviceSuitability(Device, Surface,CreateInfo.DeviceExtensionsToEnable);
         Candidates.insert({ Score,Device });
     }
 
@@ -166,20 +170,23 @@ VKCORE::VulkanResult VKCORE::PickPhysicalDevice(VulkanDeviceCreateInfo& CreateIn
     return VULKAN_SUCCESS;
 }
 
-VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
+RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
     VulkanDeviceCreateInfo& CreateInfo,
     VkPhysicalDevice PhysicalDevice,
     VkSurfaceKHR Surface,
     VkDevice& LogicalDevice,
     VkQueue& GraphicsQueue,
     VkQueue& PresentQueue,
-    VkQueue& ComputeQueue
+    VkQueue& ComputeQueue,
+    VkQueue& GraphicsComputeQueue
 )
 {
-    VKCORE::QueueFamilyIndices indices = VKCORE::FindQueueFamilies(PhysicalDevice, Surface);
+    RENDERER_CORE::QueueFamilyIndices indices = RENDERER_CORE::FindQueueFamilies(PhysicalDevice, Surface);
 
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
-    std::set<uint32_t> UniqueQueueFamilies = { indices.GraphicsFamily.value(), indices.PresentFamily.value() };
+    std::set<uint32_t> UniqueQueueFamilies = { indices.GraphicsFamily.value(), indices.PresentFamily.value(), };
+    if (indices.HasCompute()) UniqueQueueFamilies.insert(indices.ComputeFamily.value());
+    if (indices.HasComputeGraphics()) UniqueQueueFamilies.insert(indices.GraphicsComputeFamily.value());
 
     QueueCreateInfos.reserve(UniqueQueueFamilies.size());
 
@@ -205,6 +212,10 @@ VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
     DeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(CreateInfo.DeviceExtensionsToEnable.size());
     DeviceCreateInfo.ppEnabledExtensionNames = CreateInfo.DeviceExtensionsToEnable.data();
 
+    VkPhysicalDeviceTimelineSemaphoreFeatures TimelineFeatures{};
+    TimelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
+    TimelineFeatures.timelineSemaphore = VK_TRUE;
+
     VkPhysicalDeviceDescriptorIndexingFeatures PhysicalDeviceDescriptorIndexingFeatures{};
     PhysicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
     PhysicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
@@ -212,6 +223,7 @@ VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
     PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
     PhysicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+    PhysicalDeviceDescriptorIndexingFeatures.pNext = &TimelineFeatures;
 
     VkPhysicalDeviceDynamicRenderingFeaturesKHR DynamicRenderingFeatures{};
     DynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
@@ -241,52 +253,67 @@ VKCORE::VulkanResult VKCORE::CreateLogicalDevice(
         vkGetDeviceQueue(LogicalDevice, indices.ComputeFamily.value(), 0, &ComputeQueue);
         LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected compute queue [" + std::to_string(reinterpret_cast<uintptr_t>(ComputeQueue)) + "].");
     }
+    if (indices.HasComputeGraphics())
+    {
+        vkGetDeviceQueue(LogicalDevice, indices.GraphicsComputeFamily.value(), 0, &GraphicsComputeQueue);
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected graphics-compute queue [" + std::to_string(reinterpret_cast<uintptr_t>(GraphicsComputeQueue)) + "].");
+    }
 
     LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Created device [" + std::to_string(reinterpret_cast<uintptr_t>(LogicalDevice)) + "].");
     return VULKAN_SUCCESS;
 }
 
 
-VKCORE::Surface::Surface(VkInstance &Instance,GLFWwindow *Window)
+RENDERER_CORE::Surface::Surface(VkInstance &Instance,GLFWwindow *Window)
 {
     Create(Instance, Window);
 };
 
-void VKCORE::Surface::Create(VkInstance& Instance, GLFWwindow* Window)
+void RENDERER_CORE::Surface::Create(VkInstance& Instance, GLFWwindow* Window)
 {
     CreateSurface(Instance, Window, surface);
 }
 
-void VKCORE::Surface::Destroy(VkInstance &Instance)
+void RENDERER_CORE::Surface::Destroy(VkInstance &Instance)
 {
     vkDestroySurfaceKHR(Instance, surface, nullptr);
 }
 
-VKCORE::DeviceContext::DeviceContext(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
+RENDERER_CORE::DeviceContext::DeviceContext(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
 {
     Create(CreateInfo, Surface, Instance);
 }
 
-void VKCORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
+void RENDERER_CORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
 {
     VULKAN_ASSERT_RESULT(PickPhysicalDevice(CreateInfo, Instance, physicalDevice, Surface));
 
     vkGetPhysicalDeviceProperties(physicalDevice, &DeviceProperties);
     vkGetPhysicalDeviceFeatures(physicalDevice, &DeviceFeatures);
 
-    
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected a suitable physical device [name(" + std::string(DeviceProperties.deviceName) + "), device type(" + string_VkPhysicalDeviceType(DeviceProperties.deviceType) + ")].");
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected a suitable physical device [name(" + std::string(DeviceProperties.deviceName) +
+        "), device type(" + string_VkPhysicalDeviceType(DeviceProperties.deviceType) + ")].");
     if (!DeviceFeatures.drawIndirectFirstInstance && !DeviceFeatures.shaderSampledImageArrayDynamicIndexing)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Physical Device " + std::string(DeviceProperties.deviceName) + " doesn't support drawIndirectFirstInstance or shaderSampledImageArrayDynamicIndexing.");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Physical Device " + std::string(DeviceProperties.deviceName) +
+            " doesn't support drawIndirectFirstInstance or shaderSampledImageArrayDynamicIndexing.");
         std::cout << "Physical Device '" << DeviceProperties.deviceName <<"' doesn't support drawIndirectFirstInstance or shaderSampledImageArrayDynamicIndexing! Exitting..." << std::endl;
         exit(-1);
     }
     
-    VULKAN_ASSERT_RESULT(CreateLogicalDevice(CreateInfo, physicalDevice, Surface, logicalDevice, GraphicsQueue, PresentQueue,ComputeQueue));
+    VULKAN_ASSERT_RESULT(CreateLogicalDevice(
+        CreateInfo,
+        physicalDevice, 
+        Surface, 
+        logicalDevice, 
+        GraphicsQueue, 
+        PresentQueue,
+        ComputeQueue,
+        GraphicsComputeQueue
+    ));
 }
 
-void VKCORE::DeviceContext::Destroy()
+void RENDERER_CORE::DeviceContext::Destroy()
 {
     vkDestroyDevice(logicalDevice, nullptr);
 }

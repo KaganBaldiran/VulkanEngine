@@ -3,7 +3,7 @@
 #include <glfw3.h>
 #include "VulkanUtils.hpp" 
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	class CommandPool
 	{

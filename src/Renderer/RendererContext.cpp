@@ -54,20 +54,20 @@ float skyboxVertices[] = {
      1.0f, -1.0f,  1.0f
 };
 
-VKAPP::RendererContext::RendererContext(bool EnableValidationLayers)
+RENDERER::RendererContext::RendererContext(bool EnableValidationLayers)
 {
     Create(EnableValidationLayers);
 }
 
-void VKAPP::RendererContext::Create(bool EnableValidationLayers)
+void RENDERER::RendererContext::Create(bool EnableValidationLayers)
 {
-    VKCORE::VulkanWindowCreateInfo WindowCreateInfo{};
+    RENDERER_CORE::VulkanWindowCreateInfo WindowCreateInfo{};
     WindowCreateInfo.WindowInitialHeight = 800;
     WindowCreateInfo.WindowInitialWidth = 1000;
     WindowCreateInfo.WindowsName = "Hello World";
     Window.Create(WindowCreateInfo);
 
-    VKCORE::VulkanInstanceCreateInfo InstanceCreateInfo{};
+    RENDERER_CORE::VulkanInstanceCreateInfo InstanceCreateInfo{};
     InstanceCreateInfo.APIVersion = VK_API_VERSION_1_3;
     InstanceCreateInfo.ApplicationName = "Application";
     InstanceCreateInfo.ApplicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
@@ -79,13 +79,13 @@ void VKAPP::RendererContext::Create(bool EnableValidationLayers)
 
     Surface.Create(Instance.instance, Window.window);
 
-    VKCORE::VulkanDeviceCreateInfo DeviceCreateInfo{};
+    RENDERER_CORE::VulkanDeviceCreateInfo DeviceCreateInfo{};
     DeviceCreateInfo.DeviceExtensionsToEnable = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME };
     DeviceCreateInfo.QueuePriority = 1.0f;
     DeviceContext.Create(DeviceCreateInfo, Surface.surface, Instance.instance);
 
     SwapChain.Create(DeviceContext.physicalDevice, DeviceContext.logicalDevice, Surface.surface, Window.window);
-    QueueFamilyIndices = VKCORE::FindQueueFamilies(DeviceContext.physicalDevice, Surface.surface);
+    QueueFamilyIndices = RENDERER_CORE::FindQueueFamilies(DeviceContext.physicalDevice, Surface.surface);
 
     CommandPool.Create(QueueFamilyIndices.GraphicsFamily.value(), DeviceContext.logicalDevice);
 
@@ -104,7 +104,7 @@ void VKAPP::RendererContext::Create(bool EnableValidationLayers)
     IndirectDescriptorSetLayouts.resize(MAX_FRAMES_IN_FLIGHT, IndirectDescriptorSetLayout.descriptorSetLayout);
 
     //Quad buffer
-    VKCORE::UploadDataToDeviceLocalBuffer(
+    RENDERER_CORE::UploadDataToDeviceLocalBuffer(
         DeviceContext.logicalDevice,
         DeviceContext.physicalDevice,
         CommandPool.commandPool,
@@ -116,7 +116,7 @@ void VKAPP::RendererContext::Create(bool EnableValidationLayers)
     );
 
     //Cube buffer
-    VKCORE::UploadDataToDeviceLocalBuffer(
+    RENDERER_CORE::UploadDataToDeviceLocalBuffer(
         DeviceContext.logicalDevice,
         DeviceContext.physicalDevice,
         CommandPool.commandPool,
@@ -127,7 +127,7 @@ void VKAPP::RendererContext::Create(bool EnableValidationLayers)
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
     );
 
-    DepthImageFormat = VKCORE::FindSupportedFormat(DeviceContext.physicalDevice, { VK_FORMAT_D32_SFLOAT,VK_FORMAT_D32_SFLOAT_S8_UINT,VK_FORMAT_D24_UNORM_S8_UINT },
+    DepthImageFormat = RENDERER_CORE::FindSupportedFormat(DeviceContext.physicalDevice, { VK_FORMAT_D32_SFLOAT,VK_FORMAT_D32_SFLOAT_S8_UINT,VK_FORMAT_D24_UNORM_S8_UINT },
         VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
     GbufferPassLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 0, VK_SHADER_STAGE_VERTEX_BIT);
@@ -139,7 +139,7 @@ void VKAPP::RendererContext::Create(bool EnableValidationLayers)
     CreateHDRIrenderPassResources();
 }
 
-void VKAPP::RendererContext::Destroy()
+void RENDERER::RendererContext::Destroy()
 {
     GbufferPassLayout.Destroy(DeviceContext.logicalDevice);
     GbufferVertexShaderModule.Destroy(DeviceContext.logicalDevice);
@@ -163,11 +163,11 @@ void VKAPP::RendererContext::Destroy()
     Instance.Destroy();
     Window.Destroy();
 }
-void VKAPP::RendererContext::WaitDeviceIdle()
+void RENDERER::RendererContext::WaitDeviceIdle()
 {
     vkDeviceWaitIdle(DeviceContext.logicalDevice);
 }
-void VKAPP::RendererContext::CreateHDRIrenderPassResources()
+void RENDERER::RendererContext::CreateHDRIrenderPassResources()
 {
     //HDRI render pass descriptor set
     HDRIrenderPassDescriptorPool.Create(
@@ -180,7 +180,7 @@ void VKAPP::RendererContext::CreateHDRIrenderPassResources()
     HDRIrenderPassLayout.CreateLayout(DeviceContext.logicalDevice);
 
     HDRIrenderPassDescriptorSets.resize(1);
-    VKCORE::AllocateDescriptorSets(
+    RENDERER_CORE::AllocateDescriptorSets(
         DeviceContext.logicalDevice, 
         1, 
         HDRIrenderPassDescriptorPool.descriptorPool, 
@@ -190,8 +190,8 @@ void VKAPP::RendererContext::CreateHDRIrenderPassResources()
 
     
     //HDRI render pass pipeline
-    VKCORE::ShaderModule HDRIrenderVertexShader("Shaders\\HDRIrenderShader.vert", "Shaders\\HDRIrenderVertexShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
-    VKCORE::ShaderModule HDRIrenderFragmentShader("Shaders\\HDRIrenderShader.frag", "Shaders\\HDRIrenderFragmentShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
+    RENDERER_CORE::ShaderModule HDRIrenderVertexShader("Shaders\\HDRIrenderShader.vert", "Shaders\\HDRIrenderVertexShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
+    RENDERER_CORE::ShaderModule HDRIrenderFragmentShader("Shaders\\HDRIrenderShader.frag", "Shaders\\HDRIrenderFragmentShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
 
     QuadVertexDescription.SetBindingDescription(0, sizeof(float) * 5, VK_VERTEX_INPUT_RATE_VERTEX);
     QuadVertexDescription.AppendAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
@@ -205,7 +205,7 @@ void VKAPP::RendererContext::CreateHDRIrenderPassResources()
     HDRIrenderPassPushConstantsRange.offset = 0;
     HDRIrenderPassPushConstantsRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-    VKCORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
+    RENDERER_CORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
     PipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
     PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     PipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
@@ -232,8 +232,8 @@ void VKAPP::RendererContext::CreateHDRIrenderPassResources()
     HDRIrenderFragmentShader.Destroy(DeviceContext.logicalDevice);
 
     //HDRI convolution pass pipeline
-    VKCORE::ShaderModule HDRIconvolutionVertexShader("shaders\\HDRIconvolutionShader.vert", "shaders\\HDRIconvolutionVertexShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
-    VKCORE::ShaderModule HDRIconvolutionFragmentShader("shaders\\HDRIconvolutionShader.frag", "shaders\\HDRIconvolutionFragmentShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
+    RENDERER_CORE::ShaderModule HDRIconvolutionVertexShader("shaders\\HDRIconvolutionShader.vert", "shaders\\HDRIconvolutionVertexShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
+    RENDERER_CORE::ShaderModule HDRIconvolutionFragmentShader("shaders\\HDRIconvolutionShader.frag", "shaders\\HDRIconvolutionFragmentShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
 
     PipelineCreateInfo.ShaderModules = { {&HDRIconvolutionVertexShader,VK_SHADER_STAGE_VERTEX_BIT} ,{&HDRIconvolutionFragmentShader,VK_SHADER_STAGE_FRAGMENT_BIT} };
     PipelineCreateInfo.PushConstantRanges = {};
@@ -243,7 +243,7 @@ void VKAPP::RendererContext::CreateHDRIrenderPassResources()
     HDRIconvolutionFragmentShader.Destroy(DeviceContext.logicalDevice);
 }
 
-VKCORE::GraphicsPipeline* VKAPP::RendererContext::AppendGbufferPassPipeline(VkDescriptorSetLayout Layout, uint32_t MaxTextureCount)
+RENDERER_CORE::GraphicsPipeline* RENDERER::RendererContext::AppendGbufferPassPipeline(VkDescriptorSetLayout Layout, uint32_t MaxTextureCount)
 {
     auto& Iterator = GbufferPassPassPipelines.find(MaxTextureCount);
     if (Iterator != GbufferPassPassPipelines.end())
@@ -257,7 +257,7 @@ VKCORE::GraphicsPipeline* VKAPP::RendererContext::AppendGbufferPassPipeline(VkDe
     PushConstantRange.offset = 0;
 
     std::vector<VkFormat> ColorAttachmentsFormats = { VK_FORMAT_R32G32B32A32_SFLOAT ,VK_FORMAT_R16G16B16A16_SFLOAT ,VK_FORMAT_R8G8B8A8_UNORM , VK_FORMAT_R8G8B8A8_UNORM };
-    VKCORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
+    RENDERER_CORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
     PipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
     PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     PipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
@@ -272,11 +272,11 @@ VKCORE::GraphicsPipeline* VKAPP::RendererContext::AppendGbufferPassPipeline(VkDe
     PipelineCreateInfo.ScissorExtent = { SwapChain.Extent.width ,SwapChain.Extent.height };
     PipelineCreateInfo.ViewportMinDepth = 0.0f;
     PipelineCreateInfo.ViewportMaxDepth = 1.0f;
-    PipelineCreateInfo.AttributeDescriptions = VKSCENE::Vertex3D::GetAttributeDescriptions();
-    PipelineCreateInfo.BindingDescription = VKSCENE::Vertex3D::GetBindingDescription();
+    PipelineCreateInfo.AttributeDescriptions = SCENE::Vertex3D::GetAttributeDescriptions();
+    PipelineCreateInfo.BindingDescription = SCENE::Vertex3D::GetBindingDescription();
     PipelineCreateInfo.DescriptorSetLayouts = { GbufferPassLayout.descriptorSetLayout,IndirectDescriptorSetLayout.descriptorSetLayout,Layout };
     PipelineCreateInfo.PushConstantRanges = {};
-    VKCORE::GraphicsPipeline GbufferGraphicsPipeline(PipelineCreateInfo, DeviceContext.logicalDevice);
+    RENDERER_CORE::GraphicsPipeline GbufferGraphicsPipeline(PipelineCreateInfo, DeviceContext.logicalDevice);
     GbufferPassPassPipelines[MaxTextureCount] = GbufferGraphicsPipeline;
 
     return &GbufferPassPassPipelines[MaxTextureCount];

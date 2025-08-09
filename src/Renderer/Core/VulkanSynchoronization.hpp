@@ -3,7 +3,7 @@
 #include <glfw3.h>
 #include <vector>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	class PipelineBarrier2
 	{
@@ -41,5 +41,15 @@ namespace VKCORE
 	private:
 		std::vector<VkImageMemoryBarrier2> ImageMemoryBarriers;
 		std::vector<VkBufferMemoryBarrier2> BufferMemoryBarriers;
+	};
+
+	class TimelineSync
+	{
+	public:
+		TimelineSync();
+		~TimelineSync();
+
+	private:
+
 	};
 }

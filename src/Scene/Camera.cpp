@@ -3,12 +3,12 @@
 
 #include "DependencyManager.hpp"
 
-VKSCENE::Camera3D::Camera3D(VKCORE::Window& window, ResourceDependencyManager& DependencyManager)
+SCENE::Camera3D::Camera3D(RENDERER_CORE::Window& window, ResourceDependencyManager& DependencyManager)
 {
     Create(window, DependencyManager);
 }
 
-void VKSCENE::Camera3D::Create(VKCORE::Window& window, ResourceDependencyManager& DependencyManager)
+void SCENE::Camera3D::Create(RENDERER_CORE::Window& window, ResourceDependencyManager& DependencyManager)
 {
     CameraPosition = { 0.0f,0.0f,0.0f };
     CameraDirection = { 0.0f,0.0f,-1.0f };
@@ -29,7 +29,7 @@ void VKSCENE::Camera3D::Create(VKCORE::Window& window, ResourceDependencyManager
     resourceType = RESOURCE_TYPE_CAMERA;
 }
 
-void VKSCENE::Camera3D::Update(VKCORE::Window& window,float Sensitivity,float DeltaTime)
+void SCENE::Camera3D::Update(RENDERER_CORE::Window& window,float Sensitivity,float DeltaTime)
 {
     if (FirstTurn)
     {
@@ -105,7 +105,7 @@ void VKSCENE::Camera3D::Update(VKCORE::Window& window,float Sensitivity,float De
     }
 }
 
-void VKSCENE::Camera3D::UpdateMatrix(glm::vec2 Extent,float Near,float Far)
+void SCENE::Camera3D::UpdateMatrix(glm::vec2 Extent,float Near,float Far)
 {
     ViewMatrix = glm::lookAt(CameraPosition, CameraPosition + CameraDirection, Up);
     ProjectionMatrix = glm::perspective(glm::radians((float)FOV), (float)Extent.x / (float)Extent.y, Near, Far);

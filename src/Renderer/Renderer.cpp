@@ -25,7 +25,7 @@ struct LightingPassUBOdata
     int DynamicLightCount;
 };
 
-void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,bool EnablePhysicsDebugDrawing)
+void RENDERER::Renderer::Initialize(RendererContext& DestinationRendererContext,bool EnablePhysicsDebugDrawing)
 {
     this->EnablePhysicsDebugDrawing = EnablePhysicsDebugDrawing;
     this->rendererContext = &DestinationRendererContext;
@@ -36,12 +36,12 @@ void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,boo
     GraphicsQueueIndex = DestinationRendererContext.QueueFamilyIndices.GraphicsFamily.value();
 
     CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    VKCORE::AllocateCommandBuffers(rendererContext->CommandPool.commandPool, LogicalDevice, CommandBuffers);
+    RENDERER_CORE::AllocateCommandBuffers(rendererContext->CommandPool.commandPool, LogicalDevice, CommandBuffers);
 
     UBO.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VKCORE::CreateBuffer(PhysicalDevice, LogicalDevice, sizeof(Matrixes), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, UBO[i]);
+        RENDERER_CORE::CreateBuffer(PhysicalDevice, LogicalDevice, sizeof(Matrixes), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, UBO[i]);
         void* DataPtr;
         if (vkMapMemory(LogicalDevice, UBO[i].BufferMemory, 0, sizeof(Matrixes), 0, &DataPtr) != VK_SUCCESS)
         {
@@ -60,7 +60,7 @@ void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,boo
     const VkDeviceSize LightingPassUBOsize = sizeof(LightingPassUBOdata);
     for (auto& LightingPassUBO : LightingPassUBOs)
     {
-        VKCORE::CreateBuffer(
+        RENDERER_CORE::CreateBuffer(
             PhysicalDevice, 
             LogicalDevice,
             LightingPassUBOsize,
@@ -87,39 +87,39 @@ void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,boo
 
     LightingPassDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
     LightingPassLayouts.resize(MAX_FRAMES_IN_FLIGHT, LightingPassLayout.descriptorSetLayout);
-    VKCORE::AllocateDescriptorSets(LogicalDevice, MAX_FRAMES_IN_FLIGHT, descriptorPool.descriptorPool, LightingPassLayouts, LightingPassDescriptorSets);
+    RENDERER_CORE::AllocateDescriptorSets(LogicalDevice, MAX_FRAMES_IN_FLIGHT, descriptorPool.descriptorPool, LightingPassLayouts, LightingPassDescriptorSets);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VKCORE::DescriptorSetWriteBuffer UBOwrite(LightingPassUBOs[i].Buffer, LightingPassUBOsize, 0, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        VKCORE::DescriptorSetWriteImage NormalTextureWrite(Gbuffers[i].NormalAttachment.ImageView, Gbuffers[i].NormalAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::DescriptorSetWriteImage PositionTextureWrite(Gbuffers[i].PositionAttachment.ImageView, Gbuffers[i].PositionAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::DescriptorSetWriteImage AlbedoTextureWrite(Gbuffers[i].AlbedoAttachment.ImageView, Gbuffers[i].AlbedoAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 3, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::DescriptorSetWriteImage RoughnessMetallicTextureWrite(Gbuffers[i].RoughnessMetallicAttachment.ImageView, Gbuffers[i].RoughnessMetallicAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 4, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::WriteDescriptorSets(LogicalDevice, { UBOwrite }, { NormalTextureWrite,PositionTextureWrite,AlbedoTextureWrite ,RoughnessMetallicTextureWrite});
+        RENDERER_CORE::DescriptorSetWriteBuffer UBOwrite(LightingPassUBOs[i].Buffer, LightingPassUBOsize, 0, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        RENDERER_CORE::DescriptorSetWriteImage NormalTextureWrite(Gbuffers[i].NormalAttachment.ImageView, Gbuffers[i].NormalAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::DescriptorSetWriteImage PositionTextureWrite(Gbuffers[i].PositionAttachment.ImageView, Gbuffers[i].PositionAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::DescriptorSetWriteImage AlbedoTextureWrite(Gbuffers[i].AlbedoAttachment.ImageView, Gbuffers[i].AlbedoAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 3, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::DescriptorSetWriteImage RoughnessMetallicTextureWrite(Gbuffers[i].RoughnessMetallicAttachment.ImageView, Gbuffers[i].RoughnessMetallicAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 4, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::WriteDescriptorSets(LogicalDevice, { UBOwrite }, { NormalTextureWrite,PositionTextureWrite,AlbedoTextureWrite ,RoughnessMetallicTextureWrite});
     }
 
     //Geometry buffer pass descriptor set
     GbufferPassDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
     GbufferPassLayouts.resize(MAX_FRAMES_IN_FLIGHT, rendererContext->GbufferPassLayout.descriptorSetLayout);
-    VKCORE::AllocateDescriptorSets(LogicalDevice, MAX_FRAMES_IN_FLIGHT, descriptorPool.descriptorPool, GbufferPassLayouts, GbufferPassDescriptorSets);
+    RENDERER_CORE::AllocateDescriptorSets(LogicalDevice, MAX_FRAMES_IN_FLIGHT, descriptorPool.descriptorPool, GbufferPassLayouts, GbufferPassDescriptorSets);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VKCORE::DescriptorSetWriteBuffer UBOwrite(UBO[i], sizeof(Matrixes), 0, GbufferPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        VKCORE::WriteDescriptorSets(LogicalDevice, { UBOwrite }, {});
+        RENDERER_CORE::DescriptorSetWriteBuffer UBOwrite(UBO[i], sizeof(Matrixes), 0, GbufferPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        RENDERER_CORE::WriteDescriptorSets(LogicalDevice, { UBOwrite }, {});
     }
 
-    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, rendererContext->DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+    RENDERER_CORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, rendererContext->DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage.Image, DepthImage.ImageMemory);
-    DepthImage.ImageView = VKCORE::CreateImageView(DepthImage.Image, rendererContext->DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
+    DepthImage.ImageView = RENDERER_CORE::CreateImageView(DepthImage.Image, rendererContext->DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
 
     InitializePipelines();
 
-    VKCORE::FrameSyncObjects SyncObject;
+    RENDERER_CORE::FrameSyncObjects SyncObject;
     SyncObject.FenceCreateFlag = VK_FENCE_CREATE_SIGNALED_BIT;
     SyncObjects.resize(MAX_FRAMES_IN_FLIGHT, SyncObject);
-    VKCORE::AllocateFrameSyncObjects(LogicalDevice, SyncObjects);
+    RENDERER_CORE::AllocateFrameSyncObjects(LogicalDevice, SyncObjects);
 
     if (EnablePhysicsDebugDrawing)
     {
@@ -128,7 +128,7 @@ void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,boo
         PhysicsDebugLineVertexBuffersize = MaxLines * sizeof(VKPHYSICS::DebugLineVertexInfo);
         for (auto& PhysicsDebugLineVertexBuffer : PhysicsDebugLineVertexBuffers)
         {
-            VKCORE::CreateBuffer(
+            RENDERER_CORE::CreateBuffer(
                 PhysicalDevice,
                 LogicalDevice,
                 PhysicsDebugLineVertexBuffersize,
@@ -148,7 +148,7 @@ void VKAPP::Renderer::Initialize(RendererContext& DestinationRendererContext,boo
     VKCOMMON::Logger::Get().ConsoleLog(Message);
 }
 
-void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene)
+void RENDERER::Renderer::RenderFrame(SCENE::Scene& Scene)
 {
     if (!Scene.CurrentGbufferPassPipeline) return;
 
@@ -327,7 +327,7 @@ void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene)
        OnRecreateSwapChain();
     };
 
-    VKCORE::RenderFrame(
+    RENDERER_CORE::RenderFrame(
         LogicalDevice,
         rendererContext->DeviceContext.GraphicsQueue,
         rendererContext->DeviceContext.PresentQueue,
@@ -343,9 +343,9 @@ void VKAPP::Renderer::RenderFrame(VKSCENE::Scene& Scene)
     glfwPollEvents();
 }
 
-void VKAPP::Renderer::RenderGeometryPass(
-    VKSCENE::Scene &Scene,
-    VKSCENE::Camera3D &Camera,
+void RENDERER::Renderer::RenderGeometryPass(
+    SCENE::Scene &Scene,
+    SCENE::Camera3D &Camera,
     VkCommandBuffer& CommandBuffer, 
     uint32_t CurrentImageIndex,
     uint32_t CurrentFrame
@@ -359,7 +359,7 @@ void VKAPP::Renderer::RenderGeometryPass(
     ClearColors[1].color = { {0.0f,0.0f,0.0f,1.0f} };
     ClearColors[2].depthStencil = { 1.0f,0 };
 
-    VKCORE::DynamicRenderingPass RenderingPass;
+    RENDERER_CORE::DynamicRenderingPass RenderingPass;
     RenderingPass.AppendAttachment(
         Gbuffers[CurrentFrame].NormalAttachment.ImageView,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -420,7 +420,7 @@ void VKAPP::Renderer::RenderGeometryPass(
                 Scene.MeshBuffers.PerformanceModeBuffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
                 0,
                 PerformanceModeEnabledMeshCount,
-                sizeof(VKSCENE::ExtendedIndirectCommand)
+                sizeof(SCENE::ExtendedIndirectCommand)
             );
         }
         else
@@ -430,9 +430,9 @@ void VKAPP::Renderer::RenderGeometryPass(
                 vkCmdDrawIndexedIndirect(
                     CommandBuffer,
                     Scene.MeshBuffers.PerformanceModeBuffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
-                    i * sizeof(VKSCENE::ExtendedIndirectCommand),
+                    i * sizeof(SCENE::ExtendedIndirectCommand),
                     1,
-                    sizeof(VKSCENE::ExtendedIndirectCommand)
+                    sizeof(SCENE::ExtendedIndirectCommand)
                 );
             }
         }
@@ -440,13 +440,13 @@ void VKAPP::Renderer::RenderGeometryPass(
 
     RenderingPass.EndRendering(CommandBuffer);
 }
-void VKAPP::Renderer::RenderLightingPass(VKSCENE::Scene &Scene,VKSCENE::Camera3D &Camera,VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)
+void RENDERER::Renderer::RenderLightingPass(SCENE::Scene &Scene,SCENE::Camera3D &Camera,VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)
 {
     std::array<VkClearValue, 2> ClearColors{};
     ClearColors[0].color = { {0.0f,0.0f,0.0f,1.0f} };
     ClearColors[1].depthStencil = { 1.0f,0 };
 
-    VKCORE::DynamicRenderingPass RenderingPass;
+    RENDERER_CORE::DynamicRenderingPass RenderingPass;
     RenderingPass.AppendAttachment(
         rendererContext->SwapChain.SwapChainImagesViews[CurrentImageIndex],
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -469,7 +469,7 @@ void VKAPP::Renderer::RenderLightingPass(VKSCENE::Scene &Scene,VKSCENE::Camera3D
 
     RenderingPass.EndRendering(CommandBuffer);
 }
-void VKAPP::Renderer::RenderPhysicsDebugPass(VKSCENE::Scene& Scene, VKSCENE::Camera3D& Camera, VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)
+void RENDERER::Renderer::RenderPhysicsDebugPass(SCENE::Scene& Scene, SCENE::Camera3D& Camera, VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)
 {
     auto& DebugDrawer = Scene.DebugDrawer;
     if (!DebugDrawer) return;
@@ -483,7 +483,7 @@ void VKAPP::Renderer::RenderPhysicsDebugPass(VKSCENE::Scene& Scene, VKSCENE::Cam
     ClearColors[0].color = { {0.0f,0.0f,0.0f,1.0f} };
     ClearColors[1].depthStencil = { 1.0f,0 };
 
-    VKCORE::DynamicRenderingPass RenderingPass;
+    RENDERER_CORE::DynamicRenderingPass RenderingPass;
     RenderingPass.AppendAttachment(
         rendererContext->SwapChain.SwapChainImagesViews[CurrentImageIndex],
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -513,14 +513,14 @@ void VKAPP::Renderer::RenderPhysicsDebugPass(VKSCENE::Scene& Scene, VKSCENE::Cam
     RenderingPass.EndRendering(CommandBuffer);
 };
 
-void VKAPP::Renderer::InitializePipelines()
+void RENDERER::Renderer::InitializePipelines()
 {
-    VKCORE::ShaderModule LightingVertexShaderModule("Shaders\\LightingPassShader.vert", "Shaders\\LightingPassShaderVert.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, LogicalDevice);
-    VKCORE::ShaderModule LightingFragmentShaderModule("Shaders\\LightingPassShader.frag", "Shaders\\LightingPassShaderFrag.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, LogicalDevice);
-    VKCORE::ShaderModule PhysicsDebugVertexShaderModule("Shaders\\PhysicsDebugShader.vert", "Shaders\\PhysicsDebugShaderVert.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, LogicalDevice);
-    VKCORE::ShaderModule PhysicsDebugFragmentShaderModule("Shaders\\PhysicsDebugShader.frag", "Shaders\\PhysicsDebugShaderFrag.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, LogicalDevice);
+    RENDERER_CORE::ShaderModule LightingVertexShaderModule("Shaders\\LightingPassShader.vert", "Shaders\\LightingPassShaderVert.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, LogicalDevice);
+    RENDERER_CORE::ShaderModule LightingFragmentShaderModule("Shaders\\LightingPassShader.frag", "Shaders\\LightingPassShaderFrag.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, LogicalDevice);
+    RENDERER_CORE::ShaderModule PhysicsDebugVertexShaderModule("Shaders\\PhysicsDebugShader.vert", "Shaders\\PhysicsDebugShaderVert.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, LogicalDevice);
+    RENDERER_CORE::ShaderModule PhysicsDebugFragmentShaderModule("Shaders\\PhysicsDebugShader.frag", "Shaders\\PhysicsDebugShaderFrag.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, LogicalDevice);
 
-    VKCORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
+    RENDERER_CORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
     PipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
     PipelineCreateInfo.ViewportWidth = static_cast<float>(rendererContext->SwapChain.Extent.width);
     PipelineCreateInfo.ViewportHeight = static_cast<float>(rendererContext->SwapChain.Extent.height);
@@ -543,7 +543,7 @@ void VKAPP::Renderer::InitializePipelines()
     PipelineCreateInfo.PushConstantRanges = {};
     LightingPassGraphicsPipeline.Create(PipelineCreateInfo, LogicalDevice);
 
-    VKCORE::VertexInputDescription LineVertexDescription{};
+    RENDERER_CORE::VertexInputDescription LineVertexDescription{};
     LineVertexDescription.SetBindingDescription(0, sizeof(VKPHYSICS::DebugLineVertexInfo), VK_VERTEX_INPUT_RATE_VERTEX);
     LineVertexDescription.AppendAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
     LineVertexDescription.AppendAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3);
@@ -564,7 +564,7 @@ void VKAPP::Renderer::InitializePipelines()
     PhysicsDebugFragmentShaderModule.Destroy(LogicalDevice);
 }
 
-void VKAPP::Renderer::OnRecreateSwapChain() {
+void RENDERER::Renderer::OnRecreateSwapChain() {
     int width = 0, height = 0;
     glfwGetFramebufferSize(rendererContext->Window.window, &width, &height);
     while (width == 0 || height == 0)
@@ -579,9 +579,9 @@ void VKAPP::Renderer::OnRecreateSwapChain() {
 
     rendererContext->SwapChain.Create(PhysicalDevice, LogicalDevice, rendererContext->Surface.surface, rendererContext->Window.window);
 
-    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, rendererContext->DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+    RENDERER_CORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, rendererContext->DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage.Image, DepthImage.ImageMemory);
-    DepthImage.ImageView = VKCORE::CreateImageView(DepthImage.Image, rendererContext->DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
+    DepthImage.ImageView = RENDERER_CORE::CreateImageView(DepthImage.Image, rendererContext->DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
 
     for (auto& Gbuffer : Gbuffers)
     {
@@ -591,17 +591,17 @@ void VKAPP::Renderer::OnRecreateSwapChain() {
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VKCORE::DescriptorSetWriteImage NormalTextureWrite(Gbuffers[i].NormalAttachment.ImageView, Gbuffers[i].NormalAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::DescriptorSetWriteImage PositionTextureWrite(Gbuffers[i].PositionAttachment.ImageView, Gbuffers[i].PositionAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::DescriptorSetWriteImage AlbedoTextureWrite(Gbuffers[i].AlbedoAttachment.ImageView, Gbuffers[i].AlbedoAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 3, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::DescriptorSetWriteImage RoughnessMetallicTextureWrite(Gbuffers[i].RoughnessMetallicAttachment.ImageView, Gbuffers[i].RoughnessMetallicAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 4, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::WriteDescriptorSets(LogicalDevice, {}, { NormalTextureWrite,PositionTextureWrite,AlbedoTextureWrite ,RoughnessMetallicTextureWrite });
+        RENDERER_CORE::DescriptorSetWriteImage NormalTextureWrite(Gbuffers[i].NormalAttachment.ImageView, Gbuffers[i].NormalAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::DescriptorSetWriteImage PositionTextureWrite(Gbuffers[i].PositionAttachment.ImageView, Gbuffers[i].PositionAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::DescriptorSetWriteImage AlbedoTextureWrite(Gbuffers[i].AlbedoAttachment.ImageView, Gbuffers[i].AlbedoAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 3, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::DescriptorSetWriteImage RoughnessMetallicTextureWrite(Gbuffers[i].RoughnessMetallicAttachment.ImageView, Gbuffers[i].RoughnessMetallicAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 4, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::WriteDescriptorSets(LogicalDevice, {}, { NormalTextureWrite,PositionTextureWrite,AlbedoTextureWrite ,RoughnessMetallicTextureWrite });
     }
 }
 
-void VKAPP::Renderer::Destroy()
+void RENDERER::Renderer::Destroy()
 {
-    VKCORE::DestroyFrameSyncObjects(LogicalDevice, SyncObjects);
+    RENDERER_CORE::DestroyFrameSyncObjects(LogicalDevice, SyncObjects);
     DepthImage.Destroy(LogicalDevice);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {

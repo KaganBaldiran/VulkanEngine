@@ -2,7 +2,7 @@
 #include "VulkanImageView.hpp"
 #include <vector>
 
-VkImageView VKCORE::CreateImageView(VkImage& Image, VkFormat Format,VkImageViewType ViewType, VkImageAspectFlags AspectMask, VkDevice& LogicalDevice,uint32_t LayerCount,uint32_t BaseArrayLayer)
+VkImageView RENDERER_CORE::CreateImageView(VkImage& Image, VkFormat Format,VkImageViewType ViewType, VkImageAspectFlags AspectMask, VkDevice& LogicalDevice,uint32_t LayerCount,uint32_t BaseArrayLayer)
 {
     VkImageViewCreateInfo ImageViewCreateInfo{};
     ImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -28,7 +28,7 @@ VkImageView VKCORE::CreateImageView(VkImage& Image, VkFormat Format,VkImageViewT
     return ImageView;
 }
 
-VKCORE::VulkanResult VKCORE::CreateSwapChainImageViews(
+RENDERER_CORE::VulkanResult RENDERER_CORE::CreateSwapChainImageViews(
     std::vector<VkImage>& swapChainImages,
     std::vector<VkImageView>& swapChainImageViews,
     VkFormat surfaceFormat,
@@ -38,7 +38,7 @@ VKCORE::VulkanResult VKCORE::CreateSwapChainImageViews(
     swapChainImageViews.resize(swapChainImages.size());
     for (size_t i = 0; i < swapChainImages.size(); i++)
     {
-        swapChainImageViews[i] = VKCORE::CreateImageView(
+        swapChainImageViews[i] = RENDERER_CORE::CreateImageView(
             swapChainImages[i],
             surfaceFormat,
             VK_IMAGE_VIEW_TYPE_2D,

@@ -6,7 +6,7 @@
 
 #include "SceneResource.hpp"
 
-namespace VKSCENE
+namespace SCENE
 {
 	static constexpr uint64_t TEXTURE_UNLINKED = 0;
 

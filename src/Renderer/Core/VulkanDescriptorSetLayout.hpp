@@ -5,7 +5,7 @@
 #include <vector>
 #include <map>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	/// <summary>
 	/// Represents a Vulkan descriptor set layout, allowing the definition and management of descriptor bindings for shader resources.

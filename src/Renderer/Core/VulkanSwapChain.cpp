@@ -6,7 +6,7 @@
 #include "../../Common/Log.hpp"
 #include "../../Common/CommonDefinitions.hpp"
 
-VkSurfaceFormatKHR VKCORE::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats)
+VkSurfaceFormatKHR RENDERER_CORE::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats)
 {
     for (const auto& AvailableFormat : AvailableFormats)
     {
@@ -19,7 +19,7 @@ VkSurfaceFormatKHR VKCORE::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFo
     return AvailableFormats[0];
 }
 
-VkPresentModeKHR VKCORE::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& AvailablePresentModes)
+VkPresentModeKHR RENDERER_CORE::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& AvailablePresentModes)
 {
     for (const auto& AvailablePresentMode : AvailablePresentModes)
     {
@@ -32,7 +32,7 @@ VkPresentModeKHR VKCORE::ChooseSwapPresentMode(const std::vector<VkPresentModeKH
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D VKCORE::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& Capabilities,GLFWwindow* Window)
+VkExtent2D RENDERER_CORE::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& Capabilities,GLFWwindow* Window)
 {
     if (Capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
     {
@@ -55,7 +55,7 @@ VkExtent2D VKCORE::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& Capabilities
     }
 }
 
-VKCORE::VulkanResult VKCORE::CreateSwapChain(
+RENDERER_CORE::VulkanResult RENDERER_CORE::CreateSwapChain(
     VkPhysicalDevice physicalDevice,
     VkDevice logicalDevice,
     VkSurfaceKHR surface,
@@ -67,11 +67,11 @@ VKCORE::VulkanResult VKCORE::CreateSwapChain(
     VkExtent2D& extent
 )
 {
-    VKCORE::SwapChainSupportDetails swapChainSupport = VKCORE::QuerySwapChainSupport(physicalDevice, surface);
+    RENDERER_CORE::SwapChainSupportDetails swapChainSupport = RENDERER_CORE::QuerySwapChainSupport(physicalDevice, surface);
 
-    surfaceFormat = VKCORE::ChooseSwapSurfaceFormat(swapChainSupport.Formats);
-    presentMode = VKCORE::ChooseSwapPresentMode(swapChainSupport.PresentModes);
-    extent = VKCORE::ChooseSwapExtent(swapChainSupport.Capabilities, window);
+    surfaceFormat = RENDERER_CORE::ChooseSwapSurfaceFormat(swapChainSupport.Formats);
+    presentMode = RENDERER_CORE::ChooseSwapPresentMode(swapChainSupport.PresentModes);
+    extent = RENDERER_CORE::ChooseSwapExtent(swapChainSupport.Capabilities, window);
 
     uint32_t swapChainImageCount = swapChainSupport.Capabilities.minImageCount + 1;
     if (swapChainSupport.Capabilities.maxImageCount > 0 && swapChainImageCount > swapChainSupport.Capabilities.maxImageCount)
@@ -89,7 +89,7 @@ VKCORE::VulkanResult VKCORE::CreateSwapChain(
     swapChainCreateInfo.imageArrayLayers = 1;
     swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    VKCORE::QueueFamilyIndices indices = VKCORE::FindQueueFamilies(physicalDevice, surface);
+    RENDERER_CORE::QueueFamilyIndices indices = RENDERER_CORE::FindQueueFamilies(physicalDevice, surface);
     uint32_t queueFamilyIndices[] = { indices.GraphicsFamily.value(), indices.PresentFamily.value() };
 
     if (indices.GraphicsFamily != indices.PresentFamily)
@@ -125,7 +125,7 @@ VKCORE::VulkanResult VKCORE::CreateSwapChain(
     return VULKAN_SUCCESS;
 }
 
-VKCORE::SwapChain::SwapChain(
+RENDERER_CORE::SwapChain::SwapChain(
     VkPhysicalDevice &PhysicalDevice,
     VkDevice &LogicalDevice,
     VkSurfaceKHR &Surface,
@@ -135,7 +135,7 @@ VKCORE::SwapChain::SwapChain(
     Create(PhysicalDevice, LogicalDevice, Surface, Window);
 }
 
-void VKCORE::SwapChain::Destroy(VkDevice& LogicalDevice)
+void RENDERER_CORE::SwapChain::Destroy(VkDevice& LogicalDevice)
 {
     for (size_t i = 0; i < SwapChainImagesViews.size(); i++)
     {
@@ -146,7 +146,7 @@ void VKCORE::SwapChain::Destroy(VkDevice& LogicalDevice)
     swapChain = VK_NULL_HANDLE;
 }
 
-void VKCORE::SwapChain::Create(
+void RENDERER_CORE::SwapChain::Create(
     VkPhysicalDevice& PhysicalDevice,
     VkDevice& LogicalDevice,
     VkSurfaceKHR& Surface,

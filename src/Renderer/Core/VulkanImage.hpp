@@ -8,7 +8,7 @@
 #include <vector>
 #include <mutex>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	struct TextureData
 	{
@@ -28,7 +28,7 @@ namespace VKCORE
 		unsigned char* Pixels;
 	};
 
-	int ReadTexture(const char* FileName, VKCORE::RawImageData& DestinationImageData);
+	int ReadTexture(const char* FileName, RENDERER_CORE::RawImageData& DestinationImageData);
 
 	VkFormat FindSupportedFormat(VkPhysicalDevice& PhysicalDevice,const std::vector<VkFormat>& Candidates, VkImageTiling Tiling, VkFormatFeatureFlags Features);
 	void CopyBufferToImage(VkCommandBuffer& DstCommandBuffer, VkBuffer& SrcBuffer, VkImage& DstImage, uint32_t Width, uint32_t Height);

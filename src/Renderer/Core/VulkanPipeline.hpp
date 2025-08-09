@@ -5,7 +5,7 @@
 #include <vector>
 #include "VulkanShader.hpp"
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	struct ShaderModuleInfo
 	{
@@ -63,6 +63,24 @@ namespace VKCORE
 		void Destroy(VkDevice& LogicalDevice);
 		VkPipeline pipeline = VK_NULL_HANDLE;
 		VkPipelineLayout Layout = VK_NULL_HANDLE;
-	private:
 	};
+
+    struct ComputePipelineCreateInfo
+    {
+        ShaderModule* ComputeShaderModule;
+        std::vector<VkDescriptorSetLayout> DescriptorSetLayouts = {};
+        std::vector<VkPushConstantRange> PushConstantRanges = {};
+    };
+
+    class ComputePipeline
+    {
+    public:
+        ComputePipeline(const ComputePipelineCreateInfo& Info,const VkDevice& LogicalDevice);
+        ComputePipeline() = default;
+        void Create(const ComputePipelineCreateInfo& Info, const VkDevice& LogicalDevice);
+        void Destroy(const VkDevice& LogicalDevice);
+
+        VkPipeline Pipeline = VK_NULL_HANDLE;
+        VkPipelineLayout Layout = VK_NULL_HANDLE;
+    };
 }

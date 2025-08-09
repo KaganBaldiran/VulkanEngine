@@ -3,22 +3,22 @@
 #include "Cubemap.hpp"
 #include "Light.hpp"
 
-VKSCENE::ResourceDependencyManager::ResourceDependencyManager(VKAPP::RendererContext& rendererContext)
+SCENE::ResourceDependencyManager::ResourceDependencyManager(RENDERER::RendererContext& rendererContext)
 {
 	Create(rendererContext);
 }
 
-void VKSCENE::ResourceDependencyManager::Create(VKAPP::RendererContext& rendererContext)
+void SCENE::ResourceDependencyManager::Create(RENDERER::RendererContext& rendererContext)
 {
 	this->rendererContext = &rendererContext;
 }
 
-void VKSCENE::ResourceDependencyManager::RegisterResource(SceneResource& Resource)
+void SCENE::ResourceDependencyManager::RegisterResource(SceneResource& Resource)
 {
 	Resource.dependencyManager = this;
 }
 
-void VKSCENE::ResourceDependencyManager::LinkSceneResource(SceneResource& Resource, Scene& DestinationScene, ResourceLinkingFlags Flags)
+void SCENE::ResourceDependencyManager::LinkSceneResource(SceneResource& Resource, Scene& DestinationScene, ResourceLinkingFlags Flags)
 {
 	if (!Resource.dependencyManager) Resource.dependencyManager = this;
 	if (!DestinationScene.DependencyManager) DestinationScene.DependencyManager = this;
@@ -81,7 +81,7 @@ void VKSCENE::ResourceDependencyManager::LinkSceneResource(SceneResource& Resour
 	LinkingFlags[&Resource] = Flags;
 }
 
-void VKSCENE::ResourceDependencyManager::UnlinkSceneResource(SceneResource& Resource, Scene& DestinationScene)
+void SCENE::ResourceDependencyManager::UnlinkSceneResource(SceneResource& Resource, Scene& DestinationScene)
 {
 	auto& Scenes = this->ResourceSceneLinks[&Resource];
 	auto SceneIterator = Scenes.find(&DestinationScene);
@@ -141,12 +141,12 @@ void VKSCENE::ResourceDependencyManager::UnlinkSceneResource(SceneResource& Reso
 	}
 }
 
-void VKSCENE::ResourceDependencyManager::UpdateDependencies()
+void SCENE::ResourceDependencyManager::UpdateDependencies()
 {
 	if(DirtyResourceFlags.any()) DirtyResourceFlags.reset();
 }
 
-VKSCENE::SceneResource* VKSCENE::ResourceDependencyManager::GetLinkedResource(std::string Name)
+SCENE::SceneResource* SCENE::ResourceDependencyManager::GetLinkedResource(std::string Name)
 {
 	auto Iterator = NameResourceLinks.find(Name);
 	if (Iterator != NameResourceLinks.end()) {
@@ -155,7 +155,7 @@ VKSCENE::SceneResource* VKSCENE::ResourceDependencyManager::GetLinkedResource(st
 	return nullptr;
 }
 
-VKSCENE::SceneResource* VKSCENE::ResourceDependencyManager::GetLinkedResource(uint64_t ID)
+SCENE::SceneResource* SCENE::ResourceDependencyManager::GetLinkedResource(uint64_t ID)
 {
 	auto Iterator = IDResourceLinks.find(ID);
 	if (Iterator != IDResourceLinks.end()) {
@@ -164,7 +164,7 @@ VKSCENE::SceneResource* VKSCENE::ResourceDependencyManager::GetLinkedResource(ui
 	return nullptr;
 }
 
-std::set<VKSCENE::Scene*> VKSCENE::ResourceDependencyManager::GetLinkedResourceScenes(SceneResource& Resource)
+std::set<SCENE::Scene*> SCENE::ResourceDependencyManager::GetLinkedResourceScenes(SceneResource& Resource)
 {
 	auto Iterator = ResourceSceneLinks.find(&Resource);
 	if (Iterator != ResourceSceneLinks.end()) {
@@ -173,12 +173,12 @@ std::set<VKSCENE::Scene*> VKSCENE::ResourceDependencyManager::GetLinkedResourceS
 	return std::set<Scene*>();
 }
 
-void VKSCENE::ResourceDependencyManager::MarkResourceDirty(SceneResource& Resource)
+void SCENE::ResourceDependencyManager::MarkResourceDirty(SceneResource& Resource)
 {
 	DirtyResourceFlags.set(Resource.ResourceID, true);
 }
 
-bool VKSCENE::ResourceDependencyManager::IsResourceDirty(uint64_t ResourceID)
+bool SCENE::ResourceDependencyManager::IsResourceDirty(uint64_t ResourceID)
 {
 	return static_cast<bool>(DirtyResourceFlags[ResourceID]);
 }

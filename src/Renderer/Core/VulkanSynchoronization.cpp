@@ -1,12 +1,12 @@
 #include "VulkanSynchoronization.hpp"
 
-VKCORE::PipelineBarrier2::PipelineBarrier2()
+RENDERER_CORE::PipelineBarrier2::PipelineBarrier2()
 {
 	ImageMemoryBarriers.reserve(15);
 	BufferMemoryBarriers.reserve(15);
 }
 
-void VKCORE::PipelineBarrier2::AppendImageMemoryBarrier(
+void RENDERER_CORE::PipelineBarrier2::AppendImageMemoryBarrier(
 	VkImage Image,
 	VkPipelineStageFlags2 SrcStageMask,
 	VkPipelineStageFlags2 DstStageMask,
@@ -43,7 +43,7 @@ void VKCORE::PipelineBarrier2::AppendImageMemoryBarrier(
 	ImageMemoryBarriers.push_back(ImageBarrier);
 }
 
-void VKCORE::PipelineBarrier2::AppendBufferMemoryBarrier(
+void RENDERER_CORE::PipelineBarrier2::AppendBufferMemoryBarrier(
 	VkBuffer Buffer,
 	VkDeviceSize Offset,
 	VkDeviceSize Size,
@@ -70,7 +70,7 @@ void VKCORE::PipelineBarrier2::AppendBufferMemoryBarrier(
 	BufferMemoryBarriers.push_back(BufferBarrier);
 }
 
-void VKCORE::PipelineBarrier2::ExecutePipelineBarrier(VkCommandBuffer CommandBuffer)
+void RENDERER_CORE::PipelineBarrier2::ExecutePipelineBarrier(VkCommandBuffer CommandBuffer)
 {
 	if (ImageMemoryBarriers.empty() && BufferMemoryBarriers.empty()) return;
 

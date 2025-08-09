@@ -4,7 +4,7 @@
 #include "VulkanUtils.hpp" 
 #include <vector>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	std::vector<char> ReadFile(const char* FileName);
 	int CompileGLSL(const std::string& SourceFileName, const std::string& DestinationFileName);

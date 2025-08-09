@@ -8,7 +8,7 @@
 #include "SceneResource.hpp"
 #include "Mesh.hpp"
 
-namespace VKSCENE
+namespace SCENE
 {
 	class ResourceDependencyManager;
 

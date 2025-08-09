@@ -4,7 +4,7 @@
 #include "VulkanUtils.hpp" 
 #include <vector>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	//Forward Declarations
 	struct Buffer;

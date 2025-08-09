@@ -5,7 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	struct VulkanResult
 	{
@@ -15,10 +15,10 @@ namespace VKCORE
 		bool Success() { return Flag == VK_SUCCESS; };
 	};
 
-#define VULKAN_SUCCESS VKCORE::VulkanResult{VK_SUCCESS,"Function executed with success!"}
+#define VULKAN_SUCCESS RENDERER_CORE::VulkanResult{VK_SUCCESS,"Function executed with success!"}
 #define VULKAN_ASSERT_RESULT(FUNC) \
 	{   \
-		VKCORE::VulkanResult Result = FUNC;  \
+		RENDERER_CORE::VulkanResult Result = FUNC;  \
         if(!Result.Success())   \
 		{   \
 			throw std::runtime_error(Result.Message); \
@@ -26,7 +26,7 @@ namespace VKCORE
 	}   
 #define VULKAN_CHECK_RESULT(FUNC) \
 	{   \
-		VKCORE::VulkanResult Result = FUNC;  \
+		RENDERER_CORE::VulkanResult Result = FUNC;  \
         if(!Result.Success())   \
 		{   \
 			std::cerr << Result.Message << std::endl; \

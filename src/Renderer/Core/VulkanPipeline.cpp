@@ -4,12 +4,12 @@
 #include "../../Common/CommonDefinitions.hpp"
 #include <vulkan/vk_enum_string_helper.h>
 
-VKCORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice)
+RENDERER_CORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice)
 {
     Create(CreateInfo, LogicalDevice);
 }
 
-void VKCORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice)
+void RENDERER_CORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice)
 {
     auto& ShaderModules = CreateInfo.ShaderModules;
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
@@ -180,7 +180,7 @@ void VKCORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, Vk
     LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
 }
 
-void VKCORE::GraphicsPipeline::Destroy(VkDevice& LogicalDevice)
+void RENDERER_CORE::GraphicsPipeline::Destroy(VkDevice& LogicalDevice)
 {
     LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Destroyed graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
     if (Layout != VK_NULL_HANDLE)
@@ -192,5 +192,58 @@ void VKCORE::GraphicsPipeline::Destroy(VkDevice& LogicalDevice)
     {
         vkDestroyPipeline(LogicalDevice, this->pipeline, nullptr);
         pipeline = VK_NULL_HANDLE;
+    }
+}
+
+RENDERER_CORE::ComputePipeline::ComputePipeline(const ComputePipelineCreateInfo& Info, const VkDevice& LogicalDevice)
+{
+    Create(Info, LogicalDevice);
+}
+
+void RENDERER_CORE::ComputePipeline::Create(const ComputePipelineCreateInfo& Info, const VkDevice& LogicalDevice)
+{
+    VkPipelineShaderStageCreateInfo StageInfo{};
+    StageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    StageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    StageInfo.pName = "main";
+    StageInfo.module = Info.ComputeShaderModule->Module;
+
+    VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo{};
+    PipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    PipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(Info.DescriptorSetLayouts.size());
+    PipelineLayoutCreateInfo.pSetLayouts = Info.DescriptorSetLayouts.empty() ? nullptr : Info.DescriptorSetLayouts.data();
+    PipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(Info.PushConstantRanges.size());
+    PipelineLayoutCreateInfo.pPushConstantRanges = Info.PushConstantRanges.empty() ? nullptr : Info.PushConstantRanges.data();
+
+    if (vkCreatePipelineLayout(LogicalDevice,&PipelineLayoutCreateInfo,nullptr,&Layout) != VK_SUCCESS)
+    {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating compute pipeline layout."));
+        throw std::runtime_error("Failed to create compute pipeline layout!");
+    }
+
+    VkComputePipelineCreateInfo PipelineCreateInfo{};
+    PipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    PipelineCreateInfo.stage = StageInfo;
+    PipelineCreateInfo.layout = Layout;
+
+    if (vkCreateComputePipelines(LogicalDevice,nullptr,1, &PipelineCreateInfo,nullptr,&Pipeline) != VK_SUCCESS)
+    {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating compute pipeline."));
+        throw std::runtime_error("Failed creating compute pipeline.");
+    }
+}
+
+void RENDERER_CORE::ComputePipeline::Destroy(const VkDevice& LogicalDevice)
+{
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Destroyed compute pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(Pipeline)) + "]."));
+    if (Layout != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineLayout(LogicalDevice, this->Layout, nullptr);
+        Layout = VK_NULL_HANDLE;
+    }
+    if (Pipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(LogicalDevice, this->Pipeline, nullptr);
+        Pipeline = VK_NULL_HANDLE;
     }
 }

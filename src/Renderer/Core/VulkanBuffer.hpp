@@ -5,7 +5,7 @@
 
 #include "../../Common/MemoryArenaAllocator.hpp"
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	/// <summary>
 	/// Represents a Vulkan buffer and its associated device memory.
@@ -20,7 +20,7 @@ namespace VKCORE
 
 	struct PersistentBuffer
 	{
-		VKCORE::Buffer Buffer;
+		RENDERER_CORE::Buffer Buffer;
 		void* MappedMemory = nullptr;
 
 		void Map(
@@ -104,7 +104,7 @@ namespace VKCORE
 		VkQueue Queue,
 		const void* Data,
 		VkDeviceSize Size,
-		VKCORE::Buffer& DestinationBuffer,
+		RENDERER_CORE::Buffer& DestinationBuffer,
 		VkBufferUsageFlags UsageFlags
 	);
 
@@ -115,23 +115,23 @@ namespace VKCORE
 		VkQueue Queue,
 		const void* Data,
 		VkDeviceSize Size,
-		VKCORE::Buffer& DestinationBuffer,
+		RENDERER_CORE::Buffer& DestinationBuffer,
 		VkBufferUsageFlags UsageFlags
 	);
 
 	//Buffer with a virtual allocator plugged into it
 	struct BufferAllocator
 	{
-		VKCORE::Buffer Buffer;
-		VKCORE::VirtualArenaAllocator Allocator;
-		inline void Create() { Allocator.Create(0, VKCORE::MEMORY_SIZE_MEGABYTE * 10); };
+		RENDERER_CORE::Buffer Buffer;
+		RENDERER_CORE::VirtualArenaAllocator Allocator;
+		inline void Create() { Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE * 10); };
 	};
 
 	//Persistent Buffer with a virtual allocator plugged into it
 	struct PersistentBufferAllocator
 	{
-		VKCORE::PersistentBuffer Buffer;
-		VKCORE::VirtualArenaAllocator Allocator;
-		inline void Create() { Allocator.Create(0, VKCORE::MEMORY_SIZE_MEGABYTE * 5); };
+		RENDERER_CORE::PersistentBuffer Buffer;
+		RENDERER_CORE::VirtualArenaAllocator Allocator;
+		inline void Create() { Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE * 5); };
 	};
 }

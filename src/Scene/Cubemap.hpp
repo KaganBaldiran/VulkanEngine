@@ -8,24 +8,24 @@
 
 #include "SceneResource.hpp"
 
-namespace VKAPP
+namespace RENDERER
 {
 	//Forward Decleration
 	class RendererContext;
 }
 
-namespace VKSCENE
+namespace SCENE
 {
 	class ResourceDependencyManager;
 
 	class Cubemap : public SceneResource
 	{
 	public:
-		Cubemap(VKAPP::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height);
+		Cubemap(RENDERER::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height);
 		Cubemap() = default;
-		void Create(VKAPP::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height);
+		void Create(RENDERER::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height);
 		
-		void Destroy(VKAPP::RendererContext& RendererContext);
+		void Destroy(RENDERER::RendererContext& RendererContext);
 
 		glm::ivec2 Size;
 		VkImage CubemapImage = VK_NULL_HANDLE;
@@ -40,9 +40,9 @@ namespace VKSCENE
 		std::array<VkImageView, 6> ConvolutionRenderImageViews;
 		VkImageView ConvolutionSampleImageView;
 	private:
-		void CreateCubemapTexture(VKAPP::RendererContext& RendererContext);
-		void CreateConvolutionTexture(VKAPP::RendererContext& RendererContext);
+		void CreateCubemapTexture(RENDERER::RendererContext& RendererContext);
+		void CreateConvolutionTexture(RENDERER::RendererContext& RendererContext);
 	};
 
-	void ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, VKAPP::RendererContext& RendererContext);
+	void ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RENDERER::RendererContext& RendererContext);
 }

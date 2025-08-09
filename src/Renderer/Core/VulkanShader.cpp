@@ -4,7 +4,7 @@
 #include "../../Common/Log.hpp"
 #include "../../Common/CommonDefinitions.hpp"
 
-VkShaderModule VKCORE::CreateModule(const std::vector<char>& CodeSource,VkDevice& LogicalDevice)
+VkShaderModule RENDERER_CORE::CreateModule(const std::vector<char>& CodeSource,VkDevice& LogicalDevice)
 {
     VkShaderModuleCreateInfo ShaderModuleCreateInfo{};
     ShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -21,7 +21,7 @@ VkShaderModule VKCORE::CreateModule(const std::vector<char>& CodeSource,VkDevice
     return Module;
 }
 
-std::vector<char> VKCORE::ReadFile(const char* FileName)
+std::vector<char> RENDERER_CORE::ReadFile(const char* FileName)
 {
     std::ifstream File(FileName, std::ios::ate | std::ios::binary);
 
@@ -38,7 +38,7 @@ std::vector<char> VKCORE::ReadFile(const char* FileName)
     return Buffer;
 }
 
-int VKCORE::CompileGLSL(const std::string& SourceFileName, const std::string& DestinationFileName)
+int RENDERER_CORE::CompileGLSL(const std::string& SourceFileName, const std::string& DestinationFileName)
 {
     auto Command = std::string(".\\shaders\\compile.bat ") + SourceFileName + std::string(" ") + DestinationFileName;
     int Result = std::system(Command.c_str());
@@ -51,12 +51,12 @@ int VKCORE::CompileGLSL(const std::string& SourceFileName, const std::string& De
     LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Shader [" + SourceFileName + " -> " + DestinationFileName + "] compiled."));
 }
 
-VKCORE::ShaderModule::ShaderModule(const char* FileName, const char* SpirvFileName, bool CompileShaderIntoSpirv, VkDevice& LogicalDevice)
+RENDERER_CORE::ShaderModule::ShaderModule(const char* FileName, const char* SpirvFileName, bool CompileShaderIntoSpirv, VkDevice& LogicalDevice)
 {
     Create(FileName, SpirvFileName, CompileShaderIntoSpirv, LogicalDevice);
 }
 
-void VKCORE::ShaderModule::Create(const char* FileName, const char* SpirvFileName, bool CompileShaderIntoSpirv, VkDevice& LogicalDevice)
+void RENDERER_CORE::ShaderModule::Create(const char* FileName, const char* SpirvFileName, bool CompileShaderIntoSpirv, VkDevice& LogicalDevice)
 {
     static unsigned int ShaderIterator = 0;
     std::string Name(FileName);
@@ -74,7 +74,7 @@ void VKCORE::ShaderModule::Create(const char* FileName, const char* SpirvFileNam
     ShaderIterator++;
 }
 
-void VKCORE::ShaderModule::Destroy(VkDevice& LogicalDevice)
+void RENDERER_CORE::ShaderModule::Destroy(VkDevice& LogicalDevice)
 {
     vkDestroyShaderModule(LogicalDevice, Module, nullptr);
 }

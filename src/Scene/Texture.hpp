@@ -9,16 +9,16 @@
 #include "SceneResource.hpp"
 #include "../Renderer/Core/VulkanImage.hpp"
 
-namespace VKAPP
+namespace RENDERER
 {
 	class RendererContext;
 }
 
-namespace VKSCENE
+namespace SCENE
 {
 	class Texture : public SceneResource
 	{
 	public:
-		VKCORE::RawImageData ImageData;
+		RENDERER_CORE::RawImageData ImageData;
 	};
 }

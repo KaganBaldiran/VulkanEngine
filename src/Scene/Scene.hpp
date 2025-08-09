@@ -21,7 +21,7 @@
 #include "Light.hpp"
 #include "ModelInstance.hpp"
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	//Forward Declarations
 	class Window;
@@ -29,13 +29,13 @@ namespace VKCORE
 	class GraphicsPipeline;
 }
 
-namespace VKAPP
+namespace RENDERER
 {
 	class Renderer;
 	class RendererContext;
 }
 
-namespace VKSCENE
+namespace SCENE
 {
 	//Forward Declarations
 	class Camera3D;
@@ -54,6 +54,16 @@ namespace VKSCENE
 		SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS = 1 << 6	
 	};
 
+	enum MarkChangedType
+	{
+		MARK_CHANGED_TYPE_NONE = 0,
+		MARK_CHANGED_TYPE_STATIC_LIGHT = 1 << 1,
+		MARK_CHANGED_TYPE_DYNAMIC_LIGHT = 1 << 2,
+		MARK_CHANGED_TYPE_MESH_TRANSFORMATION = 1 << 3,
+		MARK_CHANGED_TYPE_MESH_GEOMETRY = 1 << 4,
+		MARK_CHANGED_TYPE_MESH_TEXTURE = 1 << 5
+	};
+
 	inline SceneUpdateType operator|(SceneUpdateType a, SceneUpdateType b)
 	{
 		return static_cast<SceneUpdateType>(static_cast<int>(a) | static_cast<int>(b));
@@ -66,18 +76,19 @@ namespace VKSCENE
 	/// </summary>
 	class Scene
 	{
-		friend class VKAPP::Renderer;
+		friend class RENDERER::Renderer;
 		friend class ResourceDependencyManager;
 		friend class MeshManager;
 	public:
-		Scene(VKAPP::RendererContext& RendererContext,TextureImportManager& Manager);
+		Scene(RENDERER::RendererContext& RendererContext,TextureImportManager& Manager);
 		Scene() = default;
-		void Create(VKAPP::RendererContext& RendererContext, TextureImportManager& Manager);
+		void Create(RENDERER::RendererContext& RendererContext, TextureImportManager& Manager);
 		void Destroy();
 
 		std::array<std::unordered_set<ModelInstance*>,MAX_FRAMES_IN_FLIGHT> ModelInstances;
 		std::array<std::vector<ModelInstance*>,MAX_FRAMES_IN_FLIGHT> ModelInstancesAppendList;
 		std::array<std::vector<ModelInstance*>,MAX_FRAMES_IN_FLIGHT> ModelInstancesEraseList;
+		std::array<std::vector<ModelInstance*>,MAX_FRAMES_IN_FLIGHT> ModelInstancesTransformationUpdateList;
 
 		void LinkModelInstance(ModelInstance &Instance);
 		void LinkModelInstance(std::vector<ModelInstance*> &Instances);
@@ -107,54 +118,38 @@ namespace VKSCENE
 		void CreateMeshTextureDescriptors(uint32_t MaxTextures = 1000);
 		uint32_t GetMaxTextureCount() { return ActualTextureUpperBound; };
 		void DestroyMeshTextureDescriptors();
-		//void UpdateTextureDescriptors(VKSCENE::TextureImportManager& TextureImportManager,uint32_t FrameIndex);
 
 		void DestroyMeshBuffers();
 		void DestroyLightBuffers();
 
-		void MarkResourceChanged(SceneResource *Resource);
+		void MarkResourceChanged(SceneResource* Resource, MarkChangedType Type, uint32_t FrameIndex);
 		void FlushPendingUpdates(SceneUpdateType Type,uint32_t FrameIndex);
 
 		bool DrawCubeMap;
 	private:
-		VKSCENE::MeshManager MeshBuffers;
+		SCENE::MeshManager MeshBuffers;
 
-		std::vector<VKCORE::PersistentBuffer> DynamicLightSSBO{};
-		std::vector<VKCORE::Buffer> StaticLightSSBO{};
-		VKCORE::PersistentBuffer StaticLightStagingBuffer{};
+		std::vector<RENDERER_CORE::PersistentBuffer> DynamicLightSSBO{};
+		std::vector<RENDERER_CORE::Buffer> StaticLightSSBO{};
+		RENDERER_CORE::PersistentBuffer StaticLightStagingBuffer{};
 
-		VKCORE::DescriptorPool SceneDescriptorPool;
+		RENDERER_CORE::DescriptorPool SceneDescriptorPool;
 		std::vector<VkDescriptorSet> SceneDescriptorSets;
 
-		std::vector<VKCORE::Buffer> TexturesIndexBuffers{};
-		std::vector<VKCORE::Buffer> TexturesIndexStagingBuffers{};
-
-		//Texture
-		//VKCORE::DescriptorSetLayout TexturesDescriptorSetLayout;
-		//VKCORE::DescriptorPool TexturesDescriptorPool;
-		//std::vector<VkDescriptorSet> TexturesDescriptorSets;
-		// SceneDescriptorSetLayout bindings:
+		std::vector<RENDERER_CORE::Buffer> TexturesIndexBuffers{};
+		std::vector<RENDERER_CORE::Buffer> TexturesIndexStagingBuffers{};
 		
 		// 0: VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER - Mesh texture array to be used in G-buffer fragment shader
 		// 1: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Texture index buffers accessed from G-buffer pass fragment shader
-		VKCORE::Descriptor<MAX_FRAMES_IN_FLIGHT> MeshTexturesDescriptor;
+		RENDERER_CORE::Descriptor<MAX_FRAMES_IN_FLIGHT> MeshTexturesDescriptor;
 
-		VKCORE::GraphicsPipeline* CurrentGbufferPassPipeline = nullptr;
+		RENDERER_CORE::GraphicsPipeline* CurrentGbufferPassPipeline = nullptr;
 		uint32_t ActualTextureUpperBound;
-		/*void WriteTexture(
-			MaterialTextureType TextureType,
-			VKSCENE::Mesh& Mesh,
-			VKSCENE::TextureImportManager& TextureImportManager,
-			std::vector<VKCORE::DescriptorSetWriteImage>& ImageWrites,
-			std::vector<int>& TextureIndexes,
-			int &CurrentImageIndex,
-			uint32_t FrameIndex
-		);*/
-
+		
 		std::vector<VkDescriptorSet> IndirectDescriptorSets;
 
-		VKAPP::RendererContext* RendererContext = nullptr;
-		VKSCENE::ResourceDependencyManager* DependencyManager = nullptr;
+		RENDERER::RendererContext* RendererContext = nullptr;
+		SCENE::ResourceDependencyManager* DependencyManager = nullptr;
 		TextureImportManager* TextureManager = nullptr;
 	};
 }

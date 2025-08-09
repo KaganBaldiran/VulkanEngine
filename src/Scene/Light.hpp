@@ -5,7 +5,7 @@
 
 #include "SceneResource.hpp"
 
-namespace VKSCENE
+namespace SCENE
 {
 	//Forward Declaration
 	class ResourceDependencyManager;

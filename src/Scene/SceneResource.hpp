@@ -9,7 +9,7 @@
 #include <queue>
 #include <set>
 
-namespace VKSCENE
+namespace SCENE
 {
 	//Forward Declarations
 	class ResourceDependencyManager;

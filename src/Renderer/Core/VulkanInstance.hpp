@@ -5,7 +5,7 @@
 #include <vector>
 #include "VulkanUtils.hpp"
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 
     struct VulkanInstanceCreateInfo

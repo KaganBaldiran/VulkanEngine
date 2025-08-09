@@ -2,7 +2,7 @@
 #include "VulkanSwapChain.hpp"
 #include "VulkanWindow.hpp"
 
-void VKCORE::AllocateFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameSyncObjects>& DestinationObjects)
+void RENDERER_CORE::AllocateFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameSyncObjects>& DestinationObjects)
 {
     VkSemaphoreCreateInfo SemaphoreCreateInfo{};
     SemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -22,7 +22,7 @@ void VKCORE::AllocateFrameSyncObjects(VkDevice& LogicalDevice, std::vector<Frame
     }
 }
 
-void VKCORE::DestroyFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameSyncObjects>& DestinationObjects)
+void RENDERER_CORE::DestroyFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameSyncObjects>& DestinationObjects)
 {
     for (auto& SyncObjects : DestinationObjects)
     {
@@ -32,7 +32,7 @@ void VKCORE::DestroyFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameS
     }
 }
 
-void VKCORE::SubmitQueue(
+void RENDERER_CORE::SubmitQueue(
     VkQueue &Queue,
     const std::vector<VkSemaphore>& WaitSemaphores,
     const std::vector<VkPipelineStageFlags>& WaitDstStageMask,
@@ -59,7 +59,7 @@ void VKCORE::SubmitQueue(
     }
 }
 
-VkResult VKCORE::PresentQueue(
+VkResult RENDERER_CORE::PresentQueue(
     VkQueue& Queue,
     const std::vector<VkSwapchainKHR> &SwapChains,
     const std::vector<VkSemaphore>& WaitSemaphores,
@@ -79,14 +79,14 @@ VkResult VKCORE::PresentQueue(
     return vkQueuePresentKHR(Queue, &PresentInfo);
 }
 
-void VKCORE::RenderFrame(
+void RENDERER_CORE::RenderFrame(
     VkDevice &LogicalDevice,
     VkQueue& GraphicsQueue,
     VkQueue& PresentQueue,
     std::vector<VkCommandBuffer>& CommandBuffers,
     std::multimap<int, std::function<void(VkCommandBuffer& CurrentCommandBuffer,uint32_t CurrentImageIndex, uint32_t CurrentFrame)>> CommandBufferRecords,
     std::function<void()> OnSwapChainRecreate,
-    std::vector<VKCORE::FrameSyncObjects>& SyncObjects,
+    std::vector<RENDERER_CORE::FrameSyncObjects>& SyncObjects,
     SwapChain& DestinationSwapChain,
     Window& window,
     uint32_t &CurrentFrame,
@@ -117,7 +117,7 @@ void VKCORE::RenderFrame(
         Record(CommandBuffer,ImageIndex,CurrentFrame);
     }
 
-    VKCORE::SubmitQueue(
+    RENDERER_CORE::SubmitQueue(
         GraphicsQueue,
         { SyncObject.ImageAvailableSemaphore }, 
         { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT },
@@ -126,7 +126,7 @@ void VKCORE::RenderFrame(
         SyncObject.Fence
     );
 
-    Result = VKCORE::PresentQueue(
+    Result = RENDERER_CORE::PresentQueue(
         PresentQueue,
         {DestinationSwapChain.swapChain},
         {SyncObject.RenderFinishedSemaphore},
@@ -148,7 +148,7 @@ void VKCORE::RenderFrame(
     CurrentFrame = (CurrentFrame + 1) % MaxImagesInFlight;
 }
 
-void VKCORE::DynamicRenderingPass::AppendAttachment(
+void RENDERER_CORE::DynamicRenderingPass::AppendAttachment(
     VkImageView imageView,
     VkImageLayout imageLayout,
     VkAttachmentLoadOp loadOp,
@@ -182,7 +182,7 @@ void VKCORE::DynamicRenderingPass::AppendAttachment(
     }
 }
 
-void VKCORE::DynamicRenderingPass::BeginRendering(const VkCommandBuffer &CommandBuffer,VkRect2D &RenderArea)
+void RENDERER_CORE::DynamicRenderingPass::BeginRendering(const VkCommandBuffer &CommandBuffer,VkRect2D &RenderArea)
 {
     VkRenderingInfo RenderingInfo{};
     RenderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -197,7 +197,7 @@ void VKCORE::DynamicRenderingPass::BeginRendering(const VkCommandBuffer &Command
     vkCmdBeginRendering(CommandBuffer, &RenderingInfo);
 }
 
-void VKCORE::DynamicRenderingPass::EndRendering(const VkCommandBuffer& CommandBuffer)
+void RENDERER_CORE::DynamicRenderingPass::EndRendering(const VkCommandBuffer& CommandBuffer)
 {
     vkCmdEndRendering(CommandBuffer);
 }

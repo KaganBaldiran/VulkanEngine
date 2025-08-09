@@ -11,12 +11,12 @@
 #include "../Renderer/Core/VulkanImage.hpp"
 #include "SceneResource.hpp"
 
-namespace VKAPP
+namespace RENDERER
 {
 	class RendererContext;
 }
 
-namespace VKSCENE
+namespace SCENE
 {
 	class Texture : public SceneResource
 	{
@@ -33,21 +33,21 @@ namespace VKSCENE
 	class TextureImportManager
 	{
 	public:
-		TextureImportManager(VKAPP::RendererContext &RendererContext) : RendererContext(&RendererContext)
+		TextureImportManager(RENDERER::RendererContext &RendererContext) : RendererContext(&RendererContext)
 		{};
 		void Destroy();
 
 		void AppendImportTask(TextureImportInfo ImportInfo);
 		void SubmitImport();
 
-		std::vector<std::future<void>> Futures;
+		std::vector<std::pair<TextureImportInfo,std::future<bool>>> Futures;
 		std::queue<TextureImportInfo> ImportQueue;
 
 		std::unordered_map<std::string,uint64_t> ImportRegistries;
-		std::unordered_map<uint64_t,VKCORE::RawImageData> RawImageDatas;
-		std::unordered_map<uint64_t,VKCORE::TextureData> TextureDatas;
+		std::unordered_map<uint64_t,RENDERER_CORE::RawImageData> RawImageDatas;
+		std::unordered_map<uint64_t,RENDERER_CORE::TextureData> TextureDatas;
 	private:
 		double StartingTime;
-		VKAPP::RendererContext* RendererContext = nullptr;
+		RENDERER::RendererContext* RendererContext = nullptr;
 	};
 }

@@ -7,7 +7,7 @@
 #include <vulkan/vk_enum_string_helper.h>
 
 
-VkResult VKCORE::CreateDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+VkResult RENDERER_CORE::CreateDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     auto Func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (Func != nullptr)
@@ -17,7 +17,7 @@ VkResult VKCORE::CreateDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsM
     else return VK_ERROR_EXTENSION_NOT_PRESENT;
 }
 
-void VKCORE::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+void RENDERER_CORE::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
 {
     auto Func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
     if (Func != nullptr)
@@ -26,7 +26,7 @@ void VKCORE::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMess
     }
 }
 
-void VKCORE::PopulateMessagerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& CreateInfo)
+void RENDERER_CORE::PopulateMessagerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& CreateInfo)
 {
     CreateInfo = {};
     CreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -35,19 +35,19 @@ void VKCORE::PopulateMessagerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& Crea
     CreateInfo.pfnUserCallback = debugCallback;
 }
 
-void VKCORE::SetupDebugMessenger(VkInstance &Instance,const bool EnableValidationLayers,const std::vector<const char*>& ValidationLayers,VkDebugUtilsMessengerEXT& DestinationMessenger)
+void RENDERER_CORE::SetupDebugMessenger(VkInstance &Instance,const bool EnableValidationLayers,const std::vector<const char*>& ValidationLayers,VkDebugUtilsMessengerEXT& DestinationMessenger)
 {
     if (!EnableValidationLayers) return;
     VkDebugUtilsMessengerCreateInfoEXT CreateInfo{};
-    VKCORE::PopulateMessagerCreateInfo(CreateInfo);
+    RENDERER_CORE::PopulateMessagerCreateInfo(CreateInfo);
 
-    if (VKCORE::CreateDebugUtilsMessengerEXT(Instance, &CreateInfo, nullptr, &DestinationMessenger) != VK_SUCCESS)
+    if (RENDERER_CORE::CreateDebugUtilsMessengerEXT(Instance, &CreateInfo, nullptr, &DestinationMessenger) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to setup debug messenger!");
     }
 }
 
-bool VKCORE::CheckValidationLayerSupport(const std::vector<const char*>& ValidationLayers)
+bool RENDERER_CORE::CheckValidationLayerSupport(const std::vector<const char*>& ValidationLayers)
 {
     uint32_t LayerCount;
     vkEnumerateInstanceLayerProperties(&LayerCount, nullptr);
@@ -71,13 +71,13 @@ bool VKCORE::CheckValidationLayerSupport(const std::vector<const char*>& Validat
     return true;
 }
 
-VKCORE::VulkanResult VKCORE::CreateVulkanInstance(
+RENDERER_CORE::VulkanResult RENDERER_CORE::CreateVulkanInstance(
     VulkanInstanceCreateInfo &InstanceCreateInfo,
     const std::vector<const char*>& ValidationLayers,
     VkInstance& OutInstance,
     VkDebugUtilsMessengerCreateInfoEXT* OutDebugMessengerCreateInfo)
 {
-    if (InstanceCreateInfo.EnableValidationLayers && !VKCORE::CheckValidationLayerSupport(ValidationLayers))
+    if (InstanceCreateInfo.EnableValidationLayers && !RENDERER_CORE::CheckValidationLayerSupport(ValidationLayers))
     {
         return { VK_INCOMPLETE, "Requested validation layers aren't available!" };
     }
@@ -119,7 +119,7 @@ VKCORE::VulkanResult VKCORE::CreateVulkanInstance(
         CreateInfo.enabledLayerCount = static_cast<uint32_t>(ValidationLayers.size());
         CreateInfo.ppEnabledLayerNames = ValidationLayers.data();
 
-        VKCORE::PopulateMessagerCreateInfo(DebugCreateInfo);
+        RENDERER_CORE::PopulateMessagerCreateInfo(DebugCreateInfo);
         CreateInfo.pNext = &DebugCreateInfo;
 
         if (OutDebugMessengerCreateInfo != nullptr)
@@ -167,7 +167,7 @@ VKCORE::VulkanResult VKCORE::CreateVulkanInstance(
     return VULKAN_SUCCESS;
 }
 
-VKCORE::VulkanResult VKCORE::SetupDebugMessenger(
+RENDERER_CORE::VulkanResult RENDERER_CORE::SetupDebugMessenger(
     VkInstance &Instance,
     bool EnableValidationLayers,
     VkDebugUtilsMessengerEXT &DebugMessenger
@@ -175,28 +175,28 @@ VKCORE::VulkanResult VKCORE::SetupDebugMessenger(
 {
     if (!EnableValidationLayers) return VULKAN_SUCCESS;
     VkDebugUtilsMessengerCreateInfoEXT CreateInfo{};
-    VKCORE::PopulateMessagerCreateInfo(CreateInfo);
+    RENDERER_CORE::PopulateMessagerCreateInfo(CreateInfo);
 
-    if (VKCORE::CreateDebugUtilsMessengerEXT(Instance, &CreateInfo, nullptr, &DebugMessenger) != VK_SUCCESS)
+    if (RENDERER_CORE::CreateDebugUtilsMessengerEXT(Instance, &CreateInfo, nullptr, &DebugMessenger) != VK_SUCCESS)
     {
         return { VK_INCOMPLETE ,"Failed to setup debug messenger!" };
     }
     return VULKAN_SUCCESS;
 }
 
-VKCORE::Instance::Instance(VulkanInstanceCreateInfo &CreateInfo)
+RENDERER_CORE::Instance::Instance(VulkanInstanceCreateInfo &CreateInfo)
 {
     Create(CreateInfo);
 }
 
-void VKCORE::Instance::Create(VulkanInstanceCreateInfo& CreateInfo)
+void RENDERER_CORE::Instance::Create(VulkanInstanceCreateInfo& CreateInfo)
 {
     this->EnableValidationLayers = CreateInfo.EnableValidationLayers;
-    VULKAN_ASSERT_RESULT(VKCORE::CreateVulkanInstance(CreateInfo, ValidationLayers, instance, nullptr));
-    VKCORE::SetupDebugMessenger(instance, CreateInfo.EnableValidationLayers, ValidationLayers, DebugMessenger);
+    VULKAN_ASSERT_RESULT(RENDERER_CORE::CreateVulkanInstance(CreateInfo, ValidationLayers, instance, nullptr));
+    RENDERER_CORE::SetupDebugMessenger(instance, CreateInfo.EnableValidationLayers, ValidationLayers, DebugMessenger);
 }
 
-void VKCORE::Instance::Destroy()
+void RENDERER_CORE::Instance::Destroy()
 {
     DestroyDebugUtilsMessengerEXT(instance, DebugMessenger, nullptr);
     vkDestroyInstance(instance, nullptr);

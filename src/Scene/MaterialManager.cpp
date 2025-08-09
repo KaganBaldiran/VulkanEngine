@@ -5,12 +5,15 @@
 #include "../Renderer/RendererContext.hpp"
 #include "../Renderer/Core/VulkanSynchoronization.hpp"
 
-void VKSCENE::TextureImportManager::AppendImportTask(TextureImportInfo ImportInfo)
+#include "../Common/Log.hpp"
+#include "../Common/CommonDefinitions.hpp"
+
+void SCENE::TextureImportManager::AppendImportTask(TextureImportInfo ImportInfo)
 {
 	this->ImportQueue.push(ImportInfo);
 }
 
-void VKSCENE::TextureImportManager::Destroy()
+void SCENE::TextureImportManager::Destroy()
 {
     for (auto &[id,Data]:TextureDatas)
     {
@@ -18,7 +21,7 @@ void VKSCENE::TextureImportManager::Destroy()
     }
 }
 
-void VKSCENE::TextureImportManager::SubmitImport()
+void SCENE::TextureImportManager::SubmitImport()
 {
     std::mutex Mutex;
     std::vector<uint64_t> ImagesToTransition;
@@ -27,51 +30,56 @@ void VKSCENE::TextureImportManager::SubmitImport()
     StartingTime = glfwGetTime();
     while (!ImportQueue.empty())
     {
-        auto ImportInfo = std::move(ImportQueue.front());
+        auto ImportInfo = ImportQueue.front();
         ImportQueue.pop();
 
-        auto &DestinationTexture = RawImageDatas[ImportInfo.DestinationTextureID];
-        auto &DestinationTextureData = TextureDatas[ImportInfo.DestinationTextureID];
-        ImportRegistries.emplace(std::string(ImportInfo.FileName),ImportInfo.DestinationTextureID);
-        ImagesToTransition.push_back(ImportInfo.DestinationTextureID);
-        
-        Futures.push_back(std::async(std::launch::async, [&Mutex,&DestinationTextureData,this,&DestinationTexture,ImportInfo]() {
-            auto Result = VKCORE::ReadTexture(ImportInfo.FileName.c_str(), DestinationTexture);
+        Futures.push_back({ ImportInfo,std::async(std::launch::async, [&Mutex,this,ImportInfo]() -> bool {
+            RENDERER_CORE::RawImageData NewRawImageData;
+            auto Result = RENDERER_CORE::ReadTexture(ImportInfo.FileName.c_str(), NewRawImageData);
             if (Result < 0) {
-                return;
+                LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, "Failed reading texture[" + ImportInfo.FileName + "].");
+                return false;
             };
 
-            VKCORE::CommandPool TempCommandPool(
+            RawImageDatas[ImportInfo.DestinationTextureID] = NewRawImageData;
+            auto& DestinationTextureData = TextureDatas[ImportInfo.DestinationTextureID];
+
+            RENDERER_CORE::CommandPool TempCommandPool(
                 RendererContext->QueueFamilyIndices.GraphicsFamily.value(),
                 RendererContext->DeviceContext.logicalDevice,
                 VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
             );
 
-            VKCORE::CreateTextureImageAsync(
-                DestinationTexture,
+            RENDERER_CORE::CreateTextureImageAsync(
+                NewRawImageData,
                 RendererContext->DeviceContext.physicalDevice,
                 RendererContext->DeviceContext.logicalDevice,
                 TempCommandPool.commandPool,
-                RendererContext->DeviceContext.GraphicsQueue, 
+                RendererContext->DeviceContext.GraphicsQueue,
                 DestinationTextureData,
                 Mutex
             );
 
             TempCommandPool.Destroy(RendererContext->DeviceContext.logicalDevice);
-        }));
+            return true;
+        }) });
+
     }
 
-    for (auto& future : Futures)
+    for (auto& [ImportInfo,future] : Futures)
     {
-        future.get();
+        if (future.get())
+        {
+            ImportRegistries.emplace(std::string(ImportInfo.FileName), ImportInfo.DestinationTextureID);
+            ImagesToTransition.push_back(ImportInfo.DestinationTextureID);
+        }
     }
     Futures.clear();
 
-    
-    VKCORE::PipelineBarrier2 PipelineBarrier;
+    RENDERER_CORE::PipelineBarrier2 PipelineBarrier;
     for (auto& ImageID : ImagesToTransition)
     {
-        auto& Iterator = TextureDatas.find(ImageID);
+        auto Iterator = TextureDatas.find(ImageID);
         if (Iterator == TextureDatas.end()) continue;
         PipelineBarrier.AppendImageMemoryBarrier(
             Iterator->second.Image,
@@ -88,7 +96,7 @@ void VKSCENE::TextureImportManager::SubmitImport()
         PipelineBarrier.ExecutePipelineBarrier(CommandBuffer);
     };
 
-    VKCORE::ExecuteSingleTimeCommand(
+    RENDERER_CORE::ExecuteSingleTimeCommand(
         RendererContext->DeviceContext.logicalDevice,
         TransitionImages,
         RendererContext->CommandPool.commandPool,

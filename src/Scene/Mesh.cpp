@@ -9,36 +9,36 @@
 #include "../Common/Log.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
-void ProcessMeshMaterial(std::string MeshDirectory,VKSCENE::TextureImportManager& ImportManager, aiMaterial* SourceMaterial, VKSCENE::Material& DestinationMaterial);
+void ProcessMeshMaterial(std::string MeshDirectory,SCENE::TextureImportManager& ImportManager, aiMaterial* SourceMaterial, SCENE::Material& DestinationMaterial);
 
-VKSCENE::MeshImporter::MeshImporter(TextureImportManager& ImportManager)
+SCENE::MeshImporter::MeshImporter(TextureImportManager& ImportManager)
 {
     Create(ImportManager);
 }
 
-void VKSCENE::MeshImporter::Create(TextureImportManager& ImportManager)
+void SCENE::MeshImporter::Create(TextureImportManager& ImportManager)
 {
     this->ImportManager = &ImportManager;
 }
 
-void VKSCENE::MeshImporter::AppendImportTask(ModelImportInfo ImportInfo)
+void SCENE::MeshImporter::AppendImportTask(ModelImportInfo ImportInfo)
 {
     ImportQueue.push(ImportInfo);
 }
 
-void VKSCENE::MeshImporter::SubmitImport()
+void SCENE::MeshImporter::SubmitImport()
 {
     StartingTime = glfwGetTime();
     while (!ImportQueue.empty())
     {
         auto Import = std::move(ImportQueue.front());
-        Futures.push_back(std::async(std::launch::async, VKSCENE::Import3Dmodel, Import.ModelFilePath, std::ref(*Import.DestinationModel), std::ref(*ImportManager)));
+        Futures.push_back(std::async(std::launch::async, SCENE::Import3Dmodel, Import.ModelFilePath, std::ref(*Import.DestinationModel), std::ref(*ImportManager)));
         LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Imported model [" + std::string(Import.ModelFilePath) + "].");
         ImportQueue.pop();
     }
 }
 
-void VKSCENE::MeshImporter::WaitImportIdle()
+void SCENE::MeshImporter::WaitImportIdle()
 {
     for (auto& future : Futures)
     {
@@ -51,7 +51,7 @@ void VKSCENE::MeshImporter::WaitImportIdle()
     LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Models were imported in " + std::to_string(DeltaTime) + " seconds.");
 }
 
-VkVertexInputBindingDescription VKSCENE::Vertex2D::GetBindingDescription()
+VkVertexInputBindingDescription SCENE::Vertex2D::GetBindingDescription()
 {
     VkVertexInputBindingDescription BindingDescription;
     BindingDescription.binding = 0;
@@ -61,7 +61,7 @@ VkVertexInputBindingDescription VKSCENE::Vertex2D::GetBindingDescription()
     return BindingDescription;
 }
 
-std::vector<VkVertexInputAttributeDescription> VKSCENE::Vertex2D::GetAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> SCENE::Vertex2D::GetAttributeDescriptions()
 {
     std::vector<VkVertexInputAttributeDescription> AttributeDescriptions(3);
     AttributeDescriptions[0].binding = 0;
@@ -82,7 +82,7 @@ std::vector<VkVertexInputAttributeDescription> VKSCENE::Vertex2D::GetAttributeDe
     return AttributeDescriptions;
 }
 
-VkVertexInputBindingDescription VKSCENE::Vertex3D::GetBindingDescription()
+VkVertexInputBindingDescription SCENE::Vertex3D::GetBindingDescription()
 {
     VkVertexInputBindingDescription BindingDescription;
     BindingDescription.binding = 0;
@@ -92,7 +92,7 @@ VkVertexInputBindingDescription VKSCENE::Vertex3D::GetBindingDescription()
     return BindingDescription;
 }
 
-std::vector<VkVertexInputAttributeDescription> VKSCENE::Vertex3D::GetAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> SCENE::Vertex3D::GetAttributeDescriptions()
 {
     std::vector<VkVertexInputAttributeDescription> AttributeDescriptions(5);
     AttributeDescriptions[0].binding = 0;
@@ -122,7 +122,7 @@ std::vector<VkVertexInputAttributeDescription> VKSCENE::Vertex3D::GetAttributeDe
     return AttributeDescriptions;
 }
 
-void VKSCENE::Import3Dmodel(const char* FilePath, Model3D& DstModel,VKSCENE::TextureImportManager &ImportManager)
+void SCENE::Import3Dmodel(const char* FilePath, Model3D& DstModel,SCENE::TextureImportManager &ImportManager)
 {
     Assimp::Importer Importer;
     const aiScene* scene = Importer.ReadFile(FilePath,
@@ -134,6 +134,7 @@ void VKSCENE::Import3Dmodel(const char* FilePath, Model3D& DstModel,VKSCENE::Tex
     aiScene* Scene = const_cast<aiScene*>(scene);
 
     if (nullptr == Scene) {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, "Failed importing model with the error code [" + std::string(Importer.GetErrorString()) + "].");
         std::cout << "Error code :: " << Importer.GetErrorString() << std::endl;
         throw std::runtime_error("Unable to import a 3D model(" + std::string(FilePath) + ")");
     }
@@ -204,16 +205,16 @@ void VKSCENE::Import3Dmodel(const char* FilePath, Model3D& DstModel,VKSCENE::Tex
     }
 }
 
-VKSCENE::BatchInfo VKSCENE::BatchModels(std::vector<VKSCENE::Model3D>& Models,std::vector<DrawInfo> &DestinationDrawInfos)
+SCENE::BatchInfo SCENE::BatchModels(std::vector<SCENE::Model3D>& Models,std::vector<DrawInfo> &DestinationDrawInfos)
 {
-    VKSCENE::BatchInfo Result{};
+    SCENE::BatchInfo Result{};
     uint32_t IndexOffset = 0;
     for (auto& Model : Models)
     {
         for (auto& Mesh : Model.Meshes)
         {
             if (!Mesh.Enabled) continue;
-            VKSCENE::DrawInfo Info;
+            SCENE::DrawInfo Info;
 
             Info.VertexOffset = Result.Vertices.size();
             Result.Vertices.insert(Result.Vertices.end(), Mesh.Vertices.begin(), Mesh.Vertices.end());
@@ -230,7 +231,7 @@ VKSCENE::BatchInfo VKSCENE::BatchModels(std::vector<VKSCENE::Model3D>& Models,st
     return Result;
 }
 
-void LoadMaterialTextures(std::string MeshDirectory,VKSCENE::TextureImportManager& ImportManager, aiMaterial* SourceMaterial, aiTextureType Type, uint64_t& MaterialTextureReferenceIndex)
+void LoadMaterialTextures(std::string MeshDirectory,SCENE::TextureImportManager& ImportManager, aiMaterial* SourceMaterial, aiTextureType Type, uint64_t& MaterialTextureReferenceIndex)
 {
     auto& ImportRegistries = ImportManager.ImportRegistries;
     auto& ImportQueue = ImportManager.ImportQueue;
@@ -248,14 +249,14 @@ void LoadMaterialTextures(std::string MeshDirectory,VKSCENE::TextureImportManage
         }
         if (!skip)
         {
-            VKSCENE::Texture NewTexture;
+            SCENE::Texture NewTexture;
             MaterialTextureReferenceIndex = NewTexture.ResourceID;
             ImportQueue.push({ MeshDirectory + "\\" + std::string(str.C_Str()),NewTexture.ResourceID});
         }
     }
 }
 
-void ProcessMeshMaterial(std::string MeshDirectory, VKSCENE::TextureImportManager& ImportManager,aiMaterial* SourceMaterial,VKSCENE::Material &DestinationMaterial)
+void ProcessMeshMaterial(std::string MeshDirectory, SCENE::TextureImportManager& ImportManager,aiMaterial* SourceMaterial,SCENE::Material &DestinationMaterial)
 {
     aiColor4D color;
     float value;
@@ -276,25 +277,25 @@ void ProcessMeshMaterial(std::string MeshDirectory, VKSCENE::TextureImportManage
         DestinationMaterial.Opacity = value;
     }
 
-    LoadMaterialTextures(MeshDirectory,ImportManager, SourceMaterial, aiTextureType_DIFFUSE, DestinationMaterial.ReferencedTextures[static_cast<size_t>(VKSCENE::MATERIAL_TEXTURE_TYPE_ALBEDO)]);
+    LoadMaterialTextures(MeshDirectory,ImportManager, SourceMaterial, aiTextureType_DIFFUSE, DestinationMaterial.ReferencedTextures[static_cast<size_t>(SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO)]);
     if (SourceMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &Path) == AI_SUCCESS) {
-        LoadMaterialTextures(MeshDirectory, ImportManager, SourceMaterial, aiTextureType_DIFFUSE_ROUGHNESS, DestinationMaterial.ReferencedTextures[static_cast<size_t>(VKSCENE::MATERIAL_TEXTURE_TYPE_ROUGHNESS)]);
+        LoadMaterialTextures(MeshDirectory, ImportManager, SourceMaterial, aiTextureType_DIFFUSE_ROUGHNESS, DestinationMaterial.ReferencedTextures[static_cast<size_t>(SCENE::MATERIAL_TEXTURE_TYPE_ROUGHNESS)]);
     }
-    LoadMaterialTextures(MeshDirectory, ImportManager, SourceMaterial, aiTextureType_METALNESS, DestinationMaterial.ReferencedTextures[static_cast<size_t>(VKSCENE::MATERIAL_TEXTURE_TYPE_METALLIC)]);
-    LoadMaterialTextures(MeshDirectory, ImportManager, SourceMaterial, aiTextureType_OPACITY, DestinationMaterial.ReferencedTextures[static_cast<size_t>(VKSCENE::MATERIAL_TEXTURE_TYPE_OPACITY)]);
-    LoadMaterialTextures(MeshDirectory, ImportManager, SourceMaterial, aiTextureType_NORMALS, DestinationMaterial.ReferencedTextures[static_cast<size_t>(VKSCENE::MATERIAL_TEXTURE_TYPE_NORMAL_MAP)]);
+    LoadMaterialTextures(MeshDirectory, ImportManager, SourceMaterial, aiTextureType_METALNESS, DestinationMaterial.ReferencedTextures[static_cast<size_t>(SCENE::MATERIAL_TEXTURE_TYPE_METALLIC)]);
+    LoadMaterialTextures(MeshDirectory, ImportManager, SourceMaterial, aiTextureType_OPACITY, DestinationMaterial.ReferencedTextures[static_cast<size_t>(SCENE::MATERIAL_TEXTURE_TYPE_OPACITY)]);
+    LoadMaterialTextures(MeshDirectory, ImportManager, SourceMaterial, aiTextureType_NORMALS, DestinationMaterial.ReferencedTextures[static_cast<size_t>(SCENE::MATERIAL_TEXTURE_TYPE_NORMAL_MAP)]);
 }
 
-VKSCENE::BatchInfo VKSCENE::BatchModels(std::vector<VKSCENE::Model3D*> Models, std::vector<DrawInfo>& DestinationDrawInfos)
+SCENE::BatchInfo SCENE::BatchModels(std::vector<SCENE::Model3D*> Models, std::vector<DrawInfo>& DestinationDrawInfos)
 {
-    VKSCENE::BatchInfo Result{};
+    SCENE::BatchInfo Result{};
     uint32_t IndexOffset = 0;
     for (auto& Model : Models)
     {
         for (auto& Mesh : Model->Meshes)
         {
             if (!Mesh.Enabled) continue;
-            VKSCENE::DrawInfo Info;
+            SCENE::DrawInfo Info;
 
             Info.VertexOffset = Result.Vertices.size();
             Result.Vertices.insert(Result.Vertices.end(), Mesh.Vertices.begin(), Mesh.Vertices.end());
@@ -311,7 +312,7 @@ VKSCENE::BatchInfo VKSCENE::BatchModels(std::vector<VKSCENE::Model3D*> Models, s
     return Result;
 }
 
-void VKSCENE::Model3D::SetModelMeshesUpdateMode(MeshUpdateMode MeshUpdateMode)
+void SCENE::Model3D::SetModelMeshesUpdateMode(MeshUpdateMode MeshUpdateMode)
 {
     for (auto& mesh : this->Meshes)
     {

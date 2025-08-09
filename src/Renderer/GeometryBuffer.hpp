@@ -6,14 +6,14 @@
 #include <vector>
 #include <map>
 
-namespace VKAPP
+namespace RENDERER
 {
     struct GeometryBuffer
     {
-        VKCORE::TextureData PositionAttachment;
-        VKCORE::TextureData AlbedoAttachment;
-        VKCORE::TextureData RoughnessMetallicAttachment;
-        VKCORE::TextureData NormalAttachment;
+        RENDERER_CORE::TextureData PositionAttachment;
+        RENDERER_CORE::TextureData AlbedoAttachment;
+        RENDERER_CORE::TextureData RoughnessMetallicAttachment;
+        RENDERER_CORE::TextureData NormalAttachment;
 
         void Create(
             VkPhysicalDevice& PhysicalDevice,

@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <vulkan/vk_enum_string_helper.h>
 
-void VKCORE::PersistentBuffer::Destroy(VkDevice& LogicalDevice)
+void RENDERER_CORE::PersistentBuffer::Destroy(VkDevice& LogicalDevice)
 {
     if (MappedMemory)
     {
@@ -17,7 +17,7 @@ void VKCORE::PersistentBuffer::Destroy(VkDevice& LogicalDevice)
     Buffer.Destroy(LogicalDevice);
 }
 
-uint32_t VKCORE::FindMemoryType(VkPhysicalDevice &PhysicalDevice,uint32_t TypeFilter, VkMemoryPropertyFlags Properties)
+uint32_t RENDERER_CORE::FindMemoryType(VkPhysicalDevice &PhysicalDevice,uint32_t TypeFilter, VkMemoryPropertyFlags Properties)
 {
     VkPhysicalDeviceMemoryProperties MemoryProperties;
     vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &MemoryProperties);
@@ -31,7 +31,7 @@ uint32_t VKCORE::FindMemoryType(VkPhysicalDevice &PhysicalDevice,uint32_t TypeFi
     }
 }
 
-void VKCORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& LogicalDevice,VkDeviceSize Size, VkBufferUsageFlags Usage, VkMemoryPropertyFlags Properties, Buffer& DestinationBuffer)
+void RENDERER_CORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& LogicalDevice,VkDeviceSize Size, VkBufferUsageFlags Usage, VkMemoryPropertyFlags Properties, Buffer& DestinationBuffer)
 {
     VkBufferCreateInfo BufferCreateInfo{};
     BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -52,7 +52,7 @@ void VKCORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& LogicalDevi
     VkMemoryAllocateInfo AllocationInfo{};
     AllocationInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     AllocationInfo.allocationSize = MemoryRequirements.size;
-    AllocationInfo.memoryTypeIndex = VKCORE::FindMemoryType(PhysicalDevice,MemoryRequirements.memoryTypeBits, Properties);
+    AllocationInfo.memoryTypeIndex = RENDERER_CORE::FindMemoryType(PhysicalDevice,MemoryRequirements.memoryTypeBits, Properties);
 
     if (vkAllocateMemory(LogicalDevice, &AllocationInfo, nullptr, &DestinationBuffer.BufferMemory) != VK_SUCCESS)
     {
@@ -69,7 +69,7 @@ void VKCORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& LogicalDevi
     );
 }
 
-void VKCORE::Buffer::Destroy(VkDevice &LogicalDevice)
+void RENDERER_CORE::Buffer::Destroy(VkDevice &LogicalDevice)
 {
     auto BufferPtr = reinterpret_cast<uintptr_t>(BufferObject);
     if (BufferMemory != VK_NULL_HANDLE)
@@ -86,7 +86,7 @@ void VKCORE::Buffer::Destroy(VkDevice &LogicalDevice)
     LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Buffer[address(" + std::to_string(BufferPtr) + ")] destroyed!"));
 }
 
-void VKCORE::CopyBuffer(
+void RENDERER_CORE::CopyBuffer(
     VkBuffer SourceBuffer, 
     VkBuffer DestinationBuffer, 
     VkDeviceSize Size,
@@ -104,18 +104,18 @@ void VKCORE::CopyBuffer(
         CopyRegion.size = Size;
         vkCmdCopyBuffer(CommandBuffer, SourceBuffer, DestinationBuffer, 1, &CopyRegion);
     };
-    VKCORE::ExecuteSingleTimeCommand(LogicalDevice,CopyCommand, CommandPool, Queue);
+    RENDERER_CORE::ExecuteSingleTimeCommand(LogicalDevice,CopyCommand, CommandPool, Queue);
 }
 
-void VKCORE::CopyBuffer(std::vector<VkBufferCopy> CopyRegions, VkBuffer SourceBuffer, VkBuffer DestinationBuffer, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& Queue)
+void RENDERER_CORE::CopyBuffer(std::vector<VkBufferCopy> CopyRegions, VkBuffer SourceBuffer, VkBuffer DestinationBuffer, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& Queue)
 {
     auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
         vkCmdCopyBuffer(CommandBuffer, SourceBuffer, DestinationBuffer, static_cast<uint32_t>(CopyRegions.size()), CopyRegions.data());
     };
-    VKCORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, Queue);
+    RENDERER_CORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, Queue);
 }
 
-void VKCORE::CopyBuffer(std::vector<BufferCopyInfo> CopyInfos, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& Queue)
+void RENDERER_CORE::CopyBuffer(std::vector<BufferCopyInfo> CopyInfos, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& Queue)
 {
     auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
         for (auto& CopyInfo : CopyInfos)
@@ -124,12 +124,12 @@ void VKCORE::CopyBuffer(std::vector<BufferCopyInfo> CopyInfos, VkDevice& Logical
             vkCmdCopyBuffer(CommandBuffer, CopyInfo.SourceBuffer, CopyInfo.DestinationBuffer, static_cast<uint32_t>(CopyInfo.CopyRegions.size()), CopyInfo.CopyRegions.data());
         }
     };
-    VKCORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, Queue);
+    RENDERER_CORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, Queue);
 }
 
-void VKCORE::CreateStagingBuffer(VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkDeviceSize Size,VKCORE::Buffer &DestinationBuffer)
+void RENDERER_CORE::CreateStagingBuffer(VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkDeviceSize Size,RENDERER_CORE::Buffer &DestinationBuffer)
 {
-    VKCORE::CreateBuffer(
+    RENDERER_CORE::CreateBuffer(
         PhysicalDevice,
         LogicalDevice,
         Size,
@@ -139,9 +139,9 @@ void VKCORE::CreateStagingBuffer(VkPhysicalDevice& PhysicalDevice, VkDevice& Log
     );
 }
 
-void VKCORE::UploadDataToDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDevice PhysicalDevice, VkCommandPool CommandPool, VkQueue Queue, const void* Data, VkDeviceSize Size, VKCORE::Buffer& DestinationBuffer, VkBufferUsageFlags UsageFlags)
+void RENDERER_CORE::UploadDataToDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDevice PhysicalDevice, VkCommandPool CommandPool, VkQueue Queue, const void* Data, VkDeviceSize Size, RENDERER_CORE::Buffer& DestinationBuffer, VkBufferUsageFlags UsageFlags)
 {
-    VKCORE::CreateBuffer(
+    RENDERER_CORE::CreateBuffer(
         PhysicalDevice,
         LogicalDevice,
         Size,
@@ -150,14 +150,14 @@ void VKCORE::UploadDataToDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDev
         DestinationBuffer
     );
     Buffer StagingBuffer{};
-    VKCORE::CreateStagingBuffer(PhysicalDevice, LogicalDevice, Size,StagingBuffer);
+    RENDERER_CORE::CreateStagingBuffer(PhysicalDevice, LogicalDevice, Size,StagingBuffer);
 
     void* DataPtr;
     vkMapMemory(LogicalDevice, StagingBuffer.BufferMemory, 0, Size, 0, &DataPtr);
     memcpy(DataPtr, Data, Size);
     vkUnmapMemory(LogicalDevice, StagingBuffer.BufferMemory);
 
-    VKCORE::CopyBuffer(
+    RENDERER_CORE::CopyBuffer(
         StagingBuffer.BufferObject,
         DestinationBuffer.BufferObject,
         Size,
@@ -169,17 +169,17 @@ void VKCORE::UploadDataToDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDev
     StagingBuffer.Destroy(LogicalDevice);
 }
 
-void VKCORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDevice PhysicalDevice, VkCommandPool CommandPool, VkQueue Queue, const void* Data, VkDeviceSize Size, VKCORE::Buffer& DestinationBuffer, VkBufferUsageFlags UsageFlags)
+void RENDERER_CORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDevice PhysicalDevice, VkCommandPool CommandPool, VkQueue Queue, const void* Data, VkDeviceSize Size, RENDERER_CORE::Buffer& DestinationBuffer, VkBufferUsageFlags UsageFlags)
 {
     Buffer StagingBuffer{};
-    VKCORE::CreateStagingBuffer(PhysicalDevice, LogicalDevice, Size, StagingBuffer);
+    RENDERER_CORE::CreateStagingBuffer(PhysicalDevice, LogicalDevice, Size, StagingBuffer);
 
     void* DataPtr;
     vkMapMemory(LogicalDevice, StagingBuffer.BufferMemory, 0, Size, 0, &DataPtr);
     memcpy(DataPtr, Data, Size);
     vkUnmapMemory(LogicalDevice, StagingBuffer.BufferMemory);
 
-    VKCORE::CopyBuffer(
+    RENDERER_CORE::CopyBuffer(
         StagingBuffer.BufferObject,
         DestinationBuffer.BufferObject,
         Size,
@@ -191,7 +191,7 @@ void VKCORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice, VkPhy
     StagingBuffer.Destroy(LogicalDevice);
 }
 
-void VKCORE::PersistentBuffer::Map(VkDevice& LogicalDevice, VkDeviceSize Offset, VkDeviceSize Size, VkMemoryMapFlags Flags)
+void RENDERER_CORE::PersistentBuffer::Map(VkDevice& LogicalDevice, VkDeviceSize Offset, VkDeviceSize Size, VkMemoryMapFlags Flags)
 {
     if (vkMapMemory(LogicalDevice, Buffer.BufferMemory, Offset, Size, Flags, &MappedMemory) != VK_SUCCESS)
     {

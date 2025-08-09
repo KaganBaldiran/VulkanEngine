@@ -10,7 +10,7 @@
 #include "../../Common/CommonDefinitions.hpp"
 #include <vulkan/vk_enum_string_helper.h>
 
-int VKCORE::ReadTexture(const char* FileName, VKCORE::RawImageData& DestinationImageData)
+int RENDERER_CORE::ReadTexture(const char* FileName, RENDERER_CORE::RawImageData& DestinationImageData)
 {
     DestinationImageData.Pixels = stbi_load(FileName, &DestinationImageData.Width, &DestinationImageData.Height, &DestinationImageData.ChannelCount, STBI_rgb_alpha);
     if (!DestinationImageData.Pixels)
@@ -21,7 +21,7 @@ int VKCORE::ReadTexture(const char* FileName, VKCORE::RawImageData& DestinationI
     return 0;
 }
 
-VkFormat VKCORE::FindSupportedFormat(VkPhysicalDevice &PhysicalDevice,const std::vector<VkFormat>& Candidates, VkImageTiling Tiling, VkFormatFeatureFlags Features)
+VkFormat RENDERER_CORE::FindSupportedFormat(VkPhysicalDevice &PhysicalDevice,const std::vector<VkFormat>& Candidates, VkImageTiling Tiling, VkFormatFeatureFlags Features)
 {
     for (auto Format : Candidates)
     {
@@ -41,7 +41,7 @@ VkFormat VKCORE::FindSupportedFormat(VkPhysicalDevice &PhysicalDevice,const std:
     }
 }
 
-void VKCORE::CreateImage(
+void RENDERER_CORE::CreateImage(
     VkPhysicalDevice &PhysicalDevice, 
     VkDevice& LogicalDevice, 
     const uint32_t& Width, 
@@ -86,7 +86,7 @@ void VKCORE::CreateImage(
     VkMemoryAllocateInfo ImageMemoryAllocationInfo{};
     ImageMemoryAllocationInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     ImageMemoryAllocationInfo.allocationSize = ImageMemoryRequirements.size;
-    ImageMemoryAllocationInfo.memoryTypeIndex = VKCORE::FindMemoryType(PhysicalDevice,ImageMemoryRequirements.memoryTypeBits, Properties);
+    ImageMemoryAllocationInfo.memoryTypeIndex = RENDERER_CORE::FindMemoryType(PhysicalDevice,ImageMemoryRequirements.memoryTypeBits, Properties);
 
     if (vkAllocateMemory(LogicalDevice, &ImageMemoryAllocationInfo, nullptr, &ImageMemory) != VK_SUCCESS)
     {
@@ -100,7 +100,7 @@ void VKCORE::CreateImage(
         "x" + std::to_string(Height) + "),format(" + string_VkFormat(Format) + ")]."));
 }
 
-void VKCORE::BlitImage(
+void RENDERER_CORE::BlitImage(
     VkCommandBuffer &CommandBuffer,
     VkImage SrcImage,
     VkImage DstImage,
@@ -145,7 +145,7 @@ void VKCORE::BlitImage(
     );
 }
 
-void VKCORE::TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkAccessFlags SrcAccessMask,
+void RENDERER_CORE::TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkAccessFlags SrcAccessMask,
     VkAccessFlags DstAccessMask, VkPipelineStageFlags SrcStage, VkPipelineStageFlags DstStage, VkImageAspectFlags AspectMask,uint32_t LayerCount,uint32_t BaseArrayLayer)
 {
     VkImageMemoryBarrier ImageBarrier{};
@@ -167,7 +167,7 @@ void VKCORE::TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& I
         , 0, 0, nullptr, 0, nullptr, 1, &ImageBarrier);
 }
 
-void VKCORE::CreateTextureSampler(VkPhysicalDevice& PhysicalDevice,VkDevice &LogicalDevice,VkSampler &DestinationSampler,VkFilter Filter,VkSamplerAddressMode AddressMode)
+void RENDERER_CORE::CreateTextureSampler(VkPhysicalDevice& PhysicalDevice,VkDevice &LogicalDevice,VkSampler &DestinationSampler,VkFilter Filter,VkSamplerAddressMode AddressMode)
 {
     VkPhysicalDeviceProperties DeviceProperties;
     vkGetPhysicalDeviceProperties(PhysicalDevice, &DeviceProperties);
@@ -196,7 +196,7 @@ void VKCORE::CreateTextureSampler(VkPhysicalDevice& PhysicalDevice,VkDevice &Log
     }
 }
 
-void VKCORE::CopyBufferToImage(VkCommandBuffer& DstCommandBuffer, VkBuffer& SrcBuffer, VkImage& DstImage, uint32_t Width, uint32_t Height)
+void RENDERER_CORE::CopyBufferToImage(VkCommandBuffer& DstCommandBuffer, VkBuffer& SrcBuffer, VkImage& DstImage, uint32_t Width, uint32_t Height)
 {
     VkBufferImageCopy CopyRegion{};
     CopyRegion.bufferOffset = 0;
@@ -215,7 +215,7 @@ void VKCORE::CopyBufferToImage(VkCommandBuffer& DstCommandBuffer, VkBuffer& SrcB
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &CopyRegion);
 }
 
-void VKCORE::CreateTextureImage(const char* ImageFilePath,VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice,VkCommandPool &CommandPool,VkQueue &GraphicsQueue,TextureData &DestinationTexture)
+void RENDERER_CORE::CreateTextureImage(const char* ImageFilePath,VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice,VkCommandPool &CommandPool,VkQueue &GraphicsQueue,TextureData &DestinationTexture)
 {
     RawImageData ImageData;
     ImageData.Pixels = stbi_load(ImageFilePath, &ImageData.Width, &ImageData.Height, &ImageData.ChannelCount, STBI_rgb_alpha);
@@ -229,69 +229,69 @@ void VKCORE::CreateTextureImage(const char* ImageFilePath,VkPhysicalDevice& Phys
     stbi_image_free(ImageData.Pixels);
 }
 
-void VKCORE::CreateTextureImage(RawImageData& ImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture)
+void RENDERER_CORE::CreateTextureImage(RawImageData& ImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture)
 {
     VkDeviceSize ImageSize = ImageData.Width * ImageData.Height * 4;
 
-    VKCORE::Buffer StagingBuffer;
-    VKCORE::CreateBuffer(PhysicalDevice, LogicalDevice, ImageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, StagingBuffer);
+    RENDERER_CORE::Buffer StagingBuffer;
+    RENDERER_CORE::CreateBuffer(PhysicalDevice, LogicalDevice, ImageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, StagingBuffer);
 
     void* Data;
     vkMapMemory(LogicalDevice, StagingBuffer.BufferMemory, 0, ImageSize, 0, &Data);
     memcpy(Data, ImageData.Pixels, ImageSize);
     vkUnmapMemory(LogicalDevice, StagingBuffer.BufferMemory);
 
-    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, ImageData.Width, ImageData.Height, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    RENDERER_CORE::CreateImage(PhysicalDevice, LogicalDevice, ImageData.Width, ImageData.Height, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DestinationTexture.Image, DestinationTexture.ImageMemory);
 
     auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
-        VKCORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
+        RENDERER_CORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
             VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
-        VKCORE::CopyBufferToImage(CommandBuffer, StagingBuffer.BufferObject, DestinationTexture.Image, ImageData.Width, ImageData.Height);
-        VKCORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        RENDERER_CORE::CopyBufferToImage(CommandBuffer, StagingBuffer.BufferObject, DestinationTexture.Image, ImageData.Width, ImageData.Height);
+        RENDERER_CORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
         };
 
-    VKCORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, GraphicsQueue);
+    RENDERER_CORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, GraphicsQueue);
 
-    DestinationTexture.ImageView = VKCORE::CreateImageView(DestinationTexture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-    VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, DestinationTexture.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+    DestinationTexture.ImageView = RENDERER_CORE::CreateImageView(DestinationTexture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, DestinationTexture.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
     StagingBuffer.Destroy(LogicalDevice);
 }
 
-void VKCORE::CreateTextureImageAsync(RawImageData& ImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture, std::mutex& Mutex)
+void RENDERER_CORE::CreateTextureImageAsync(RawImageData& ImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture, std::mutex& Mutex)
 {
     VkDeviceSize ImageSize = ImageData.Width * ImageData.Height * 4;
 
-    VKCORE::Buffer StagingBuffer;
-    VKCORE::CreateBuffer(PhysicalDevice, LogicalDevice, ImageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, StagingBuffer);
+    RENDERER_CORE::Buffer StagingBuffer;
+    RENDERER_CORE::CreateBuffer(PhysicalDevice, LogicalDevice, ImageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, StagingBuffer);
 
     void* Data;
     vkMapMemory(LogicalDevice, StagingBuffer.BufferMemory, 0, ImageSize, 0, &Data);
     memcpy(Data, ImageData.Pixels, ImageSize);
     vkUnmapMemory(LogicalDevice, StagingBuffer.BufferMemory);
 
-    VKCORE::CreateImage(PhysicalDevice, LogicalDevice, ImageData.Width, ImageData.Height, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    RENDERER_CORE::CreateImage(PhysicalDevice, LogicalDevice, ImageData.Width, ImageData.Height, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DestinationTexture.Image, DestinationTexture.ImageMemory);
 
     auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
-        VKCORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
+        RENDERER_CORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
             VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
-        VKCORE::CopyBufferToImage(CommandBuffer, StagingBuffer.BufferObject, DestinationTexture.Image, ImageData.Width, ImageData.Height);
-        VKCORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        RENDERER_CORE::CopyBufferToImage(CommandBuffer, StagingBuffer.BufferObject, DestinationTexture.Image, ImageData.Width, ImageData.Height);
+        RENDERER_CORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
     };
 
-    VKCORE::ExecuteSingleTimeCommandAsync(LogicalDevice, CopyCommand, CommandPool, GraphicsQueue,Mutex);
+    RENDERER_CORE::ExecuteSingleTimeCommandAsync(LogicalDevice, CopyCommand, CommandPool, GraphicsQueue,Mutex);
 
-    DestinationTexture.ImageView = VKCORE::CreateImageView(DestinationTexture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-    VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, DestinationTexture.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+    DestinationTexture.ImageView = RENDERER_CORE::CreateImageView(DestinationTexture.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, DestinationTexture.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
     StagingBuffer.Destroy(LogicalDevice);
 }
 
-void VKCORE::TextureData::Destroy(VkDevice& LogicalDevice)
+void RENDERER_CORE::TextureData::Destroy(VkDevice& LogicalDevice)
 {
     if (ImageView != VK_NULL_HANDLE) {
         vkDestroyImageView(LogicalDevice, ImageView, nullptr);

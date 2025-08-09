@@ -6,7 +6,7 @@
 #include <vector>
 #include <map>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
     /*
     void CreateRenderPass()

@@ -7,7 +7,7 @@
 #include <vector>
 #include "VulkanUtils.hpp" 
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
     VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& AvailableFormats);
     VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& AvailablePresentModes);

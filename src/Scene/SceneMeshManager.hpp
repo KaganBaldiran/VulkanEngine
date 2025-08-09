@@ -19,12 +19,12 @@
 #include "Mesh.hpp"
 #include "Material.hpp"
 
-namespace VKAPP
+namespace RENDERER
 {
 	class RendererContext;
 }
 
-namespace VKSCENE
+namespace SCENE
 {
 	//Forward Declarations;
 	class ModelInstance;
@@ -33,13 +33,13 @@ namespace VKSCENE
 	template<uint32_t BufferSetCount>
 	struct MeshDrawArenaBufferGroup
 	{
-		std::array<VKCORE::BufferAllocator, BufferSetCount> VertexBuffers;
-		std::array<VKCORE::BufferAllocator, BufferSetCount> IndexBuffers;
-		std::array<VKCORE::BufferAllocator, BufferSetCount> IndirectBuffers;
-		std::array<VKCORE::PersistentBufferAllocator, BufferSetCount> ModelMatricesBuffers;
+		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> VertexBuffers;
+		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> IndexBuffers;
+		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> IndirectBuffers;
+		std::array<RENDERER_CORE::PersistentBufferAllocator, BufferSetCount> ModelMatricesBuffers;
 
-		std::array<VKCORE::BufferAllocator, BufferSetCount> DrawMetaDataBuffer;
-		std::array<VKCORE::BufferAllocator, BufferSetCount> TexturesIndexBuffers;
+		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> DrawMetaDataBuffer;
+		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> TexturesIndexBuffers;
 
 		std::array<size_t, BufferSetCount> EnabledMeshCount;
 
@@ -52,8 +52,8 @@ namespace VKSCENE
 				IndexBuffers[i].Create();
 				IndirectBuffers[i].Create();
 				ModelMatricesBuffers[i].Create();
-				DrawMetaDataBuffer[i].Allocator.Create(0, VKCORE::MEMORY_SIZE_MEGABYTE);
-				TexturesIndexBuffers[i].Allocator.Create(0, VKCORE::MEMORY_SIZE_MEGABYTE);
+				DrawMetaDataBuffer[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
+				TexturesIndexBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
 			}
 		}
 
@@ -76,7 +76,7 @@ namespace VKSCENE
 		ModelInstance* ModelInstance;
 		DrawInfo DrawInfo;
 		size_t ModelIndex = 0;
-		std::array<VKCORE::MemoryRegion,3> MemoryRegions;
+		std::array<RENDERER_CORE::MemoryRegion,3> MemoryRegions;
 	};
 
 	struct MeshEntry
@@ -94,7 +94,7 @@ namespace VKSCENE
 	struct ModelEntry
 	{
 		ModelMetaData MetaData;
-		std::map<ModelInstance* , std::array<VKCORE::MemoryRegion, 2>, std::less<ModelInstance*>> Instances;
+		std::map<ModelInstance* , std::array<RENDERER_CORE::MemoryRegion, 2>, std::less<ModelInstance*>> Instances;
 		std::vector<MeshEntry> MeshEntries;
 		//std::unordered_map<Mesh*, MeshMetaData> MeshEntries;
 	};
@@ -144,9 +144,9 @@ namespace VKSCENE
 	{
 		friend class Scene;
 	public:
-		MeshManager(VKAPP::RendererContext& RendererContext);
+		MeshManager(RENDERER::RendererContext& RendererContext);
 		MeshManager() = default;
-		void Create(VKAPP::RendererContext& RendererContext);
+		void Create(RENDERER::RendererContext& RendererContext);
 		void Destroy(VkDevice& LogicalDevice);
 
 		MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> PerformanceModeBuffers;
@@ -154,12 +154,12 @@ namespace VKSCENE
 		//MeshDrawArenaBufferGroup<1> MemorySavingModeBuffers;
 
 		uint32_t CurrentBalancedBuffer = 0;
-		std::vector<VKCORE::Buffer> SceneMeshIndexBuffers;
+		std::vector<RENDERER_CORE::Buffer> SceneMeshIndexBuffers;
 
-		VKAPP::RendererContext* RendererContext = nullptr;
+		RENDERER::RendererContext* RendererContext = nullptr;
 		std::array<ModelEntryManager,MAX_FRAMES_IN_FLIGHT> ModelEntries;
 		
-		void UpdateMeshTransformations(uint32_t CurrentFrame);
+		void UpdateMeshTransformations(std::vector<ModelInstance*> &UpdateList,uint32_t CurrentFrame);
 
 		void AppendModels(MeshAppendInfo Info);
 		void EraseModels(MeshEraseInfo Info);
@@ -167,9 +167,9 @@ namespace VKSCENE
 	private:
 		void WriteTexture(
 			uint32_t TextureTypeIndex,
-			VKSCENE::Mesh& Mesh,
-			VKSCENE::TextureImportManager& TextureImportManager,
-			std::vector<VKCORE::DescriptorSetWriteImage>& ImageWrites,
+			SCENE::Mesh& Mesh,
+			SCENE::TextureImportManager& TextureImportManager,
+			std::vector<RENDERER_CORE::DescriptorSetWriteImage>& ImageWrites,
 			std::vector<int>& TextureIndexes,
 			int& CurrentImageIndex,
 			VkDescriptorSet DestinationDescriptorSet

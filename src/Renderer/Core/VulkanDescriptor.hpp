@@ -4,7 +4,7 @@
 #include "VulkanDescriptorSetLayout.hpp"
 #include <array>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	template<size_t DescriptorSetCount>
 	struct Descriptor

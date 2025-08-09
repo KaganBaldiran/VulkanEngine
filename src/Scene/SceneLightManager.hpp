@@ -6,13 +6,13 @@
 #include "../Common/CommonDefinitions.hpp"
 #include "../Common/MemoryArenaAllocator.hpp"
 
-namespace VKSCENE
+namespace SCENE
 {
 	class Light;
 
 	struct LightEntry
 	{
-		VKCORE::MemoryRegion MemoryRegion{};
+		RENDERER_CORE::MemoryRegion MemoryRegion{};
 	};
 
 	struct LightEntryManager
@@ -42,10 +42,10 @@ namespace VKSCENE
 		void AppendLights(LightAppendInfo &Info);
 		void EraseLights(LightEraseInfo &Info);
 	private:
-		std::array<VKCORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> StaticLightSSBOs;
-		std::array<VKCORE::PersistentBufferAllocator, MAX_FRAMES_IN_FLIGHT> DynamicLightSSBOs;
+		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> StaticLightSSBOs;
+		std::array<RENDERER_CORE::PersistentBufferAllocator, MAX_FRAMES_IN_FLIGHT> DynamicLightSSBOs;
 
-		VKCORE::PersistentBuffer StaticLightStagingBuffer{};
+		RENDERER_CORE::PersistentBuffer StaticLightStagingBuffer{};
 
 		std::array<LightEntryManager, MAX_FRAMES_IN_FLIGHT> LightEntries;
 	};

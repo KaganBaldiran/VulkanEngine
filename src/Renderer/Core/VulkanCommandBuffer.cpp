@@ -1,6 +1,6 @@
 #include "VulkanCommandBuffer.hpp"
 
-VKCORE::VulkanResult VKCORE::AllocateCommandBuffers(VkCommandPool& CommandPool,VkDevice& LogicalDevice,std::vector<VkCommandBuffer> &DestinationCommandBuffers,VkCommandBufferLevel Level)
+RENDERER_CORE::VulkanResult RENDERER_CORE::AllocateCommandBuffers(VkCommandPool& CommandPool,VkDevice& LogicalDevice,std::vector<VkCommandBuffer> &DestinationCommandBuffers,VkCommandBufferLevel Level)
 { 
     VkCommandBufferAllocateInfo AllocCreateInfo{};
     AllocCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -15,7 +15,7 @@ VKCORE::VulkanResult VKCORE::AllocateCommandBuffers(VkCommandPool& CommandPool,V
     return VULKAN_SUCCESS;
 }
 
-void VKCORE::ExecuteSingleTimeCommand(VkDevice &LogicalDevice,std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandPool& Pool, VkQueue& Queue)
+void RENDERER_CORE::ExecuteSingleTimeCommand(VkDevice &LogicalDevice,std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandPool& Pool, VkQueue& Queue)
 {
     VkFence Fence{};
     VkFenceCreateInfo FenceCreateInfo{};
@@ -57,7 +57,7 @@ void VKCORE::ExecuteSingleTimeCommand(VkDevice &LogicalDevice,std::function<void
     vkFreeCommandBuffers(LogicalDevice, Pool, 1, &SingleUseCommandBuffer);
 }
 
-void VKCORE::ExecuteSingleTimeCommandAsync(VkDevice& LogicalDevice, std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandPool& Pool, VkQueue& Queue, std::mutex& Mutex)
+void RENDERER_CORE::ExecuteSingleTimeCommandAsync(VkDevice& LogicalDevice, std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandPool& Pool, VkQueue& Queue, std::mutex& Mutex)
 {
     VkFence Fence{};
     VkFenceCreateInfo FenceCreateInfo{};

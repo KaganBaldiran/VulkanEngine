@@ -6,7 +6,7 @@
 #include <vector>
 #include <map>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	class SwapChain;
 	class Window;
@@ -46,7 +46,7 @@ namespace VKCORE
 		std::vector<VkCommandBuffer>& CommandBuffers,
 		std::multimap<int, std::function<void(VkCommandBuffer& CurrentCommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)>> CommandBufferRecords,
 		std::function<void()> OnSwapChainRecreate,
-		std::vector<VKCORE::FrameSyncObjects>& SyncObjects,
+		std::vector<RENDERER_CORE::FrameSyncObjects>& SyncObjects,
 		SwapChain& DestinationSwapChain,
 		Window& window,
 		uint32_t& CurrentFrame,

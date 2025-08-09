@@ -4,7 +4,7 @@
 #include "../../Common/CommonDefinitions.hpp"
 #include <vulkan/vk_enum_string_helper.h>
 
-void VKCORE::DescriptorSetLayout::AppendLayoutBinding(VkDescriptorType DescriptorType, uint32_t DescriptorCount,uint32_t Binding,VkShaderStageFlags ShaderStage)
+void RENDERER_CORE::DescriptorSetLayout::AppendLayoutBinding(VkDescriptorType DescriptorType, uint32_t DescriptorCount,uint32_t Binding,VkShaderStageFlags ShaderStage)
 {
     VkDescriptorSetLayoutBinding NewLayoutBinding{};
     NewLayoutBinding.descriptorType = DescriptorType;
@@ -16,7 +16,7 @@ void VKCORE::DescriptorSetLayout::AppendLayoutBinding(VkDescriptorType Descripto
     this->Bindings.push_back(NewLayoutBinding);
 }
 
-void VKCORE::DescriptorSetLayout::CreateLayout(VkDevice& LogicalDevice,VkDescriptorSetLayoutCreateFlags Flags,void *Next)
+void RENDERER_CORE::DescriptorSetLayout::CreateLayout(VkDevice& LogicalDevice,VkDescriptorSetLayoutCreateFlags Flags,void *Next)
 {
     VkDescriptorSetLayoutCreateInfo LayoutCreateInfo{};
     LayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -35,7 +35,7 @@ void VKCORE::DescriptorSetLayout::CreateLayout(VkDevice& LogicalDevice,VkDescrip
     Bindings.clear();
 }
 
-void VKCORE::DescriptorSetLayout::Destroy(VkDevice& LogicalDevice)
+void RENDERER_CORE::DescriptorSetLayout::Destroy(VkDevice& LogicalDevice)
 {
     if (descriptorSetLayout)
     {

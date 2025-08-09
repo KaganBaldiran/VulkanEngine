@@ -1,38 +1,34 @@
 Info: Created window [Hello World].
 Info: Detected a suitable physical device [name(NVIDIA GeForce RTX 3050 Laptop GPU), device type(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)].
-Info: Detected graphics queue [2221686287792].
-Info: Detected present queue [2221686287792].
-Info: Detected compute queue [2221686287792].
-Info: Created device [2221642698528].
-Info: Created swap chain [2221590863216].
+Info: Detected graphics queue [2514750794432].
+Info: Detected present queue [2514752344832].
+Info: Detected compute queue [2514752344832].
+Info: Detected graphics-compute queue [2514750794432].
+Info: Created device [2514709542496].
+Info: Created swap chain [2514707984992].
 Info: Created descriptor layout [binding count(3)].
 Info: Created descriptor layout [binding count(3)].
-Info: Buffer[address(2221729976384), size(80), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221726168384), size(80), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221726168384)] destroyed!
-Info: Buffer[address(2221726168384), size(432), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221689473360), size(432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221689473360)] destroyed!
+Info: Buffer[address(2514798909648), size(80), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+Info: Buffer[address(2514798915648), size(80), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798915648)] destroyed!
+Info: Buffer[address(2514798910848), size(432), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+Info: Buffer[address(2514798909248), size(432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798909248)] destroyed!
 Info: Created descriptor layout [binding count(1)].
-Info: Shader [Shaders\GeometryBufferShader.vert -> Shaders\GeometryBufferShaderVert.spv] compiled.
-Info: Shader module created [2221728679216].
-Info: Shader [Shaders\GeometryBufferShader.frag -> Shaders\GeometryBufferShaderFrag.spv] compiled.
-Info: Shader module created [2221728680944].
+Info: Shader module created [2514707156416].
+Info: Shader module created [2514707156992].
 Info: Created descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1)].
 Info: Created descriptor layout [binding count(1)].
-Info: Shader [Shaders\HDRIrenderShader.vert -> Shaders\HDRIrenderVertexShader.spv] compiled.
-Info: Shader module created [2221728678640].
-Info: Shader [Shaders\HDRIrenderShader.frag -> Shaders\HDRIrenderFragmentShader.spv] compiled.
-Info: Shader module created [2221728677200].
-Info: Created graphics pipeline [2221733995360].
-Info: Shader [shaders\HDRIconvolutionShader.vert -> shaders\HDRIconvolutionVertexShader.spv] compiled.
-Info: Shader module created [2221728682384].
-Info: Shader [shaders\HDRIconvolutionShader.frag -> shaders\HDRIconvolutionFragmentShader.spv] compiled.
-Info: Shader module created [2221728677200].
-Info: Created graphics pipeline [2221734192128].
-Info: Buffer[address(2221689473360), size(128), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734267680), size(128), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734268480), size(128), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Shader module created [2514707157856].
+Info: Shader module created [2514707157280].
+Info: Created graphics pipeline [2514799416752].
+Info: Shader module created [2514707157280].
+Info: Shader module created [2514707158720].
+Info: Created graphics pipeline [2514799700656].
+Info: Buffer[address(2514798910448), size(128), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798910048), size(128), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798913248), size(128), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798912448), size(128), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1000x800),format(VK_FORMAT_R32G32B32A32_SFLOAT)].
 Info: Image created [(1000x800),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
 Info: Image created [(1000x800),format(VK_FORMAT_R8G8B8A8_UNORM)].
@@ -45,262 +41,172 @@ Info: Image created [(1000x800),format(VK_FORMAT_R32G32B32A32_SFLOAT)].
 Info: Image created [(1000x800),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
 Info: Image created [(1000x800),format(VK_FORMAT_R8G8B8A8_UNORM)].
 Info: Image created [(1000x800),format(VK_FORMAT_R8G8B8A8_UNORM)].
-Info: Buffer[address(2221734268880), size(64), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734266480), size(64), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734264880), size(64), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Created descriptor pool [(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,6)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,12)].
+Info: Image created [(1000x800),format(VK_FORMAT_R32G32B32A32_SFLOAT)].
+Info: Image created [(1000x800),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
+Info: Image created [(1000x800),format(VK_FORMAT_R8G8B8A8_UNORM)].
+Info: Image created [(1000x800),format(VK_FORMAT_R8G8B8A8_UNORM)].
+Info: Buffer[address(2514798913648), size(64), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798909248), size(64), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798915648), size(64), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798914048), size(64), usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Created descriptor pool [(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,8)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,16)].
 Info: Created descriptor layout [binding count(5)].
 Info: Image created [(1000x800),format(VK_FORMAT_D32_SFLOAT)].
-Info: Shader [Shaders\LightingPassShader.vert -> Shaders\LightingPassShaderVert.spv] compiled.
-Info: Shader module created [2221728679504].
-Info: Shader [Shaders\LightingPassShader.frag -> Shaders\LightingPassShaderFrag.spv] compiled.
-Info: Shader module created [2221728680080].
-Info: Shader [Shaders\PhysicsDebugShader.vert -> Shaders\PhysicsDebugShaderVert.spv] compiled.
-Info: Shader module created [2221728682096].
-Info: Shader [Shaders\PhysicsDebugShader.frag -> Shaders\PhysicsDebugShaderFrag.spv] compiled.
-Info: Shader module created [2221728682384].
-Info: Created graphics pipeline [2221734297232].
-Info: Created graphics pipeline [2221734493344].
+Info: Shader module created [2514707159872].
+Info: Shader module created [2514799991392].
+Info: Shader module created [2514799998304].
+Info: Shader module created [2514799993408].
+Info: Created graphics pipeline [2514800018208].
+Info: Created graphics pipeline [2514800175056].
 Info: Renderer initialized!
 Info: Imported model [resources\sponza.obj].
 Info: Imported model [resources\shovel2.obj].
-Info: Models were imported in 0.439877 seconds.
-Info: Buffer[address(2221734272080), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Imported model [C:\Users\kbald\Desktop\SunTemple\SunTemple.fbx].
+Info: Models were imported in 1.587635 seconds.
+Info: Buffer[address(2514798911248), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(512x512),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734272080)] destroyed!
-Info: Buffer[address(2221734268080), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734271680), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798916048), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(2514798911248)] destroyed!
+Info: Buffer[address(2514798916048)] destroyed!
+Info: Buffer[address(2514798912048), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(512x512),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734268080)] destroyed!
-Info: Buffer[address(2221734270880), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734269280), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798912048)] destroyed!
+Info: Buffer[address(2514798911248), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(2514798912048), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(2514798911248)] destroyed!
+Info: Buffer[address(2514798914848), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798914448), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798912048)] destroyed!
+Info: Buffer[address(2514798911248), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(2514798912048), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(2514798916048), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(2515240679632), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798911248)] destroyed!
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734270880)] destroyed!
-Info: Buffer[address(2221734267280), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734269280)] destroyed!
-Info: Buffer[address(2221734271680)] destroyed!
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734267280)] destroyed!
-Info: Buffer[address(2221734268080), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734266080), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2515240676032), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798912048)] destroyed!
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734271680), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734269280), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734268080)] destroyed!
+Info: Buffer[address(2515240681632), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798914448)] destroyed!
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734266080)] destroyed!
-Info: Buffer[address(2221734264480), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734270880), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2515240676032)] destroyed!
+Info: Buffer[address(2515240681632)] destroyed!
+Info: Buffer[address(2514798916048)] destroyed!
+Info: Buffer[address(2515240682032), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734269280)] destroyed!
-Info: Buffer[address(2221734271680)] destroyed!
-Info: Buffer[address(2221734271280), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734264480)] destroyed!
-Info: Buffer[address(2221734270880)] destroyed!
-Info: Buffer[address(2221734271280)] destroyed!
-Info: Buffer[address(2221734271680), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2515240679632)] destroyed!
+Info: Buffer[address(2515240680832), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(256x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734270880), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734265680), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2515240680832)] destroyed!
+Info: Buffer[address(2515240682032)] destroyed!
+Info: Buffer[address(2514798914848)] destroyed!
+Info: Buffer[address(2514798911248), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(2514798911248)] destroyed!
+Info: Buffer[address(2514798911248), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Trim_Inst_0_BaseColor.dds].
+Info: Buffer[address(2514798911248)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_0_BaseColor.dds].
+Info: Buffer[address(2514798911248), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798914448), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(256x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734271680)] destroyed!
-Info: Buffer[address(2221734270880)] destroyed!
-Info: Buffer[address(2221734265680)] destroyed!
-Info: Buffer[address(2221734269280), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneBrickWall_Inst_0_BaseColor.dds].
+Info: Buffer[address(2514798914448)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\Soul_Tree011M_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_0_Normal.dds].
+Info: Buffer[address(2514798911248)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Trim_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_10_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_9_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_8_BaseColor.dds].
+Info: Buffer[address(2514798911248), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734269280)] destroyed!
-Info: Buffer[address(2221734271280), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798911248)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_12_BaseColor.dds].
+Info: Buffer[address(2514798916048), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734271680), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_9_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\Soul_Tree011M_Inst_0_Normal.dds].
+Info: Buffer[address(2514798916048)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_11_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_TreeTrunk01_Inst_0_BaseColor.dds].
+Info: Buffer[address(2514798911248), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734271280)] destroyed!
-Info: Buffer[address(2221734271680)] destroyed!
-Info: Buffer[address(2221734268080), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798911248)] destroyed!
+Info: Buffer[address(2514798911248), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734268080)] destroyed!
-Info: Buffer[address(2221734269280), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734267280), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(2514798911248)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_8_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_2_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_3_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_12_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_11_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_7_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_6_BaseColor.dds].
+Info: Buffer[address(2514798916048), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_1_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_0_BaseColor.dds].
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734269280)] destroyed!
-Info: Buffer[address(2221734267280)] destroyed!
-Info: Buffer[address(2221734270880), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734270880)] destroyed!
-Info: Buffer[address(2221734264480), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734264480)] destroyed!
-Info: Buffer[address(2221734269280), size(16777216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734266880), size(16777216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734264480), size(16777216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(2048x2048),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Image created [(2048x2048),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Image created [(2048x2048),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734266880)] destroyed!
-Info: Buffer[address(2221734269280)] destroyed!
-Info: Buffer[address(2221734264480)] destroyed!
-Info: Image created [(1024x1024),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-Info: Image created [(32x32),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-Info: Buffer[address(2221734269280), size(33554432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(4096x2048),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734269280)] destroyed!
-Info: HDRI imported! [resources\boma_4k.hdr]
-Info: Image created [(1024x1024),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-Info: Image created [(32x32),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-Info: Buffer[address(2221734266880), size(8388608), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(2048x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(2221734266880)] destroyed!
-Info: HDRI imported! [resources\rustig_koppie_puresky_2k.hdr]
-Info: Created descriptor pool [(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,15)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,15)].
-Info: Buffer[address(2221734271680), size(48), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734270880), size(96), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221734271280), size(48), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734266080), size(96), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221734272080), size(48), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734264480), size(96), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221734267280), size(96), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Created descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,3000)(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,9)].
-Info: Created descriptor layout [binding count(2)].
-Info: Created graphics pipeline [2221735481376].
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221734266880), size(35440640), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221734265280), size(3256320), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_INDEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221734265680), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221734268080), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221734269280), size(2048), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221737046240), size(38709248), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737046240)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737047440), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221737048240), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737048240)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737042240), size(35440640), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737044240), size(3256320), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_INDEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737048240), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737041840), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737043840), size(2048), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221737046240), size(38709248), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737046240)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737046240), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221737043040), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737043040)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737044640), size(35440640), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737047040), size(3256320), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_INDEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737049040), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737043040), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737042640), size(2048), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221737048640), size(38709248), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737048640)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(2221737041440), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221737043440), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737043440)] destroyed!
-Info: Buffer[address(2221737043440), size(216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737043440)] destroyed!
-Info: Buffer[address(2221737043440), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737043440)] destroyed!
-Info: Buffer[address(2221737045040), size(216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737045040)] destroyed!
-Info: Buffer[address(2221737048640), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737048640)] destroyed!
-Info: Buffer[address(2221737045840), size(216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737045840)] destroyed!
-Info: Buffer[address(2221737046640), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737046640)] destroyed!
-Info: Buffer[address(2221734268080)] destroyed!
-Info: Buffer[address(2221737043440), size(15360), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221734269280)] destroyed!
-Info: Buffer[address(2221737045040), size(3072), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221737048640), size(3072), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737048640)] destroyed!
-Info: Buffer[address(2221737045440), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737045440)] destroyed!
-Info: Buffer[address(2221737041840)] destroyed!
-Info: Buffer[address(2221737045440), size(15360), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737043840)] destroyed!
-Info: Buffer[address(2221737041840), size(3072), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221737045840), size(3072), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737045840)] destroyed!
-Info: Buffer[address(2221737043840), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737043840)] destroyed!
-Info: Buffer[address(2221737043040)] destroyed!
-Info: Buffer[address(2221737043040), size(15360), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737042640)] destroyed!
-Info: Buffer[address(2221737043840), size(3072), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(2221737045840), size(3072), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737045840)] destroyed!
-Info: Buffer[address(2221737045840), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(2221737045840)] destroyed!
-Info: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,15)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,15)].
-Info: Buffer[address(2221734266880)] destroyed!
-Info: Buffer[address(2221734265280)] destroyed!
-Info: Buffer[address(2221734265680)] destroyed!
-Info: Buffer[address(2221737043440)] destroyed!
-Info: Buffer[address(2221737045040)] destroyed!
-Info: Buffer[address(2221737047440)] destroyed!
-Info: Buffer[address(2221737042240)] destroyed!
-Info: Buffer[address(2221737044240)] destroyed!
-Info: Buffer[address(2221737048240)] destroyed!
-Info: Buffer[address(2221737045440)] destroyed!
-Info: Buffer[address(2221737041840)] destroyed!
-Info: Buffer[address(2221737046240)] destroyed!
-Info: Buffer[address(2221737044640)] destroyed!
-Info: Buffer[address(2221737047040)] destroyed!
-Info: Buffer[address(2221737049040)] destroyed!
-Info: Buffer[address(2221737043040)] destroyed!
-Info: Buffer[address(2221737043840)] destroyed!
-Info: Buffer[address(2221737041440)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Buffer[address(0)] destroyed!
-Info: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,3000)(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,9)].
-Info: Buffer[address(2221734270880)] destroyed!
-Info: Buffer[address(2221734271680)] destroyed!
-Info: Buffer[address(2221734266080)] destroyed!
-Info: Buffer[address(2221734271280)] destroyed!
-Info: Buffer[address(2221734264480)] destroyed!
-Info: Buffer[address(2221734272080)] destroyed!
-Info: Buffer[address(2221734267280)] destroyed!
-Info: Buffer[address(2221689473360)] destroyed!
-Info: Buffer[address(2221734267680)] destroyed!
-Info: Buffer[address(2221734268480)] destroyed!
-Info: Buffer[address(2221734268880)] destroyed!
-Info: Buffer[address(2221734266480)] destroyed!
-Info: Buffer[address(2221734264880)] destroyed!
-Info: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,6)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,12)].
-Info: Destroyed graphics pipeline [2221734297232].
-Info: Destroyed graphics pipeline [2221734493344].
-Info: Destroyed graphics pipeline [2221735481376].
-Info: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1)].
-Info: Destroyed graphics pipeline [2221733995360].
-Info: Destroyed graphics pipeline [2221734192128].
-Info: Buffer[address(2221729976384)] destroyed!
-Info: Buffer[address(2221726168384)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_0_Normal.dds].
+Info: Buffer[address(2514798916048)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_1_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_4_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_3_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_7_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_1_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_1_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneBrickWall_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_5_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_6_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Blue_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Inst2_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_Inst_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_4_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_10_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_REd_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_2_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Railing_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Inst2_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_Inst_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_Glow_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_nofire_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_2_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_5_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_TreeTrunk01_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Pillar_Inst_Colored_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_2_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_2_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneCeiling_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_UTile4_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_2_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Railing_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_Black_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_REd_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_2_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Shield_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_Red_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_0_BaseColor.dds].
+Error: Failed reading textu

@@ -9,6 +9,7 @@ VKCOMMON::Logger::Logger()
 
 VKCOMMON::Logger::~Logger()
 {
+	std::unique_lock<std::mutex> Lock(Mutex);
 	FileFlush();
 	for (auto& [FilePath, File] : Files)
 	{
@@ -45,7 +46,6 @@ void VKCOMMON::Logger::ConsoleLog(const LogMessage& Message)
 
 void VKCOMMON::Logger::FileFlush()
 {
-	std::unique_lock<std::mutex> Lock(Mutex);
 	for(auto& Message : MessageQueue)
 	{
 		auto& File = Files[std::string(Message.second)];

@@ -1,7 +1,7 @@
 #include "VulkanDescriptorSet.hpp"
 #include "VulkanBuffer.hpp"
 
-void VKCORE::WriteDescriptorSets(VkDevice LogicalDevice,std::vector<DescriptorSetWriteBuffer> BufferWrites, std::vector<DescriptorSetWriteImage> ImageWrites)
+void RENDERER_CORE::WriteDescriptorSets(VkDevice LogicalDevice,std::vector<DescriptorSetWriteBuffer> BufferWrites, std::vector<DescriptorSetWriteImage> ImageWrites)
 {
     std::vector<VkWriteDescriptorSet> DescriptorWrites;
     DescriptorWrites.reserve(BufferWrites.size() + ImageWrites.size());
@@ -17,7 +17,7 @@ void VKCORE::WriteDescriptorSets(VkDevice LogicalDevice,std::vector<DescriptorSe
     vkUpdateDescriptorSets(LogicalDevice, DescriptorWrites.size(), DescriptorWrites.data(), 0, nullptr);
 }
 
-void VKCORE::AllocateDescriptorSets(VkDevice LogicalDevice,uint32_t DescriptorSetsCount,VkDescriptorPool DescriptorPool,std::vector<VkDescriptorSetLayout> Layouts, std::vector<VkDescriptorSet> &DestinationSets)
+void RENDERER_CORE::AllocateDescriptorSets(VkDevice LogicalDevice,uint32_t DescriptorSetsCount,VkDescriptorPool DescriptorPool,std::vector<VkDescriptorSetLayout> Layouts, std::vector<VkDescriptorSet> &DestinationSets)
 {
     VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo{};
     DescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -31,7 +31,7 @@ void VKCORE::AllocateDescriptorSets(VkDevice LogicalDevice,uint32_t DescriptorSe
     }
 }
 
-void VKCORE::AllocateDescriptorSets(VkDevice LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool DescriptorPool,VkDescriptorSetLayout Layout, std::vector<VkDescriptorSet>& DestinationSets)
+void RENDERER_CORE::AllocateDescriptorSets(VkDevice LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool DescriptorPool,VkDescriptorSetLayout Layout, std::vector<VkDescriptorSet>& DestinationSets)
 {
     std::vector<VkDescriptorSetLayout> Layouts(DescriptorSetsCount, Layout);
 
@@ -47,7 +47,7 @@ void VKCORE::AllocateDescriptorSets(VkDevice LogicalDevice, uint32_t DescriptorS
     }
 }
 
-void VKCORE::AllocateDescriptorSets(VkDevice LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool DescriptorPool, VkDescriptorSetLayout Layout,VkDescriptorSet* DestinationSets)
+void RENDERER_CORE::AllocateDescriptorSets(VkDevice LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool DescriptorPool, VkDescriptorSetLayout Layout,VkDescriptorSet* DestinationSets)
 {
     std::vector<VkDescriptorSetLayout> Layouts(DescriptorSetsCount, Layout);
 
@@ -63,7 +63,7 @@ void VKCORE::AllocateDescriptorSets(VkDevice LogicalDevice, uint32_t DescriptorS
     }
 }
 
-void VKCORE::AllocateDescriptorSets(VkDevice LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool DescriptorPool, VkDescriptorSetLayout Layout, VkDescriptorSet& DestinationSet)
+void RENDERER_CORE::AllocateDescriptorSets(VkDevice LogicalDevice, uint32_t DescriptorSetsCount, VkDescriptorPool DescriptorPool, VkDescriptorSetLayout Layout, VkDescriptorSet& DestinationSet)
 {
     VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo{};
     DescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -77,12 +77,12 @@ void VKCORE::AllocateDescriptorSets(VkDevice LogicalDevice, uint32_t DescriptorS
     }
 }
 
-VKCORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(Buffer& SourceBuffer,VkDeviceSize BufferRange,uint32_t Binding,VkDescriptorSet& DestinationSet,VkDescriptorType Type)
+RENDERER_CORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(Buffer& SourceBuffer,VkDeviceSize BufferRange,uint32_t Binding,VkDescriptorSet& DestinationSet,VkDescriptorType Type)
 {
     Create(SourceBuffer, BufferRange, Binding, DestinationSet, Type);
 }
 
-void VKCORE::DescriptorSetWriteBuffer::Create(Buffer& SourceBuffer, VkDeviceSize BufferRange, uint32_t Binding, VkDescriptorSet& DestinationSet, VkDescriptorType Type)
+void RENDERER_CORE::DescriptorSetWriteBuffer::Create(Buffer& SourceBuffer, VkDeviceSize BufferRange, uint32_t Binding, VkDescriptorSet& DestinationSet, VkDescriptorType Type)
 {
     DescriptorBufferInfo.buffer = SourceBuffer.BufferObject;
     DescriptorBufferInfo.offset = 0;
@@ -99,7 +99,7 @@ void VKCORE::DescriptorSetWriteBuffer::Create(Buffer& SourceBuffer, VkDeviceSize
     DescriptorWrite.pTexelBufferView = nullptr;
 }
 
-VKCORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(const DescriptorSetWriteBuffer& Other)
+RENDERER_CORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(const DescriptorSetWriteBuffer& Other)
 {
     DescriptorBufferInfo = Other.DescriptorBufferInfo;
     this->DescriptorWrite = Other.DescriptorWrite;
@@ -108,7 +108,7 @@ VKCORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(const DescriptorSetWr
     DescriptorWrite.pTexelBufferView = nullptr;
 }
 
-VKCORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(DescriptorSetWriteBuffer&& Other) noexcept
+RENDERER_CORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(DescriptorSetWriteBuffer&& Other) noexcept
 {
     DescriptorBufferInfo = std::move(Other.DescriptorBufferInfo);
     this->DescriptorWrite = std::move(Other.DescriptorWrite);
@@ -117,7 +117,7 @@ VKCORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(DescriptorSetWriteBuf
     DescriptorWrite.pTexelBufferView = nullptr;
 }
 
-VKCORE::DescriptorSetWriteImage::DescriptorSetWriteImage(
+RENDERER_CORE::DescriptorSetWriteImage::DescriptorSetWriteImage(
     VkImageView TextureImageView,
     VkSampler TextureSampler, 
     VkImageLayout TextureImageLayout,
@@ -131,7 +131,7 @@ VKCORE::DescriptorSetWriteImage::DescriptorSetWriteImage(
     Create(TextureImageView, TextureSampler, TextureImageLayout, Binding, DestinationSet, Type,DstArrayElement,DescriptorCount);
 }
 
-void VKCORE::DescriptorSetWriteImage::Create(
+void RENDERER_CORE::DescriptorSetWriteImage::Create(
     VkImageView TextureImageView, 
     VkSampler TextureSampler, 
     VkImageLayout TextureImageLayout, 
@@ -157,7 +157,7 @@ void VKCORE::DescriptorSetWriteImage::Create(
     DescriptorWrite.pTexelBufferView = nullptr;
 }
 
-VKCORE::DescriptorSetWriteImage::DescriptorSetWriteImage(const DescriptorSetWriteImage& Other)
+RENDERER_CORE::DescriptorSetWriteImage::DescriptorSetWriteImage(const DescriptorSetWriteImage& Other)
 {
     DescriptorCombinedSamplerImageInfo = Other.DescriptorCombinedSamplerImageInfo;
     this->DescriptorWrite = Other.DescriptorWrite;
@@ -166,7 +166,7 @@ VKCORE::DescriptorSetWriteImage::DescriptorSetWriteImage(const DescriptorSetWrit
     DescriptorWrite.pTexelBufferView = nullptr;
 }
 
-VKCORE::DescriptorSetWriteImage::DescriptorSetWriteImage(DescriptorSetWriteImage&& Other) noexcept
+RENDERER_CORE::DescriptorSetWriteImage::DescriptorSetWriteImage(DescriptorSetWriteImage&& Other) noexcept
 {
     DescriptorCombinedSamplerImageInfo = std::move(Other.DescriptorCombinedSamplerImageInfo);
     this->DescriptorWrite = std::move(Other.DescriptorWrite);

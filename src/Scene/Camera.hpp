@@ -5,13 +5,13 @@
 
 #include "SceneResource.hpp"
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	//Forward Declarations
 	class Window;
 }
 
-namespace VKSCENE
+namespace SCENE
 {
 	//Forward Declarations
 	class ResourceDependencyManager;
@@ -19,10 +19,10 @@ namespace VKSCENE
 	class Camera3D : public SceneResource
 	{
 	public:
-		Camera3D(VKCORE::Window &window , ResourceDependencyManager& DependencyManager);
+		Camera3D(RENDERER_CORE::Window &window , ResourceDependencyManager& DependencyManager);
 		Camera3D() = default;
-		void Create(VKCORE::Window& window,ResourceDependencyManager& DependencyManager);
-		void Update(VKCORE::Window &window,float Sensitivity,float DeltaTime);
+		void Create(RENDERER_CORE::Window& window,ResourceDependencyManager& DependencyManager);
+		void Update(RENDERER_CORE::Window &window,float Sensitivity,float DeltaTime);
 		void UpdateMatrix(glm::vec2 Extent, float Near, float Far);
 		glm::vec3 CameraPosition;
 		glm::vec3 CameraDirection;

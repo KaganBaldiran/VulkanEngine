@@ -1,11 +1,11 @@
 #include "VulkanCommandPool.hpp"
 
-VKCORE::CommandPool::CommandPool(uint32_t QueueFamilyIndex,VkDevice &LogicalDevice, VkCommandPoolCreateFlags Flags)
+RENDERER_CORE::CommandPool::CommandPool(uint32_t QueueFamilyIndex,VkDevice &LogicalDevice, VkCommandPoolCreateFlags Flags)
 {
     Create(QueueFamilyIndex, LogicalDevice, Flags);
 }
 
-void VKCORE::CommandPool::Create(uint32_t QueueFamilyIndex, VkDevice& LogicalDevice, VkCommandPoolCreateFlags Flags)
+void RENDERER_CORE::CommandPool::Create(uint32_t QueueFamilyIndex, VkDevice& LogicalDevice, VkCommandPoolCreateFlags Flags)
 {
     VkCommandPoolCreateInfo CommandPoolCreateInfo{};
     CommandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -18,7 +18,7 @@ void VKCORE::CommandPool::Create(uint32_t QueueFamilyIndex, VkDevice& LogicalDev
     }
 }
 
-void VKCORE::CommandPool::Destroy(VkDevice &LogicalDevice)
+void RENDERER_CORE::CommandPool::Destroy(VkDevice &LogicalDevice)
 {
     if (commandPool == VK_NULL_HANDLE) return;
     vkDestroyCommandPool(LogicalDevice,commandPool,nullptr);

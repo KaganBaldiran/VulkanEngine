@@ -10,12 +10,12 @@
 #include "DependencyManager.hpp"
 #include "MaterialManager.hpp"
 
-VKSCENE::Scene::Scene(VKAPP::RendererContext& RendererContext,TextureImportManager &Manager)
+SCENE::Scene::Scene(RENDERER::RendererContext& RendererContext,TextureImportManager &Manager)
 {
     Create(RendererContext, Manager);
 }
 
-void VKSCENE::Scene::Create(VKAPP::RendererContext& RendererContext,TextureImportManager& Manager)
+void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,TextureImportManager& Manager)
 {
     this->MeshBuffers.Create(RendererContext);
     MeshBuffers.Owner = this;
@@ -32,10 +32,10 @@ void VKSCENE::Scene::Create(VKAPP::RendererContext& RendererContext,TextureImpor
     );
     
     SceneDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    VKCORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.SceneDescriptorSetLayouts, SceneDescriptorSets);
+    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.SceneDescriptorSetLayouts, SceneDescriptorSets);
     
     IndirectDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    VKCORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.IndirectDescriptorSetLayouts, IndirectDescriptorSets);
+    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.IndirectDescriptorSetLayouts, IndirectDescriptorSets);
     
     TexturesIndexBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     TexturesIndexStagingBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -44,7 +44,7 @@ void VKSCENE::Scene::Create(VKAPP::RendererContext& RendererContext,TextureImpor
     DrawCubeMap = true;
 }
 
-void VKSCENE::Scene::Destroy()
+void SCENE::Scene::Destroy()
 {
     SceneDescriptorPool.Destroy(RendererContext->DeviceContext.logicalDevice);
     DestroyMeshBuffers();
@@ -52,15 +52,16 @@ void VKSCENE::Scene::Destroy()
     DestroyLightBuffers();
 }
 
-void VKSCENE::Scene::LinkModelInstance(ModelInstance& Instance)
+void SCENE::Scene::LinkModelInstance(ModelInstance& Instance)
 {
     for (uint16_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         ModelInstancesAppendList[i].push_back(&Instance);
+        ModelInstancesTransformationUpdateList[i].push_back(&Instance);
     }
 }
 
-void VKSCENE::Scene::LinkModelInstance(std::vector<ModelInstance*>& Instances)
+void SCENE::Scene::LinkModelInstance(std::vector<ModelInstance*>& Instances)
 {
     for (uint16_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -68,7 +69,7 @@ void VKSCENE::Scene::LinkModelInstance(std::vector<ModelInstance*>& Instances)
     }
 }
 
-void VKSCENE::Scene::UnlinkModelInstance(ModelInstance& Instance)
+void SCENE::Scene::UnlinkModelInstance(ModelInstance& Instance)
 {
     for (uint16_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -76,7 +77,7 @@ void VKSCENE::Scene::UnlinkModelInstance(ModelInstance& Instance)
     }
 }
 
-void VKSCENE::Scene::UnlinkModelInstance(std::vector<ModelInstance*>& Instances)
+void SCENE::Scene::UnlinkModelInstance(std::vector<ModelInstance*>& Instances)
 {
     for (uint16_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -84,22 +85,22 @@ void VKSCENE::Scene::UnlinkModelInstance(std::vector<ModelInstance*>& Instances)
     }
 }
 
-void VKSCENE::Scene::SetCubemap(Cubemap& DestinationCubeMap)
+void SCENE::Scene::SetCubemap(Cubemap& DestinationCubeMap)
 {
     SceneCubeMap = &DestinationCubeMap;
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VKCORE::DescriptorSetWriteImage CubemapTextureWrite(SceneCubeMap->ConvolutionSampleImageView, SceneCubeMap->ConvolutionSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, SceneDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        VKCORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, {}, { CubemapTextureWrite });
+        RENDERER_CORE::DescriptorSetWriteImage CubemapTextureWrite(SceneCubeMap->ConvolutionSampleImageView, SceneCubeMap->ConvolutionSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, SceneDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, {}, { CubemapTextureWrite });
     }
 }
 
-void VKSCENE::Scene::SetCamera(Camera3D& Camera)
+void SCENE::Scene::SetCamera(Camera3D& Camera)
 {
     this->Camera = &Camera;
 }
 
-void VKSCENE::Scene::UpdateDynamicLightBuffers()
+void SCENE::Scene::UpdateDynamicLightBuffers()
 {
     if (!this->DependencyManager) return;
 
@@ -127,7 +128,7 @@ void VKSCENE::Scene::UpdateDynamicLightBuffers()
     }
 }
 
-void VKSCENE::Scene::UpdateDynamicFrameLightBuffers(uint32_t CurrentFrame)
+void SCENE::Scene::UpdateDynamicFrameLightBuffers(uint32_t CurrentFrame)
 {
     if (!this->DependencyManager) return;
 
@@ -143,7 +144,7 @@ void VKSCENE::Scene::UpdateDynamicFrameLightBuffers(uint32_t CurrentFrame)
     }
 }
 
-void VKSCENE::Scene::UpdateStaticLightBuffers()
+void SCENE::Scene::UpdateStaticLightBuffers()
 {
     if (!this->DependencyManager) return;
 
@@ -161,7 +162,7 @@ void VKSCENE::Scene::UpdateStaticLightBuffers()
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VKCORE::CopyBuffer(
+        RENDERER_CORE::CopyBuffer(
             StaticLightStagingBuffer.Buffer.BufferObject,
             StaticLightSSBO[i].BufferObject,
             StaticBufferSize,
@@ -172,7 +173,7 @@ void VKSCENE::Scene::UpdateStaticLightBuffers()
     }
 }
 
-void VKSCENE::Scene::UpdateStaticFrameLightBuffers(uint32_t CurrentFrame)
+void SCENE::Scene::UpdateStaticFrameLightBuffers(uint32_t CurrentFrame)
 {
     if (!this->DependencyManager) return;
 
@@ -188,7 +189,7 @@ void VKSCENE::Scene::UpdateStaticFrameLightBuffers(uint32_t CurrentFrame)
         }
         i++;
     }
-    VKCORE::CopyBuffer(
+    RENDERER_CORE::CopyBuffer(
         StaticLightStagingBuffer.Buffer.BufferObject,
         StaticLightSSBO[CurrentFrame].BufferObject,
         StaticBufferSize,
@@ -199,7 +200,7 @@ void VKSCENE::Scene::UpdateStaticFrameLightBuffers(uint32_t CurrentFrame)
 }
 
 
-void VKSCENE::Scene::CreateLightBuffers(uint32_t MaxStaticLightCount, uint32_t MaxDynamicLightCount)
+void SCENE::Scene::CreateLightBuffers(uint32_t MaxStaticLightCount, uint32_t MaxDynamicLightCount)
 {
     VkDeviceSize DynamicLightBufferSize = sizeof(LightData) * MaxDynamicLightCount;
     VkDeviceSize StaticLightBufferSize = sizeof(LightData) * MaxStaticLightCount;
@@ -208,7 +209,7 @@ void VKSCENE::Scene::CreateLightBuffers(uint32_t MaxStaticLightCount, uint32_t M
     StaticLightSSBO.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VKCORE::CreateBuffer(
+        RENDERER_CORE::CreateBuffer(
             RendererContext->DeviceContext.physicalDevice,
             RendererContext->DeviceContext.logicalDevice,
             DynamicLightBufferSize,
@@ -218,7 +219,7 @@ void VKSCENE::Scene::CreateLightBuffers(uint32_t MaxStaticLightCount, uint32_t M
         );
         DynamicLightSSBO[i].Map(RendererContext->DeviceContext.logicalDevice, 0, DynamicLightBufferSize, 0);
 
-        VKCORE::CreateBuffer(
+        RENDERER_CORE::CreateBuffer(
             RendererContext->DeviceContext.physicalDevice,
             RendererContext->DeviceContext.logicalDevice,
             StaticLightBufferSize,
@@ -228,7 +229,7 @@ void VKSCENE::Scene::CreateLightBuffers(uint32_t MaxStaticLightCount, uint32_t M
         );
     }
 
-    VKCORE::CreateBuffer(
+    RENDERER_CORE::CreateBuffer(
         RendererContext->DeviceContext.physicalDevice,
         RendererContext->DeviceContext.logicalDevice,
         StaticLightBufferSize,
@@ -240,18 +241,18 @@ void VKSCENE::Scene::CreateLightBuffers(uint32_t MaxStaticLightCount, uint32_t M
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VKCORE::DescriptorSetWriteBuffer StaticSSBOwrite(StaticLightSSBO[i], StaticLightBufferSize, 0, SceneDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        VKCORE::DescriptorSetWriteBuffer DynamicSSBOwrite(DynamicLightSSBO[i].Buffer, DynamicLightBufferSize, 1, SceneDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        VKCORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, { StaticSSBOwrite,DynamicSSBOwrite }, {});
+        RENDERER_CORE::DescriptorSetWriteBuffer StaticSSBOwrite(StaticLightSSBO[i], StaticLightBufferSize, 0, SceneDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        RENDERER_CORE::DescriptorSetWriteBuffer DynamicSSBOwrite(DynamicLightSSBO[i].Buffer, DynamicLightBufferSize, 1, SceneDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, { StaticSSBOwrite,DynamicSSBOwrite }, {});
     }
 }
 
-void VKSCENE::Scene::DestroyMeshBuffers()
+void SCENE::Scene::DestroyMeshBuffers()
 {
     MeshBuffers.Destroy(RendererContext->DeviceContext.logicalDevice);
 }
 
-void VKSCENE::Scene::DestroyLightBuffers()
+void SCENE::Scene::DestroyLightBuffers()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -261,11 +262,21 @@ void VKSCENE::Scene::DestroyLightBuffers()
     StaticLightStagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
 }
 
-void VKSCENE::Scene::MarkResourceChanged(SceneResource* Resource)
+void SCENE::Scene::MarkResourceChanged(SceneResource* Resource, MarkChangedType Type, uint32_t FrameIndex)
 {
+    bool IsAllFrames = FrameIndex == std::numeric_limits<uint32_t>::max();
+    if (!IsAllFrames && FrameIndex >= MAX_FRAMES_IN_FLIGHT) throw std::runtime_error("Given Frame Index is larger than the maximum frames in flight count!");
+
+    for (uint32_t i = (IsAllFrames ? 0 : FrameIndex); i < (IsAllFrames ? MAX_FRAMES_IN_FLIGHT : (FrameIndex + 1)); i++)
+    {
+        if (Type & MARK_CHANGED_TYPE_MESH_TRANSFORMATION)
+        {
+            ModelInstancesTransformationUpdateList[i].push_back(reinterpret_cast<ModelInstance*>(Resource));
+        }
+    }
 }
 
-void VKSCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex)
+void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex)
 {
     if (!Type) return;
 
@@ -311,12 +322,13 @@ void VKSCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameInd
     }
 }
 
-void VKSCENE::Scene::UpdateMeshTransformations(uint32_t CurrentFrame)
+void SCENE::Scene::UpdateMeshTransformations(uint32_t CurrentFrame)
 {
-    this->MeshBuffers.UpdateMeshTransformations(CurrentFrame);
+    this->MeshBuffers.UpdateMeshTransformations(ModelInstancesTransformationUpdateList[CurrentFrame], CurrentFrame);
+    ModelInstancesTransformationUpdateList[CurrentFrame].clear();
 }
 
-void VKSCENE::Scene::CreateMeshTextureDescriptors(
+void SCENE::Scene::CreateMeshTextureDescriptors(
     uint32_t MaxTextures
 )
 {
@@ -361,7 +373,7 @@ void VKSCENE::Scene::CreateMeshTextureDescriptors(
         &BindingFlags
     );
 
-    VKCORE::AllocateDescriptorSets(
+    RENDERER_CORE::AllocateDescriptorSets(
         RendererContext->DeviceContext.logicalDevice,
         MeshTexturesDescriptor.DescriptorSets.size(),
         MeshTexturesDescriptor.DescriptorPool.descriptorPool,
@@ -403,7 +415,7 @@ void VKSCENE::Scene::CreateMeshTextureDescriptors(
     }*/
 }
 
-void VKSCENE::Scene::DestroyMeshTextureDescriptors()
+void SCENE::Scene::DestroyMeshTextureDescriptors()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {

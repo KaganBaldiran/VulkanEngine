@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
 	constexpr size_t MEMORY_SIZE_MEGABYTE = 1024;
 	constexpr size_t MEMORY_SIZE_HALF_MEGABYTE = 512;

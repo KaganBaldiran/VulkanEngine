@@ -16,13 +16,13 @@
 
 #include <bitset>
 
-namespace VKAPP
+namespace RENDERER
 {
 	class Renderer;
 	class RendererContext;
 }
 
-namespace VKSCENE
+namespace SCENE
 {
 	enum ResourceLinkingFlags
 	{
@@ -41,9 +41,9 @@ namespace VKSCENE
 		friend class SceneResource;
 		friend class Scene;
 	public:
-		ResourceDependencyManager(VKAPP::RendererContext& rendererContext);
+		ResourceDependencyManager(RENDERER::RendererContext& rendererContext);
 		ResourceDependencyManager() = default;
-		void Create(VKAPP::RendererContext& rendererContext);
+		void Create(RENDERER::RendererContext& rendererContext);
 
 		void RegisterResource(SceneResource& Resource);
 
@@ -79,7 +79,7 @@ namespace VKSCENE
 
 		std::unordered_map<SceneResource*,ResourceLinkingFlags> LinkingFlags;
 
-		VKAPP::RendererContext* rendererContext;
+		RENDERER::RendererContext* rendererContext;
 		std::bitset<16384> DirtyResourceFlags;
 	};
 }

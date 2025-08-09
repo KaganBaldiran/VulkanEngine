@@ -1,9 +1,9 @@
 #include "GeometryBuffer.hpp"
 #include "Core/VulkanImageView.hpp"
 
-void VKAPP::GeometryBuffer::Create(VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, const uint32_t& Width, const uint32_t& Height)
+void RENDERER::GeometryBuffer::Create(VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, const uint32_t& Width, const uint32_t& Height)
 {
-    VKCORE::CreateImage(
+    RENDERER_CORE::CreateImage(
         PhysicalDevice,
         LogicalDevice,
         Width,
@@ -15,10 +15,10 @@ void VKAPP::GeometryBuffer::Create(VkPhysicalDevice& PhysicalDevice, VkDevice& L
         PositionAttachment.Image,
         PositionAttachment.ImageMemory
     );
-    PositionAttachment.ImageView = VKCORE::CreateImageView(PositionAttachment.Image, VK_FORMAT_R32G32B32A32_SFLOAT,VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-    VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, PositionAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    PositionAttachment.ImageView = RENDERER_CORE::CreateImageView(PositionAttachment.Image, VK_FORMAT_R32G32B32A32_SFLOAT,VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, PositionAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
-    VKCORE::CreateImage(
+    RENDERER_CORE::CreateImage(
         PhysicalDevice,
         LogicalDevice,
         Width,
@@ -30,10 +30,10 @@ void VKAPP::GeometryBuffer::Create(VkPhysicalDevice& PhysicalDevice, VkDevice& L
         NormalAttachment.Image,
         NormalAttachment.ImageMemory
     );
-    NormalAttachment.ImageView = VKCORE::CreateImageView(NormalAttachment.Image, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-    VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, NormalAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    NormalAttachment.ImageView = RENDERER_CORE::CreateImageView(NormalAttachment.Image, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, NormalAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
-    VKCORE::CreateImage(
+    RENDERER_CORE::CreateImage(
         PhysicalDevice,
         LogicalDevice,
         Width,
@@ -45,10 +45,10 @@ void VKAPP::GeometryBuffer::Create(VkPhysicalDevice& PhysicalDevice, VkDevice& L
         AlbedoAttachment.Image,
         AlbedoAttachment.ImageMemory
     );
-    AlbedoAttachment.ImageView = VKCORE::CreateImageView(AlbedoAttachment.Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-    VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, AlbedoAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    AlbedoAttachment.ImageView = RENDERER_CORE::CreateImageView(AlbedoAttachment.Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, AlbedoAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
-    VKCORE::CreateImage(
+    RENDERER_CORE::CreateImage(
         PhysicalDevice,
         LogicalDevice,
         Width,
@@ -60,11 +60,11 @@ void VKAPP::GeometryBuffer::Create(VkPhysicalDevice& PhysicalDevice, VkDevice& L
         RoughnessMetallicAttachment.Image,
         RoughnessMetallicAttachment.ImageMemory
     );
-    RoughnessMetallicAttachment.ImageView = VKCORE::CreateImageView(RoughnessMetallicAttachment.Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-    VKCORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, RoughnessMetallicAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    RoughnessMetallicAttachment.ImageView = RENDERER_CORE::CreateImageView(RoughnessMetallicAttachment.Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, RoughnessMetallicAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 }
 
-void VKAPP::GeometryBuffer::Destroy(VkDevice& LogicalDevice)
+void RENDERER::GeometryBuffer::Destroy(VkDevice& LogicalDevice)
 {
     PositionAttachment.Destroy(LogicalDevice);
     NormalAttachment.Destroy(LogicalDevice);

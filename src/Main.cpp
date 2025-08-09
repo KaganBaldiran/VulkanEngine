@@ -12,6 +12,8 @@
 #include "Physics/PhysicsContext.hpp"
 #include "Common/MemoryArenaAllocator.hpp"
 
+#include "Scene/ShadowMapManager.hpp"
+
 #include <random>
 
 int main()
@@ -23,43 +25,45 @@ int main()
             throw std::runtime_error("Unable to initialize GLFW");
         }
 
-        VKAPP::RendererContext RendererContext(true);
-        VKAPP::Renderer Renderer;
+        RENDERER::RendererContext RendererContext(true);
+        RENDERER::Renderer Renderer;
         Renderer.Initialize(RendererContext,false);
 
-        VKSCENE::ResourceDependencyManager DependencyManager(RendererContext);
+        SCENE::ResourceDependencyManager DependencyManager(RendererContext);
 
-        VKSCENE::Model3D SponzaModel;
-        VKSCENE::Model3D ShovelModel;
+        SCENE::Model3D SponzaModel;
+        SCENE::Model3D ShovelModel;
+        SCENE::Model3D SceneModel;
 
-        VKSCENE::ModelInstance Sponza(SponzaModel);
+        SCENE::ModelInstance Sponza(SponzaModel);
         Sponza.Name = "Sponza";
-        VKSCENE::ModelInstance Shovel(ShovelModel);
+        SCENE::ModelInstance Shovel(ShovelModel);
         Shovel.Name = "Shovel0";
-        VKSCENE::ModelInstance Shovel1(ShovelModel);
+        SCENE::ModelInstance Shovel1(ShovelModel);
         Shovel1.Name = "Shovel1";
+        SCENE::ModelInstance SceneModelInstance(SceneModel);
 
-        std::vector<VKSCENE::ModelInstance> Shovels;
+        std::vector<SCENE::ModelInstance> Shovels;
 
         std::mt19937 rng(std::random_device{}()); 
         std::uniform_real_distribution<float> distX(-100.0f, 100.0f); 
         std::uniform_real_distribution<float> distY(0.0f, 20.0f);  
         std::uniform_real_distribution<float> distZ(-100.0f, 100.0f); 
         std::uniform_real_distribution<float> distRot(0.0f, glm::two_pi<float>()); 
-
-        
        // Shovel.Model.SetModelMeshesUpdateMode(VKSCENE::MESH_UPDATE_MODE_BALANCED);
 
-        VKSCENE::TextureImportManager TextureImportManager(RendererContext);
-        VKSCENE::MeshImporter Importer(TextureImportManager);
+        SCENE::TextureImportManager TextureImportManager(RendererContext);
+        SCENE::MeshImporter Importer(TextureImportManager);
         Importer.AppendImportTask({ &SponzaModel , "resources\\sponza.obj" });
         Importer.AppendImportTask({ &ShovelModel , "resources\\shovel2.obj" });
+        Importer.AppendImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
         Importer.SubmitImport();
         Importer.WaitImportIdle();
+        TextureImportManager.SubmitImport();
 
         for (size_t i = 0; i < 150; i++)
         {
-            VKSCENE::ModelInstance NewShovel(ShovelModel);
+            SCENE::ModelInstance NewShovel(ShovelModel);
             NewShovel.Name = "Shovel" + std::to_string(i + 2);
 
             glm::vec3 position(distX(rng), distY(rng), distZ(rng));
@@ -72,38 +76,37 @@ int main()
             Shovels.push_back(NewShovel);
         }
 
-        TextureImportManager.SubmitImport();
        
         Sponza.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
         Sponza.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         Shovel.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
 
-        VKSCENE::Camera3D Camera(RendererContext.Window,DependencyManager);
-        VKSCENE::Cubemap Cubemap0(RendererContext,DependencyManager,1024, 1024);
-        VKSCENE::ImportHDRI("resources\\boma_4k.hdr", Cubemap0, RendererContext);
+        SCENE::Camera3D Camera(RendererContext.Window,DependencyManager);
+        SCENE::Cubemap Cubemap0(RendererContext,DependencyManager,1024, 1024);
+        SCENE::ImportHDRI("resources\\boma_4k.hdr", Cubemap0, RendererContext);
 
-        VKSCENE::Cubemap Cubemap1(RendererContext,DependencyManager,1024, 1024);
-        VKSCENE::ImportHDRI("resources\\rustig_koppie_puresky_2k.hdr", Cubemap1, RendererContext);
+        SCENE::Cubemap Cubemap1(RendererContext,DependencyManager,1024, 1024);
+        SCENE::ImportHDRI("resources\\rustig_koppie_puresky_2k.hdr", Cubemap1, RendererContext);
 
-        VKSCENE::Light Light0(DependencyManager);
+        SCENE::Light Light0(DependencyManager);
         Light0.SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
         Light0.SetIntensity(1.0f);
         Light0.SetDirection(glm::vec4(0.0f, 1.0f, 0.7f, 0.0f));
-        Light0.SetType(VKSCENE::DIRECTIONAL_LIGHT);
+        Light0.SetType(SCENE::DIRECTIONAL_LIGHT);
 
-        VKSCENE::Light Light1(DependencyManager);
+        SCENE::Light Light1(DependencyManager);
         Light1.SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
         Light1.SetIntensity(5.0f);
         Light1.SetDirection(glm::vec4(0.3f, 0.5f, 0.0f, 0.0f));
-        Light1.SetType(VKSCENE::DIRECTIONAL_LIGHT);
+        Light1.SetType(SCENE::DIRECTIONAL_LIGHT);
 
-        VKSCENE::Light Light2(DependencyManager);
+        SCENE::Light Light2(DependencyManager);
         Light2.SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
         Light2.SetIntensity(1.0f);
         Light2.SetDirection(glm::vec4(0.8f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
-        Light2.SetType(VKSCENE::DIRECTIONAL_LIGHT);
+        Light2.SetType(SCENE::DIRECTIONAL_LIGHT);
 
-        VKSCENE::Scene Scene0;
+        SCENE::Scene Scene0;
         Scene0.Create(RendererContext,TextureImportManager);
         Scene0.CreateLightBuffers(2, 1);
         Scene0.CreateMeshTextureDescriptors(1000);
@@ -113,28 +116,34 @@ int main()
         Scene0.LinkModelInstance(Sponza);
         Scene0.LinkModelInstance(Shovel);
         Scene0.LinkModelInstance(Shovel1);
-
+        Scene0.LinkModelInstance(SceneModelInstance);
         for (size_t i = 0; i < 150; i++)
         {
-            Scene0.LinkModelInstance(Shovels[i]);
+            //Scene0.LinkModelInstance(Shovels[i]);
         }
-
-        Scene0.FlushPendingUpdates(VKSCENE::SCENE_UPDATE_TYPE_LINK_MESHES | VKSCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | VKSCENE::SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS, FRAME_INDEX_ALL_FRAMES);
+        Scene0.FlushPendingUpdates(
+            SCENE::SCENE_UPDATE_TYPE_LINK_MESHES | 
+            SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | 
+            SCENE::SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS, 
+            FRAME_INDEX_ALL_FRAMES
+        );
 
        // Scene0.EraseMeshBuffers();
         //Scene0.CreateMeshBuffers();
         //Scene0.UpdateTextureDescriptors(TextureImportManager);
         
-        DependencyManager.LinkSceneResource(Light0, Scene0,VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_STATIC);
-        DependencyManager.LinkSceneResource(Light1, Scene0,VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_STATIC);
+        DependencyManager.LinkSceneResource(Light0, Scene0,SCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_STATIC);
+        DependencyManager.LinkSceneResource(Light1, Scene0,SCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_STATIC);
         Scene0.UpdateStaticLightBuffers();
 
-        DependencyManager.LinkSceneResource(Light2, Scene0, VKSCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_DYNAMIC);
+        DependencyManager.LinkSceneResource(Light2, Scene0, SCENE::RESOURCE_LINKING_FLAG_SET_LIGHT_DYNAMIC);
         Scene0.UpdateDynamicLightBuffers();
 
         DependencyManager.LinkSceneResource(Cubemap0, Scene0);
         DependencyManager.LinkSceneResource(Camera, Scene0);
 
+        std::vector<SCENE::MemoryRegion3D> TextureRegions;
+        SCENE::TexturePacker3D Packer({4096,4096 });
         /*
         VKPHYSICS::PhysicsContext PhyContext;
         PhyContext.DynamicsWorld->setGravity({ 0,-10,0 });
@@ -240,7 +249,9 @@ int main()
             }
 
             Shovel.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), 10 * (float)glm::max(0.0,glm::cos(glfwGetTime())), glm::vec3(0.0, 1.0, 0.0));
-            Scene0.FlushPendingUpdates(VKSCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS, Renderer.CurrentFrame);
+            Scene0.MarkResourceChanged(&Shovel, SCENE::MARK_CHANGED_TYPE_MESH_TRANSFORMATION, Renderer.CurrentFrame);
+
+            Scene0.FlushPendingUpdates(SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS, Renderer.CurrentFrame);
 
             Camera.Update(RendererContext.Window,50.0f,DeltaTime);
             Camera.UpdateMatrix({ RendererContext.SwapChain.Extent.width,RendererContext.SwapChain.Extent.height },0.1f,2000.0f);

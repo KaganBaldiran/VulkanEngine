@@ -8,12 +8,12 @@
 #include "../Common/Log.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
-VKSCENE::Cubemap::Cubemap(VKAPP::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height)
+SCENE::Cubemap::Cubemap(RENDERER::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height)
 {
 	Create(RendererContext,DependencyManager,Width, Height);
 }
 
-void VKSCENE::Cubemap::Create(VKAPP::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager, uint32_t Width, uint32_t Height)
+void SCENE::Cubemap::Create(RENDERER::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager, uint32_t Width, uint32_t Height)
 {
 	Size = { Width,Height };
 	
@@ -24,7 +24,7 @@ void VKSCENE::Cubemap::Create(VKAPP::RendererContext& RendererContext, ResourceD
 	resourceType = RESOURCE_TYPE_CUBEMAP;
 }
 
-void VKSCENE::Cubemap::Destroy(VKAPP::RendererContext& RendererContext)
+void SCENE::Cubemap::Destroy(RENDERER::RendererContext& RendererContext)
 {
 	for (auto &ImageView : CubemapRenderImageViews)
 	{
@@ -51,9 +51,9 @@ void VKSCENE::Cubemap::Destroy(VKAPP::RendererContext& RendererContext)
 	}
 }
 
-void VKSCENE::Cubemap::CreateCubemapTexture(VKAPP::RendererContext& RendererContext)
+void SCENE::Cubemap::CreateCubemapTexture(RENDERER::RendererContext& RendererContext)
 {
-	VKCORE::CreateImage(
+	RENDERER_CORE::CreateImage(
 		RendererContext.DeviceContext.physicalDevice,
 		RendererContext.DeviceContext.logicalDevice,
 		Size.x,
@@ -70,7 +70,7 @@ void VKSCENE::Cubemap::CreateCubemapTexture(VKAPP::RendererContext& RendererCont
 
 	for (uint32_t i = 0; i < 6; i++)
 	{
-		CubemapRenderImageViews[i] = VKCORE::CreateImageView(
+		CubemapRenderImageViews[i] = RENDERER_CORE::CreateImageView(
 			CubemapImage,
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_VIEW_TYPE_2D,
@@ -81,7 +81,7 @@ void VKSCENE::Cubemap::CreateCubemapTexture(VKAPP::RendererContext& RendererCont
 		);
 	}
 
-	CubemapSampleImageView = VKCORE::CreateImageView(
+	CubemapSampleImageView = RENDERER_CORE::CreateImageView(
 		CubemapImage,
 		VK_FORMAT_R16G16B16A16_SFLOAT,
 		VK_IMAGE_VIEW_TYPE_CUBE,
@@ -91,7 +91,7 @@ void VKSCENE::Cubemap::CreateCubemapTexture(VKAPP::RendererContext& RendererCont
 		0
 	);
 
-	VKCORE::CreateTextureSampler(
+	RENDERER_CORE::CreateTextureSampler(
 		RendererContext.DeviceContext.physicalDevice,
 		RendererContext.DeviceContext.logicalDevice,
 		CubemapSampler,
@@ -100,9 +100,9 @@ void VKSCENE::Cubemap::CreateCubemapTexture(VKAPP::RendererContext& RendererCont
 	);
 }
 
-void VKSCENE::Cubemap::CreateConvolutionTexture(VKAPP::RendererContext& RendererContext)
+void SCENE::Cubemap::CreateConvolutionTexture(RENDERER::RendererContext& RendererContext)
 {
-	VKCORE::CreateImage(
+	RENDERER_CORE::CreateImage(
 		RendererContext.DeviceContext.physicalDevice,
 		RendererContext.DeviceContext.logicalDevice,
 		32,
@@ -119,7 +119,7 @@ void VKSCENE::Cubemap::CreateConvolutionTexture(VKAPP::RendererContext& Renderer
 
 	for (uint32_t i = 0; i < 6; i++)
 	{
-		ConvolutionRenderImageViews[i] = VKCORE::CreateImageView(
+		ConvolutionRenderImageViews[i] = RENDERER_CORE::CreateImageView(
 			ConvolutionImage,
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_VIEW_TYPE_2D,
@@ -130,7 +130,7 @@ void VKSCENE::Cubemap::CreateConvolutionTexture(VKAPP::RendererContext& Renderer
 		);
 	}
 
-	ConvolutionSampleImageView = VKCORE::CreateImageView(
+	ConvolutionSampleImageView = RENDERER_CORE::CreateImageView(
 		ConvolutionImage,
 		VK_FORMAT_R16G16B16A16_SFLOAT,
 		VK_IMAGE_VIEW_TYPE_CUBE,
@@ -140,7 +140,7 @@ void VKSCENE::Cubemap::CreateConvolutionTexture(VKAPP::RendererContext& Renderer
 		0
 	);
 
-	VKCORE::CreateTextureSampler(
+	RENDERER_CORE::CreateTextureSampler(
 		RendererContext.DeviceContext.physicalDevice,
 		RendererContext.DeviceContext.logicalDevice,
 		ConvolutionSampler,
@@ -149,10 +149,10 @@ void VKSCENE::Cubemap::CreateConvolutionTexture(VKAPP::RendererContext& Renderer
 	);
 }
 
-void VKSCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, VKAPP::RendererContext& RendererContext)
+void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RENDERER::RendererContext& RendererContext)
 {
-	VKCORE::TextureData HdriTextureData;
-	VKCORE::CreateTextureImage(
+	RENDERER_CORE::TextureData HdriTextureData;
+	RENDERER_CORE::CreateTextureImage(
 		HDRIfilePath,
 		RendererContext.DeviceContext.physicalDevice,
 		RendererContext.DeviceContext.logicalDevice,
@@ -161,8 +161,8 @@ void VKSCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, 
 		HdriTextureData
 	);
 
-	VKCORE::DescriptorSetWriteImage HDRITextureWrite(HdriTextureData.ImageView, HdriTextureData.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, RendererContext.HDRIrenderPassDescriptorSets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	VKCORE::WriteDescriptorSets(RendererContext.DeviceContext.logicalDevice, {}, {HDRITextureWrite});
+	RENDERER_CORE::DescriptorSetWriteImage HDRITextureWrite(HdriTextureData.ImageView, HdriTextureData.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, RendererContext.HDRIrenderPassDescriptorSets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	RENDERER_CORE::WriteDescriptorSets(RendererContext.DeviceContext.logicalDevice, {}, {HDRITextureWrite});
 	
 	glm::mat4 FboViews[] =
 	{
@@ -179,10 +179,10 @@ void VKSCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, 
 
 	auto& RenderTask = [&](VkCommandBuffer& CommandBuffer) {
 
-		VKCORE::TransitionImageLayout(CommandBuffer,HdriTextureData.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0,
+		RENDERER_CORE::TransitionImageLayout(CommandBuffer,HdriTextureData.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0,
 			VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-		VKCORE::TransitionImageLayout(CommandBuffer, DestinationCubeMap.CubemapImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
+		RENDERER_CORE::TransitionImageLayout(CommandBuffer, DestinationCubeMap.CubemapImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
 			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_IMAGE_ASPECT_COLOR_BIT,6);
 
 		VkClearValue ClearColor{};
@@ -217,7 +217,7 @@ void VKSCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, 
 
 		for (size_t i = 0; i < 6; i++)
 		{
-			VKCORE::DynamicRenderingPass RenderingPass;
+			RENDERER_CORE::DynamicRenderingPass RenderingPass;
 			RenderingPass.AppendAttachment(
 				DestinationCubeMap.CubemapRenderImageViews[i],
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -241,15 +241,15 @@ void VKSCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, 
 			RenderingPass.EndRendering(CommandBuffer);
 		}
 
-		VKCORE::TransitionImageLayout(CommandBuffer, DestinationCubeMap.CubemapImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		RENDERER_CORE::TransitionImageLayout(CommandBuffer, DestinationCubeMap.CubemapImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 			VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,6);
 		    	
-		VKCORE::TransitionImageLayout(CommandBuffer, DestinationCubeMap.ConvolutionImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
+		RENDERER_CORE::TransitionImageLayout(CommandBuffer, DestinationCubeMap.ConvolutionImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
 			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_IMAGE_ASPECT_COLOR_BIT, 6);
 
 		//Convolution Pass
-		VKCORE::DescriptorSetWriteImage CubemapTextureWrite(DestinationCubeMap.CubemapSampleImageView, DestinationCubeMap.CubemapSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, RendererContext.HDRIrenderPassDescriptorSets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		VKCORE::WriteDescriptorSets(RendererContext.DeviceContext.logicalDevice, {}, { CubemapTextureWrite });
+		RENDERER_CORE::DescriptorSetWriteImage CubemapTextureWrite(DestinationCubeMap.CubemapSampleImageView, DestinationCubeMap.CubemapSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, RendererContext.HDRIrenderPassDescriptorSets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+		RENDERER_CORE::WriteDescriptorSets(RendererContext.DeviceContext.logicalDevice, {}, { CubemapTextureWrite });
 
 		vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RendererContext.HDRIconvoluteGraphicsPipeline.pipeline);
 		vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RendererContext.HDRIconvoluteGraphicsPipeline.Layout, 0, 1, &RendererContext.HDRIrenderPassDescriptorSets[0], 0, nullptr);
@@ -271,7 +271,7 @@ void VKSCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, 
 
 		for (size_t i = 0; i < 6; i++)
 		{
-			VKCORE::DynamicRenderingPass RenderingPass;
+			RENDERER_CORE::DynamicRenderingPass RenderingPass;
 			RenderingPass.AppendAttachment(
 				DestinationCubeMap.ConvolutionRenderImageViews[i],
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -295,12 +295,12 @@ void VKSCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, 
 			RenderingPass.EndRendering(CommandBuffer);
 		}
 
-		VKCORE::TransitionImageLayout(CommandBuffer, DestinationCubeMap.ConvolutionImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		RENDERER_CORE::TransitionImageLayout(CommandBuffer, DestinationCubeMap.ConvolutionImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 			VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_IMAGE_ASPECT_COLOR_BIT, 6);
 
 	};
 
-	VKCORE::ExecuteSingleTimeCommand(
+	RENDERER_CORE::ExecuteSingleTimeCommand(
 		RendererContext.DeviceContext.logicalDevice,
 		RenderTask,
 		RendererContext.CommandPool.commandPool,

@@ -16,19 +16,19 @@ enum BufferCopySlots {
     DRAWMETA_COPY = 3
 };
 
-VKSCENE::MeshManager::MeshManager(VKAPP::RendererContext &RendererContext)
+SCENE::MeshManager::MeshManager(RENDERER::RendererContext &RendererContext)
 {
     Create(RendererContext);
 }
 
-void VKSCENE::MeshManager::Create(VKAPP::RendererContext& RendererContext)
+void SCENE::MeshManager::Create(RENDERER::RendererContext& RendererContext)
 {
     this->RendererContext = &RendererContext;
     SceneMeshIndexBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     PerformanceModeBuffers.Create();
 }
 
-void VKSCENE::MeshManager::Destroy(VkDevice& LogicalDevice)
+void SCENE::MeshManager::Destroy(VkDevice& LogicalDevice)
 {
     PerformanceModeBuffers.Destroy(RendererContext->DeviceContext.logicalDevice);
     //BalancedModeBuffers.Destroy(RendererContext->DeviceContext.logicalDevice);
@@ -39,10 +39,23 @@ void VKSCENE::MeshManager::Destroy(VkDevice& LogicalDevice)
     }
 }
 
-void VKSCENE::MeshManager::UpdateMeshTransformations(uint32_t CurrentFrame)
+void SCENE::MeshManager::UpdateMeshTransformations(std::vector<ModelInstance*>& UpdateList, uint32_t CurrentFrame)
 {
+    if (UpdateList.empty()) return;
     uint8_t* Destination = reinterpret_cast<uint8_t*>(PerformanceModeBuffers.ModelMatricesBuffers[CurrentFrame].Buffer.MappedMemory);
     auto& CurrentFrameModelEntries = ModelEntries[CurrentFrame].ModelEntries;
+
+    for (auto& ModelInstance : UpdateList)
+    {
+        auto& AllocatedMemoryRegion = CurrentFrameModelEntries[ModelInstance->Source].Instances[ModelInstance];
+        glm::mat4 ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+        memcpy(Destination + AllocatedMemoryRegion[0].Offset,
+            &ModelMatrix,
+            AllocatedMemoryRegion[0].Size
+        );
+    }
+
+   /*
     for (auto &[ModelPtr,ModelEntry] : CurrentFrameModelEntries)
     {
         for (auto& [InstancePtr, AllocatedMemoryRegion] : ModelEntry.Instances)
@@ -54,9 +67,10 @@ void VKSCENE::MeshManager::UpdateMeshTransformations(uint32_t CurrentFrame)
             );
         }
     }
+    */
 }
 
-void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
+void SCENE::MeshManager::AppendModels(MeshAppendInfo Info)
 {
     auto& CurrentFrame = Info.FrameIndex;
     auto& EnabledMeshCount = PerformanceModeBuffers.EnabledMeshCount[CurrentFrame];
@@ -99,9 +113,8 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
         //Handle multiple references to the model
         auto& ModelIterator = CurrentFrameModelEntries.ModelEntries.find(ModelInstance->Source);
         bool DoesModelAlreadyExist = ModelIterator != CurrentFrameModelEntries.ModelEntries.end();
-        ModelIterator->second.MetaData.IsChanged = false;
 
-        std::array<VKCORE::MemoryRegion, 2> NewInstanceMemoryRegions;
+        std::array<RENDERER_CORE::MemoryRegion, 2> NewInstanceMemoryRegions;
         NewInstanceMemoryRegions[0] = ModelMatricesBufferAllocator.Allocate(SizeOfMat4);
 
         InsertedInstanceCount++;
@@ -159,13 +172,13 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
         IsModelMatrixesBufferReallocated = ModelMatricesBufferCapacity < ModelMatricesBufferAllocator.GetCapacity(),
         IsDrawMetaDataBufferReallocated = DrawMetaDataBufferCapacity < DrawMetaDataBufferAllocator.GetCapacity();
 
-    std::vector<VKCORE::BufferCopyInfo> CopyInfos(4);
-    std::vector<VKCORE::DescriptorSetWriteBuffer> WriteInfos(3);
+    std::vector<RENDERER_CORE::BufferCopyInfo> CopyInfos(4);
+    std::vector<RENDERER_CORE::DescriptorSetWriteBuffer> WriteInfos(3);
     //In case the buffer needs be enlarged , create a new buffer and copy existing data into it.
     if (IsVertexBufferReallocated)
     {
         VertexBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
-        VKCORE::CreateBuffer(
+        RENDERER_CORE::CreateBuffer(
             RendererContext->DeviceContext.physicalDevice,
             RendererContext->DeviceContext.logicalDevice,
             VertexBufferAllocator.GetCapacity(),
@@ -177,7 +190,7 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
     if (IsIndexBufferReallocated)
     {
         IndexBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
-        VKCORE::CreateBuffer(
+        RENDERER_CORE::CreateBuffer(
             RendererContext->DeviceContext.physicalDevice,
             RendererContext->DeviceContext.logicalDevice,
             IndexBufferAllocator.GetCapacity(),
@@ -189,7 +202,7 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
     if (IsIndirectBufferReallocated)
     {
         IndirectBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
-        VKCORE::CreateBuffer(
+        RENDERER_CORE::CreateBuffer(
             RendererContext->DeviceContext.physicalDevice,
             RendererContext->DeviceContext.logicalDevice,
             IndirectBufferAllocator.GetCapacity(),
@@ -198,19 +211,19 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
             IndirectBuffer.Buffer
         );
 
-        VKCORE::DescriptorSetWriteBuffer IndirectBufferWrite(
+        RENDERER_CORE::DescriptorSetWriteBuffer IndirectBufferWrite(
             IndirectBuffer.Buffer,
             IndirectBufferAllocator.GetCapacity(),
             1,
             Info.TargetDescriptorSets[CurrentFrame],
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
         );
-        VKCORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, { IndirectBufferWrite }, {});
+        RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, { IndirectBufferWrite }, {});
     }
     if (IsModelMatrixesBufferReallocated)
     {
         ModelMatricesBuffer.Buffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
-        VKCORE::CreateBuffer(
+        RENDERER_CORE::CreateBuffer(
             RendererContext->DeviceContext.physicalDevice,
             RendererContext->DeviceContext.logicalDevice,
             ModelMatricesBufferAllocator.GetCapacity(),
@@ -220,19 +233,19 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
         );
         ModelMatricesBuffer.Buffer.Map(RendererContext->DeviceContext.logicalDevice, 0, ModelMatricesBufferAllocator.GetCapacity(), 0);
 
-        VKCORE::DescriptorSetWriteBuffer ModelMatrixBufferWrite(
+        RENDERER_CORE::DescriptorSetWriteBuffer ModelMatrixBufferWrite(
             ModelMatricesBuffer.Buffer.Buffer,
             ModelMatricesBufferAllocator.GetCapacity(), 
             0, 
             Info.TargetDescriptorSets[CurrentFrame], 
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
         );
-        VKCORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, { ModelMatrixBufferWrite }, {});
+        RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, { ModelMatrixBufferWrite }, {});
     }
     if (IsDrawMetaDataBufferReallocated)
     {
         DrawMetaDataBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
-        VKCORE::CreateBuffer(
+        RENDERER_CORE::CreateBuffer(
             RendererContext->DeviceContext.physicalDevice,
             RendererContext->DeviceContext.logicalDevice,
             DrawMetaDataBufferAllocator.GetCapacity(),
@@ -241,14 +254,14 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
             DrawMetaDataBuffer.Buffer
         );
 
-        VKCORE::DescriptorSetWriteBuffer DrawMetaDataBufferWrite(
+        RENDERER_CORE::DescriptorSetWriteBuffer DrawMetaDataBufferWrite(
             DrawMetaDataBuffer.Buffer,
             DrawMetaDataBufferAllocator.GetCapacity(),
             2,
             Info.TargetDescriptorSets[CurrentFrame],
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
         );
-        VKCORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, { DrawMetaDataBufferWrite }, {});
+        RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, { DrawMetaDataBufferWrite }, {});
     }
         
     size_t VertexStagingBufferSize = IsVertexBufferReallocated ? VertexBufferAllocator.GetCapacity() : VertexBufferSize,
@@ -257,10 +270,15 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
         DrawMetaDataBufferSize = DrawMetaDataBufferAllocator.GetCapacity();
         
     size_t TotalStagingBufferSize = VertexStagingBufferSize + IndexStagingBufferSize + IndirectStagingBufferSize + DrawMetaDataBufferSize;
+    if (!TotalStagingBufferSize)
+    {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Unable to proceed model appending operation, faulty staging buffer!");
+        throw std::runtime_error("Faulty staging buffer!");
+    }
 
-    VKCORE::PersistentBuffer StagingBuffer{};
-    VKCORE::VirtualArenaAllocator StagingBufferAllocator(TotalStagingBufferSize);
-    VKCORE::CreateStagingBuffer(
+    RENDERER_CORE::PersistentBuffer StagingBuffer{};
+    RENDERER_CORE::VirtualArenaAllocator StagingBufferAllocator(TotalStagingBufferSize);
+    RENDERER_CORE::CreateStagingBuffer(
         RendererContext->DeviceContext.physicalDevice,
         RendererContext->DeviceContext.logicalDevice,
         TotalStagingBufferSize,
@@ -297,8 +315,8 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
                 NewDrawMetaData.MeshID = CurrentMesh;
                 NewDrawMetaData.ModelMatrixIndex = AllocatedMemoryRegions[0].Offset / SizeOfMat4;
                 
-                VKCORE::MemoryRegion DrawMetaDataAllocatedRegion = DrawMetaDataBufferAllocator.Allocate(SizeOfDrawMetaData);
-                VKCORE::MemoryRegion DrawMetaDataStagingAllocatedRegion = StagingBufferAllocator.Allocate(SizeOfDrawMetaData);
+                RENDERER_CORE::MemoryRegion DrawMetaDataAllocatedRegion = DrawMetaDataBufferAllocator.Allocate(SizeOfDrawMetaData);
+                RENDERER_CORE::MemoryRegion DrawMetaDataStagingAllocatedRegion = StagingBufferAllocator.Allocate(SizeOfDrawMetaData);
                 AllocatedMemoryRegions[1] = DrawMetaDataAllocatedRegion;
 
                 memcpy(StagingBufferPtr + DrawMetaDataStagingAllocatedRegion.Offset, &NewDrawMetaData, DrawMetaDataAllocatedRegion.Size);
@@ -315,7 +333,7 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
             if (IsVertexBufferReallocated || IsMeshJustInserted)
             {
                 VertexSize = MeshEntryPtr->Vertices.size() * SizeOfVertex;
-                VKCORE::MemoryRegion AllocatedRegion = StagingBufferAllocator.Allocate(VertexSize);
+                RENDERER_CORE::MemoryRegion AllocatedRegion = StagingBufferAllocator.Allocate(VertexSize);
 
                 memcpy(StagingBufferPtr + AllocatedRegion.Offset, MeshEntryPtr->Vertices.data(), AllocatedRegion.Size);
 
@@ -328,7 +346,7 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
             if (IsIndexBufferReallocated || IsMeshJustInserted)
             {
                 IndexSize = MeshEntryPtr->Indices.size() * SizeOfUint32;
-                VKCORE::MemoryRegion AllocatedRegion = StagingBufferAllocator.Allocate(IndexSize);
+                RENDERER_CORE::MemoryRegion AllocatedRegion = StagingBufferAllocator.Allocate(IndexSize);
                 memcpy(StagingBufferPtr + AllocatedRegion.Offset, MeshEntryPtr->Indices.data(), AllocatedRegion.Size);
 
                 VkBufferCopy CopyRegion{};
@@ -349,7 +367,7 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
                 NewIndirectCommand.FirstInstance = DrawIndexIterator;
                 NewIndirectCommand.MeshIndex = ModelEntryMetaData.MetaData.Index;
 
-                VKCORE::MemoryRegion AllocatedRegion = StagingBufferAllocator.Allocate(SizeOfIndirectCommand);
+                RENDERER_CORE::MemoryRegion AllocatedRegion = StagingBufferAllocator.Allocate(SizeOfIndirectCommand);
                 memcpy(StagingBufferPtr + AllocatedRegion.Offset, &NewIndirectCommand, AllocatedRegion.Size);
 
                 VkBufferCopy CopyRegion{};
@@ -373,7 +391,7 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
     CopyInfos[DRAWMETA_COPY].DestinationBuffer = DrawMetaDataBuffer.Buffer.BufferObject;
     
     //Execute copy operations 
-    VKCORE::CopyBuffer(
+    RENDERER_CORE::CopyBuffer(
         CopyInfos,
         RendererContext->DeviceContext.logicalDevice, 
         RendererContext->CommandPool.commandPool, 
@@ -383,7 +401,7 @@ void VKSCENE::MeshManager::AppendModels(MeshAppendInfo Info)
     StagingBuffer.Destroy(RendererContext->DeviceContext.logicalDevice);
 }
 
-void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
+void SCENE::MeshManager::EraseModels(MeshEraseInfo Info)
 {
     auto& CurrentFrame = Info.FrameIndex;
 
@@ -437,9 +455,9 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
 
         for (auto& MeshEntry : ModelIterator->second.MeshEntries)
         {
-            const VKCORE::MemoryRegion& VertexMemoryRegion = MeshEntry.MetaData.MemoryRegions[0];
-            const VKCORE::MemoryRegion& IndexMemoryRegion = MeshEntry.MetaData.MemoryRegions[1];
-            const VKCORE::MemoryRegion& IndirectMemoryRegion = MeshEntry.MetaData.MemoryRegions[2];
+            const RENDERER_CORE::MemoryRegion& VertexMemoryRegion = MeshEntry.MetaData.MemoryRegions[0];
+            const RENDERER_CORE::MemoryRegion& IndexMemoryRegion = MeshEntry.MetaData.MemoryRegions[1];
+            const RENDERER_CORE::MemoryRegion& IndirectMemoryRegion = MeshEntry.MetaData.MemoryRegions[2];
 
             VertexBufferAllocator.Free(VertexMemoryRegion);
             IndexBufferAllocator.Free(IndexMemoryRegion);
@@ -465,9 +483,9 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
 
     bool ShouldDefragment = VertexBufferNeedsDefragmentation || IndexBufferNeedsDefragmentation || IndirectBufferNeedsDefragmentation;
     
-    std::vector<VKCORE::MemoryRegion*> VertexAllocatedRegions;
-    std::vector<VKCORE::MemoryRegion*> IndexAllocatedRegions;
-    std::vector<VKCORE::MemoryRegion*> IndirectCommandAllocatedRegions;
+    std::vector<RENDERER_CORE::MemoryRegion*> VertexAllocatedRegions;
+    std::vector<RENDERER_CORE::MemoryRegion*> IndexAllocatedRegions;
+    std::vector<RENDERER_CORE::MemoryRegion*> IndirectCommandAllocatedRegions;
     VertexAllocatedRegions.reserve(EnabledMeshCount);
     IndexAllocatedRegions.reserve(EnabledMeshCount);
     IndirectCommandAllocatedRegions.reserve(EnabledMeshCount);
@@ -488,12 +506,12 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
         throw std::runtime_error("Faulty staging buffer!");
     }
 
-    VKCORE::VirtualArenaAllocator StagingBufferAllocator(StagingBufferSize);
-    VKCORE::PersistentBuffer StagingBuffer;
+    RENDERER_CORE::VirtualArenaAllocator StagingBufferAllocator(StagingBufferSize);
+    RENDERER_CORE::PersistentBuffer StagingBuffer;
     uint8_t* StagingBufferPtr = nullptr;
     if (StagingBufferSize)
     {
-        VKCORE::CreateStagingBuffer(
+        RENDERER_CORE::CreateStagingBuffer(
             RendererContext->DeviceContext.physicalDevice,
             RendererContext->DeviceContext.logicalDevice,
             StagingBufferSize,
@@ -509,7 +527,7 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
         throw std::runtime_error("Failed staging buffer creation!");
     }
 
-    std::vector<VKCORE::BufferCopyInfo> CopyInfos(4);
+    std::vector<RENDERER_CORE::BufferCopyInfo> CopyInfos(4);
     //Redistribute the model matrixes.
     size_t ModelIterator = 0;
     uint32_t CurrentMesh = 0;
@@ -528,8 +546,8 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
                 NewDrawMetaData.MeshID = CurrentMesh;
                 NewDrawMetaData.ModelMatrixIndex = AllocatedMemoryRegions[0].Offset / SizeOfMat4;
 
-                VKCORE::MemoryRegion DrawMetaDataAllocatedRegion = DrawMetaDataBufferAllocator.Allocate(SizeOfDrawMetaData);
-                VKCORE::MemoryRegion DrawMetaDataStagingAllocatedRegion = StagingBufferAllocator.Allocate(SizeOfDrawMetaData);
+                RENDERER_CORE::MemoryRegion DrawMetaDataAllocatedRegion = DrawMetaDataBufferAllocator.Allocate(SizeOfDrawMetaData);
+                RENDERER_CORE::MemoryRegion DrawMetaDataStagingAllocatedRegion = StagingBufferAllocator.Allocate(SizeOfDrawMetaData);
                 AllocatedMemoryRegions[1] = DrawMetaDataAllocatedRegion;
 
                 memcpy(StagingBufferPtr + DrawMetaDataStagingAllocatedRegion.Offset, &NewDrawMetaData, DrawMetaDataAllocatedRegion.Size);
@@ -571,8 +589,8 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
 
                 if (VertexBufferNeedsDefragmentation)
                 {
-                    const VKCORE::MemoryRegion& AllocatedRegion = MeshEntryMetaData.MemoryRegions[0];
-                    const VKCORE::MemoryRegion& StagingBufferAllocatedRegion = StagingBufferAllocator.Allocate(AllocatedRegion.Size);
+                    const RENDERER_CORE::MemoryRegion& AllocatedRegion = MeshEntryMetaData.MemoryRegions[0];
+                    const RENDERER_CORE::MemoryRegion& StagingBufferAllocatedRegion = StagingBufferAllocator.Allocate(AllocatedRegion.Size);
                     memcpy(StagingBufferPtr + StagingBufferAllocatedRegion.Offset, MeshEntryPtr->Vertices.data(), StagingBufferAllocatedRegion.Size);
 
                     VkBufferCopy CopyRegion{};
@@ -585,8 +603,8 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
                 }
                 if (IndexBufferNeedsDefragmentation)
                 {
-                    const VKCORE::MemoryRegion& AllocatedRegion = MeshEntryMetaData.MemoryRegions[1];
-                    const VKCORE::MemoryRegion& StagingBufferAllocatedRegion = StagingBufferAllocator.Allocate(AllocatedRegion.Size);
+                    const RENDERER_CORE::MemoryRegion& AllocatedRegion = MeshEntryMetaData.MemoryRegions[1];
+                    const RENDERER_CORE::MemoryRegion& StagingBufferAllocatedRegion = StagingBufferAllocator.Allocate(AllocatedRegion.Size);
                     memcpy(StagingBufferPtr + StagingBufferAllocatedRegion.Offset, MeshEntryPtr->Indices.data(), StagingBufferAllocatedRegion.Size);
 
                     VkBufferCopy CopyRegion{};
@@ -609,8 +627,8 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
                     NewIndirectCommand.MeshIndex = ModelEntryMetaData.MetaData.Index;
                     NewIndirectCommand.FirstInstance = DrawIndexIterator;
 
-                    const VKCORE::MemoryRegion& AllocatedRegion = MeshEntryMetaData.MemoryRegions[2];
-                    const VKCORE::MemoryRegion& StagingBufferAllocatedRegion = StagingBufferAllocator.Allocate(AllocatedRegion.Size);
+                    const RENDERER_CORE::MemoryRegion& AllocatedRegion = MeshEntryMetaData.MemoryRegions[2];
+                    const RENDERER_CORE::MemoryRegion& StagingBufferAllocatedRegion = StagingBufferAllocator.Allocate(AllocatedRegion.Size);
                     memcpy(StagingBufferPtr + StagingBufferAllocatedRegion.Offset, &NewIndirectCommand, StagingBufferAllocatedRegion.Size);
 
                     VkBufferCopy CopyRegion{};
@@ -634,7 +652,7 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
     CopyInfos[DRAWMETA_COPY].DestinationBuffer = DrawMetaDataBuffer.Buffer.BufferObject;
 
     //Execute copy operations 
-    VKCORE::CopyBuffer(
+    RENDERER_CORE::CopyBuffer(
         CopyInfos,
         RendererContext->DeviceContext.logicalDevice,
         RendererContext->CommandPool.commandPool,
@@ -644,11 +662,11 @@ void VKSCENE::MeshManager::EraseModels(MeshEraseInfo Info)
     StagingBuffer.Destroy(RendererContext->DeviceContext.logicalDevice);
 }
 
-void VKSCENE::MeshManager::WriteTexture(
+void SCENE::MeshManager::WriteTexture(
     uint32_t TextureTypeIndex,
-    VKSCENE::Mesh& Mesh,
-    VKSCENE::TextureImportManager& TextureImportManager,
-    std::vector<VKCORE::DescriptorSetWriteImage>& ImageWrites,
+    SCENE::Mesh& Mesh,
+    SCENE::TextureImportManager& TextureImportManager,
+    std::vector<RENDERER_CORE::DescriptorSetWriteImage>& ImageWrites,
     std::vector<int>& TextureIndexes,
     int& CurrentImageIndex,
     VkDescriptorSet DestinationDescriptorSet
@@ -657,7 +675,7 @@ void VKSCENE::MeshManager::WriteTexture(
     auto TextureIndex = Mesh.MeshMaterial.GetTexture(static_cast<MaterialTextureType>(TextureTypeIndex));
     if (TextureIndex)
     {
-        auto& Iterator = TextureImportManager.TextureDatas.find(TextureIndex);
+        auto Iterator = TextureImportManager.TextureDatas.find(TextureIndex);
         if (Iterator == TextureImportManager.TextureDatas.end())
         {
             TextureIndexes.push_back(-1);
@@ -665,7 +683,7 @@ void VKSCENE::MeshManager::WriteTexture(
         }
         auto& TextureData = TextureImportManager.TextureDatas[TextureIndex];
 
-        VKCORE::DescriptorSetWriteImage NewTextureWrite(
+        RENDERER_CORE::DescriptorSetWriteImage NewTextureWrite(
             TextureData.ImageView,
             TextureData.Sampler,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -682,7 +700,7 @@ void VKSCENE::MeshManager::WriteTexture(
     else TextureIndexes.push_back(-1);
 }
 
-void VKSCENE::MeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Info)
+void SCENE::MeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Info)
 {
     auto FrameIndex = Info.FrameIndex;
     auto& TextureImportManager = *Info.TextureImportManagerPtr;
@@ -690,7 +708,7 @@ void VKSCENE::MeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Info)
 
     auto& CurrentDescriptorSet = DescriptorSets[FrameIndex];
 
-    std::vector<VKCORE::DescriptorSetWriteImage> ImageWrites;
+    std::vector<RENDERER_CORE::DescriptorSetWriteImage> ImageWrites;
     std::vector<int> TextureIndexes;
     int CurrentImageIndex = 0;
     for (auto& [ModelPtr, ModelEntry] : ModelEntries[FrameIndex].ModelEntries)
@@ -725,11 +743,11 @@ void VKSCENE::MeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Info)
     VkDeviceSize BufferSize = sizeof(int) * TextureIndexes.size();
     TextureIndexBufferAllocator.Allocate(BufferSize);
 
-    std::vector<VKCORE::DescriptorSetWriteBuffer> BufferWrites;
+    std::vector<RENDERER_CORE::DescriptorSetWriteBuffer> BufferWrites;
     if (TextureIndexBufferAllocator.GetCapacity() > OldCapacity)
     {
         CurrentTextureIndexBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
-        VKCORE::CreateBuffer(
+        RENDERER_CORE::CreateBuffer(
             RendererContext->DeviceContext.physicalDevice,
             RendererContext->DeviceContext.logicalDevice,
             TextureIndexBufferAllocator.GetCapacity(),
@@ -738,7 +756,7 @@ void VKSCENE::MeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Info)
             CurrentTextureIndexBuffer.Buffer
         );
 
-        VKCORE::DescriptorSetWriteBuffer DrawMetaDataBufferWrite(
+        RENDERER_CORE::DescriptorSetWriteBuffer DrawMetaDataBufferWrite(
             CurrentTextureIndexBuffer.Buffer,
             TextureIndexBufferAllocator.GetCapacity(),
             1,
@@ -748,14 +766,14 @@ void VKSCENE::MeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Info)
         BufferWrites.push_back(DrawMetaDataBufferWrite);
     }
 
-    VKCORE::WriteDescriptorSets(
+    RENDERER_CORE::WriteDescriptorSets(
         RendererContext->DeviceContext.logicalDevice,
         BufferWrites,
         ImageWrites
     );
 
-    VKCORE::PersistentBuffer TextureIndexStagingBuffer;
-    VKCORE::CreateStagingBuffer(
+    RENDERER_CORE::PersistentBuffer TextureIndexStagingBuffer;
+    RENDERER_CORE::CreateStagingBuffer(
         RendererContext->DeviceContext.physicalDevice,
         RendererContext->DeviceContext.logicalDevice,
         TextureIndexBufferAllocator.GetCapacity(),
@@ -765,7 +783,7 @@ void VKSCENE::MeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Info)
 
     memcpy(TextureIndexStagingBuffer.MappedMemory, TextureIndexes.data(), BufferSize);
   
-    VKCORE::CopyBuffer(
+    RENDERER_CORE::CopyBuffer(
         TextureIndexStagingBuffer.Buffer.BufferObject,
         CurrentTextureIndexBuffer.Buffer.BufferObject,
         BufferSize,

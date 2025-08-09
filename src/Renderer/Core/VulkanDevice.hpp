@@ -8,7 +8,7 @@
 #include "VulkanUtils.hpp"
 #include <functional>
 
-namespace VKCORE
+namespace RENDERER_CORE
 {
     struct VulkanDeviceCreateInfo
     {
@@ -19,15 +19,17 @@ namespace VKCORE
 
     struct QueueFamilyIndices {
         std::optional<uint32_t> GraphicsFamily;
+        std::optional<uint32_t> GraphicsComputeFamily;
         std::optional<uint32_t> ComputeFamily;
         std::optional<uint32_t> PresentFamily;
 
         bool HasGraphics() { return GraphicsFamily.has_value(); };
         bool HasCompute() { return ComputeFamily.has_value(); };
         bool HasPresent() { return PresentFamily.has_value(); };
+        bool HasComputeGraphics() { return GraphicsComputeFamily.has_value(); };
 
         bool isComplete() {
-            return GraphicsFamily.has_value() && PresentFamily.has_value() && ComputeFamily.has_value();
+            return GraphicsComputeFamily.has_value() && GraphicsFamily.has_value() && PresentFamily.has_value() && ComputeFamily.has_value();
         }
     };
 
@@ -52,7 +54,8 @@ namespace VKCORE
         VkDevice& LogicalDevice,
         VkQueue& GraphicsQueue,
         VkQueue& PresentQueue,
-        VkQueue& ComputeQueue
+        VkQueue& ComputeQueue,
+        VkQueue& GraphicsComputeQueue
     );
 
 
@@ -78,11 +81,14 @@ namespace VKCORE
 
         VkPhysicalDeviceFeatures DeviceFeatures;
         VkPhysicalDeviceProperties DeviceProperties;
+
         VkDevice logicalDevice;
         VkPhysicalDevice physicalDevice;
-        VkQueue PresentQueue;
-        VkQueue GraphicsQueue;
-        VkQueue ComputeQueue;
+
+        VkQueue PresentQueue = VK_NULL_HANDLE;
+        VkQueue GraphicsQueue = VK_NULL_HANDLE;
+        VkQueue ComputeQueue = VK_NULL_HANDLE;
+        VkQueue GraphicsComputeQueue = VK_NULL_HANDLE;
     private:
     };
 }

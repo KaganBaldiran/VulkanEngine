@@ -5,12 +5,12 @@
 #include "../../Common/CommonDefinitions.hpp"
 #include <vulkan/vk_enum_string_helper.h>
 
-VKCORE::DescriptorPool::DescriptorPool(const std::vector<std::pair<VkDescriptorType,uint32_t>> &PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice, VkDescriptorPoolCreateFlags Flags)
+RENDERER_CORE::DescriptorPool::DescriptorPool(const std::vector<std::pair<VkDescriptorType,uint32_t>> &PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice, VkDescriptorPoolCreateFlags Flags)
 {
     Create(PoolSizes, MaxSets, LogicalDevice,Flags);
 }
 
-void VKCORE::DescriptorPool::Create(const std::vector<std::pair<VkDescriptorType, uint32_t>>& PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice,VkDescriptorPoolCreateFlags Flags)
+void RENDERER_CORE::DescriptorPool::Create(const std::vector<std::pair<VkDescriptorType, uint32_t>>& PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice,VkDescriptorPoolCreateFlags Flags)
 {
     if (PoolSizes.empty() || MaxSets == 0)
         throw std::runtime_error("Descriptor pool sizes or max sets must be non-zero");
@@ -38,7 +38,7 @@ void VKCORE::DescriptorPool::Create(const std::vector<std::pair<VkDescriptorType
     LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created descriptor pool [" + Log + "]."));
 }
 
-void VKCORE::DescriptorPool::Destroy(VkDevice& LogicalDevice)
+void RENDERER_CORE::DescriptorPool::Destroy(VkDevice& LogicalDevice)
 {
     if (descriptorPool)
     {

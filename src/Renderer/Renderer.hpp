@@ -41,7 +41,7 @@ const bool EnableValidationLayers = false;
 const bool EnableValidationLayers = true;
 #endif // !NDEBUG
 
-namespace VKAPP
+namespace RENDERER
 { 
     struct Matrixes;
     struct PersistentBuffer;
@@ -50,7 +50,7 @@ namespace VKAPP
     {
     public:
         void Initialize(RendererContext& DestinationRendererContext,bool EnablePhysicsDebugDrawing);
-        void RenderFrame(VKSCENE::Scene &Scene);
+        void RenderFrame(SCENE::Scene &Scene);
         void Destroy();
 
         bool EnablePhysicsDebugDrawing;
@@ -63,64 +63,64 @@ namespace VKAPP
 
         std::vector<VkCommandBuffer> CommandBuffers;
 
-        std::vector<VKCORE::Buffer> UBO;
+        std::vector<RENDERER_CORE::Buffer> UBO;
         std::vector<void*> UBOmapped;
 
-        std::vector<VKCORE::PersistentBuffer> LightingPassUBOs;
+        std::vector<RENDERER_CORE::PersistentBuffer> LightingPassUBOs;
 
-        std::vector<VKCORE::PersistentBuffer> PhysicsDebugLineVertexBuffers;
+        std::vector<RENDERER_CORE::PersistentBuffer> PhysicsDebugLineVertexBuffers;
         int MaxLines;
         VkDeviceSize PhysicsDebugLineVertexBuffersize;
 
         std::vector<GeometryBuffer> Gbuffers;
 
-        VKCORE::DescriptorPool descriptorPool;
-        VKCORE::DescriptorSetLayout LightingPassLayout;
+        RENDERER_CORE::DescriptorPool descriptorPool;
+        RENDERER_CORE::DescriptorSetLayout LightingPassLayout;
         std::vector<VkDescriptorSet> LightingPassDescriptorSets;
         std::vector<VkDescriptorSetLayout> LightingPassLayouts;
 
         std::vector<VkDescriptorSet> GbufferPassDescriptorSets;
         std::vector<VkDescriptorSetLayout> GbufferPassLayouts;
 
-        VKCORE::TextureData DepthImage{};
+        RENDERER_CORE::TextureData DepthImage{};
 
-        VKCORE::GraphicsPipeline LightingPassGraphicsPipeline;
-        VKCORE::GraphicsPipeline PhysicsDebugGraphicsPipeline;
+        RENDERER_CORE::GraphicsPipeline LightingPassGraphicsPipeline;
+        RENDERER_CORE::GraphicsPipeline PhysicsDebugGraphicsPipeline;
 
-        VKCORE::PipelineBarrier2 PipelineBarrier2;
+        RENDERER_CORE::PipelineBarrier2 PipelineBarrier2;
 
-        std::vector<VKCORE::FrameSyncObjects> SyncObjects;
+        std::vector<RENDERER_CORE::FrameSyncObjects> SyncObjects;
         uint32_t CurrentFrame = 0;
     private:
         void InitializePipelines();
         void OnRecreateSwapChain();
 
         void RenderGeometryPass(
-            VKSCENE::Scene& Scene,
-            VKSCENE::Camera3D& Camera, 
+            SCENE::Scene& Scene,
+            SCENE::Camera3D& Camera, 
             VkCommandBuffer& CommandBuffer, 
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame
         );
 
         void RenderLightingPass(
-            VKSCENE::Scene& Scene,
-            VKSCENE::Camera3D &Camera,
+            SCENE::Scene& Scene,
+            SCENE::Camera3D &Camera,
             VkCommandBuffer& CommandBuffer,
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame
         );
 
         void RenderPhysicsDebugPass(
-            VKSCENE::Scene& Scene,
-            VKSCENE::Camera3D& Camera,
+            SCENE::Scene& Scene,
+            SCENE::Camera3D& Camera,
             VkCommandBuffer& CommandBuffer,
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame
         );
 
         std::queue<std::function<void(VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)>> RenderTasks;
-        std::vector<VKCORE::Buffer*> SceneBufferDestroyList;
+        std::vector<RENDERER_CORE::Buffer*> SceneBufferDestroyList;
     };
 
     struct Matrixes {
