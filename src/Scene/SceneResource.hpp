@@ -11,9 +11,6 @@
 
 namespace SCENE
 {
-	//Forward Declarations
-	class ResourceDependencyManager;
-
 	enum ResourceType
 	{
 		RESOURCE_TYPE_UNSPECIFIED = 0,
@@ -23,21 +20,17 @@ namespace SCENE
 		RESOURCE_TYPE_ENTITY = 4
 	};
 
-    class SceneResource  
+    uint64_t GenerateResourceID();
+
+    class Resource  
     {  
-        friend class ResourceDependencyManager;  
     public:  
-        SceneResource();  
-        virtual ~SceneResource() = default;  
+        Resource();  
+        virtual ~Resource() = default;  
 
         ResourceType resourceType = RESOURCE_TYPE_UNSPECIFIED;  
-        std::string Name;  
         const uint64_t ResourceID;  
-
-        void SetDirty();  
     protected:  
-        ResourceDependencyManager* dependencyManager = nullptr;  
          
-        static uint64_t GenerateResourceID();  
     };
 }

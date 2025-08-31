@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../Renderer/Core/VulkanImage.hpp"
+#include "../Common/DestructionQueue.hpp"
 #include <array>
 
 #include "SceneResource.hpp"
@@ -18,14 +19,14 @@ namespace SCENE
 {
 	class ResourceDependencyManager;
 
-	class Cubemap : public SceneResource
+	class Cubemap : public Resource , public COMMON::Destructible
 	{
 	public:
-		Cubemap(RENDERER::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height);
+		Cubemap(RENDERER::RendererContext& RendererContext,uint32_t Width, uint32_t Height);
 		Cubemap() = default;
-		void Create(RENDERER::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height);
+		void Create(RENDERER::RendererContext& RendererContext,uint32_t Width, uint32_t Height);
 		
-		void Destroy(RENDERER::RendererContext& RendererContext);
+		void Destroy() override;
 
 		glm::ivec2 Size;
 		VkImage CubemapImage = VK_NULL_HANDLE;
@@ -42,6 +43,8 @@ namespace SCENE
 	private:
 		void CreateCubemapTexture(RENDERER::RendererContext& RendererContext);
 		void CreateConvolutionTexture(RENDERER::RendererContext& RendererContext);
+
+		RENDERER::RendererContext* RendererContext = nullptr;
 	};
 
 	void ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RENDERER::RendererContext& RendererContext);

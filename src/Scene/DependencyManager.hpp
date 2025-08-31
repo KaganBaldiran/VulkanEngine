@@ -38,17 +38,17 @@ namespace SCENE
 	/// </summary>
 	class ResourceDependencyManager
 	{
-		friend class SceneResource;
+		friend class Resource;
 		friend class Scene;
 	public:
 		ResourceDependencyManager(RENDERER::RendererContext& rendererContext);
 		ResourceDependencyManager() = default;
 		void Create(RENDERER::RendererContext& rendererContext);
 
-		void RegisterResource(SceneResource& Resource);
+		void RegisterResource(Resource& Resource);
 
-		void LinkSceneResource(SceneResource& Resource, Scene& DestinationScene,ResourceLinkingFlags Flags = RESOURCE_LINKING_FLAG_NONE);
-		void UnlinkSceneResource(SceneResource& Resource, Scene& DestinationScene);
+		void LinkSceneResource(Resource& Resource, Scene& DestinationScene,ResourceLinkingFlags Flags = RESOURCE_LINKING_FLAG_NONE);
+		void UnlinkSceneResource(Resource& Resource, Scene& DestinationScene);
 		void UpdateDependencies();
 
 		/// <summary>
@@ -56,28 +56,28 @@ namespace SCENE
 		/// </summary>
 		/// <param name="Name">The name of the resource to retrieve.</param>
 		/// <returns>A pointer to the linked SceneResource if found; otherwise, nullptr.</returns>
-		SceneResource* GetLinkedResource(std::string Name);
+		Resource* GetLinkedResource(std::string Name);
 		/// <summary>
 		/// Retrieves the linked SceneResource associated with the given ID.
 		/// </summary>
 		/// <param name="ID">The unique identifier of the linked resource to retrieve.</param>
 		/// <returns>A pointer to the linked SceneResource if found; otherwise, nullptr.</returns>
-		SceneResource* GetLinkedResource(uint64_t ID);
+		Resource* GetLinkedResource(uint64_t ID);
 		/// <summary>
 		/// Retrieves the set of scenes that are linked to the specified scene resource.
 		/// </summary>
 		/// <param name="Resource">A reference to the SceneResource whose linked scenes are to be retrieved.</param>
 		/// <returns>A set containing pointers to Scene objects that are linked to the given resource.</returns>
-		std::set<Scene*> GetLinkedResourceScenes(SceneResource &Resource);
+		std::set<Scene*> GetLinkedResourceScenes(Resource &Resource);
 	private:
-		void MarkResourceDirty(SceneResource &Resource);
+		void MarkResourceDirty(Resource &Resource);
 		bool IsResourceDirty(uint64_t ResourceID);
 
-		std::unordered_map<SceneResource*, std::set<Scene*>> ResourceSceneLinks;
-		std::unordered_map<std::string,SceneResource*> NameResourceLinks;
-		std::unordered_map<uint64_t,SceneResource*> IDResourceLinks;
+		std::unordered_map<Resource*, std::set<Scene*>> ResourceSceneLinks;
+		std::unordered_map<std::string,Resource*> NameResourceLinks;
+		std::unordered_map<uint64_t,Resource*> IDResourceLinks;
 
-		std::unordered_map<SceneResource*,ResourceLinkingFlags> LinkingFlags;
+		std::unordered_map<Resource*,ResourceLinkingFlags> LinkingFlags;
 
 		RENDERER::RendererContext* rendererContext;
 		std::bitset<16384> DirtyResourceFlags;

@@ -3,11 +3,18 @@
 //Compile time application settings
 //{
 #ifndef VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS 
-#define VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS false
+#define VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS true
 #endif // !VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS 
 
+#ifndef GLOBAL_PREFERENCES_HIGH_PRECISION_POSITIONS 
+#define GLOBAL_PREFERENCES_HIGH_PRECISION_POSITIONS false
+#endif // !GLOBAL_PREFERENCES_HIGH_PRECISION_POSITIONS 
+
 //Max count of frames in flight
-constexpr int MAX_FRAMES_IN_FLIGHT = 4;
+constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+//Internal texture descriptor growth step 
+constexpr size_t TextureDescriptorBlockSize = 250;
+
 #ifndef GLOBAL_LOG_FILE_PATH 
 #define GLOBAL_LOG_FILE_PATH "Log.txt" 
 #endif

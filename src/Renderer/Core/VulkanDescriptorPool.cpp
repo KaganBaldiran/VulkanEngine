@@ -32,17 +32,17 @@ void RENDERER_CORE::DescriptorPool::Create(const std::vector<std::pair<VkDescrip
 
     if (vkCreateDescriptorPool(LogicalDevice, &DescriptorPoolCreateInfo, nullptr, &descriptorPool) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating descriptor pool [" + Log + "]."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed creating descriptor pool [" + Log + "]."));
         throw std::runtime_error("Failed to create a descriptor pool");
     }
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created descriptor pool [" + Log + "]."));
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created descriptor pool [" + Log + "]."));
 }
 
 void RENDERER_CORE::DescriptorPool::Destroy(VkDevice& LogicalDevice)
 {
     if (descriptorPool)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Destroyed descriptor pool [" + Log + "]."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Destroyed descriptor pool [" + Log + "]."));
         Log.clear();
         vkDestroyDescriptorPool(LogicalDevice, this->descriptorPool, nullptr);
         descriptorPool = VK_NULL_HANDLE;

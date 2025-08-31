@@ -5,7 +5,7 @@
 #include <thread>
 #include <unordered_map>
 
-namespace VKCOMMON
+namespace COMMON
 {
 	enum LogSeverity
 	{
@@ -39,9 +39,9 @@ namespace VKCOMMON
 		std::vector<std::pair<LogMessage,std::string>> MessageQueue;
 	};
 
-#define LOG_FILE(FilePath,Message) VKCOMMON::Logger::Get().FileLog(FilePath,Message);
-#define LOG_FILE(FilePath,Severity,Message) VKCOMMON::Logger::Get().FileLog(FilePath,{Severity,Message});
-#define LOG_CONSOLE(FilePath,Message) VKCOMMON::Logger::Get().ConsoleLog(FilePath,Message);
+#define LOG_FILE(FilePath,Message) COMMON::Logger::Get().FileLog(FilePath,Message);
+#define LOG_FILE(FilePath,Severity,Message) COMMON::Logger::Get().FileLog(FilePath,{Severity,Message});
+#define LOG_CONSOLE(FilePath,Message) COMMON::Logger::Get().ConsoleLog(FilePath,Message);
 }
 
 

@@ -10,16 +10,15 @@
 
 namespace SCENE
 {
-	class ResourceDependencyManager;
-
-	class ModelInstance : public SceneResource
+	class ModelInstance : public Resource
 	{
 	public:
-		ModelInstance(Model3D& Source);
+		ModelInstance(ModelHandle& Source);
 		ModelInstance() = default;
-		void Create(Model3D& Source);
-		Model3D* Source = nullptr;
+		void Create(ModelHandle& Source);
+		ModelHandle* Source = nullptr;
 		Transformation Transformations;
+		std::vector<Material> Materials;
 	private:
 	};
 }

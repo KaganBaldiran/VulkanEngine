@@ -66,11 +66,34 @@ namespace SCENE
         MESH_UPDATE_MODE_MEMORY_SAVING = 2
     };
 
+    struct BoundingBoxAABB
+    {
+        glm::vec3 Center, Extends;
+    };
+
+    
     struct Mesh
     {
         std::vector<Vertex3D> Vertices;
         std::vector<uint32_t> Indices;
         Material MeshMaterial;
+        bool Enabled = true;
+        MeshUpdateMode meshUpdateMode = MESH_UPDATE_MODE_PERFORMANCE;
+        BoundingBoxAABB BoundingBox;
+    };
+
+    struct GeometryData
+    {
+        std::vector<Vertex3D> Vertices;
+        std::vector<uint32_t> Indices;
+        Material MeshMaterial;
+        BoundingBoxAABB BoundingBox;
+    };
+
+    class MeshHandle 
+    {
+    public:
+        size_t GeometryID = 0;
         bool Enabled = true;
         MeshUpdateMode meshUpdateMode = MESH_UPDATE_MODE_PERFORMANCE;
     };
@@ -93,6 +116,12 @@ namespace SCENE
         void SetModelMeshesUpdateMode(MeshUpdateMode MeshUpdateMode);
     };
 
+    struct ModelHandle : public Resource
+    {
+        std::vector<MeshHandle> Meshes;
+    };
+
+    /*
     struct ModelImportInfo
     {
         SCENE::Model3D* DestinationModel;
@@ -115,6 +144,7 @@ namespace SCENE
     private:
         TextureImportManager *ImportManager = nullptr;
     };
+    */
 
     struct BatchInfo
     {
@@ -123,6 +153,7 @@ namespace SCENE
     };
 
     void Import3Dmodel(const char* FilePath, Model3D& DstModel,SCENE::TextureImportManager& ImportManager);
+    void Import3DGeometry(const char* FilePath, std::vector<GeometryData>& DstGeometryDatas,SCENE::TextureImportManager& ImportManager);
     BatchInfo BatchModels(std::vector<SCENE::Model3D>& Models, std::vector<DrawInfo>& DestinationDrawInfos);
     BatchInfo BatchModels(std::vector<Model3D*> Models, std::vector<DrawInfo>& DestinationDrawInfos);
 }

@@ -13,7 +13,7 @@ layout(location = 3) flat out int MeshIndex;
 layout(location = 4) out vec3 OutTangent;
 layout(location = 5) out vec3 OutBitangent;
 
-layout(binding = 0,set = 0) uniform Matrixes{
+layout(push_constant) uniform Matrixes{
     mat4 ViewMatrix;
     mat4 ProjectionMatrix;
 };
@@ -23,11 +23,11 @@ struct DrawMetadata {
 	int ModelMatrixIndex;
 };
 
-layout(std430,binding = 0,set = 1) readonly buffer ModelMatrixesBuffer{
+layout(std430,binding = 0,set = 0) readonly buffer ModelMatrixesBuffer{
     mat4 ModelMatrixes[];
 };
 
-layout(std430,binding = 2,set = 1) readonly buffer DrawMetaDataBuffer{
+layout(std430,binding = 2,set = 0) readonly buffer DrawMetaDataBuffer{
     DrawMetadata DrawDatas[];
 };
 

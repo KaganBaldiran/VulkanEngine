@@ -13,13 +13,13 @@ void SCENE::ResourceDependencyManager::Create(RENDERER::RendererContext& rendere
 	this->rendererContext = &rendererContext;
 }
 
-void SCENE::ResourceDependencyManager::RegisterResource(SceneResource& Resource)
+void SCENE::ResourceDependencyManager::RegisterResource(Resource& Resource)
 {
-	Resource.dependencyManager = this;
 }
 
-void SCENE::ResourceDependencyManager::LinkSceneResource(SceneResource& Resource, Scene& DestinationScene, ResourceLinkingFlags Flags)
+void SCENE::ResourceDependencyManager::LinkSceneResource(Resource& Resource, Scene& DestinationScene, ResourceLinkingFlags Flags)
 {
+	/*
 	if (!Resource.dependencyManager) Resource.dependencyManager = this;
 	if (!DestinationScene.DependencyManager) DestinationScene.DependencyManager = this;
 	
@@ -42,7 +42,7 @@ void SCENE::ResourceDependencyManager::LinkSceneResource(SceneResource& Resource
 	{
 		if (Cubemap* cubeMap = dynamic_cast<Cubemap*>(&Resource))
 		{
-			DestinationScene.SetCubemap(*cubeMap);
+			DestinationScene.LinkCubemap(*cubeMap);
 		}
 		break;
 	}
@@ -79,10 +79,12 @@ void SCENE::ResourceDependencyManager::LinkSceneResource(SceneResource& Resource
 	}
 
 	LinkingFlags[&Resource] = Flags;
+	*/
 }
 
-void SCENE::ResourceDependencyManager::UnlinkSceneResource(SceneResource& Resource, Scene& DestinationScene)
+void SCENE::ResourceDependencyManager::UnlinkSceneResource(Resource& Resource, Scene& DestinationScene)
 {
+	/*
 	auto& Scenes = this->ResourceSceneLinks[&Resource];
 	auto SceneIterator = Scenes.find(&DestinationScene);
 	if (SceneIterator == Scenes.end()) {
@@ -139,6 +141,7 @@ void SCENE::ResourceDependencyManager::UnlinkSceneResource(SceneResource& Resour
 		IDResourceLinks.erase(Resource.ResourceID);
 		LinkingFlags.erase(&Resource);
 	}
+	*/
 }
 
 void SCENE::ResourceDependencyManager::UpdateDependencies()
@@ -146,7 +149,7 @@ void SCENE::ResourceDependencyManager::UpdateDependencies()
 	if(DirtyResourceFlags.any()) DirtyResourceFlags.reset();
 }
 
-SCENE::SceneResource* SCENE::ResourceDependencyManager::GetLinkedResource(std::string Name)
+SCENE::Resource* SCENE::ResourceDependencyManager::GetLinkedResource(std::string Name)
 {
 	auto Iterator = NameResourceLinks.find(Name);
 	if (Iterator != NameResourceLinks.end()) {
@@ -155,7 +158,7 @@ SCENE::SceneResource* SCENE::ResourceDependencyManager::GetLinkedResource(std::s
 	return nullptr;
 }
 
-SCENE::SceneResource* SCENE::ResourceDependencyManager::GetLinkedResource(uint64_t ID)
+SCENE::Resource* SCENE::ResourceDependencyManager::GetLinkedResource(uint64_t ID)
 {
 	auto Iterator = IDResourceLinks.find(ID);
 	if (Iterator != IDResourceLinks.end()) {
@@ -164,7 +167,7 @@ SCENE::SceneResource* SCENE::ResourceDependencyManager::GetLinkedResource(uint64
 	return nullptr;
 }
 
-std::set<SCENE::Scene*> SCENE::ResourceDependencyManager::GetLinkedResourceScenes(SceneResource& Resource)
+std::set<SCENE::Scene*> SCENE::ResourceDependencyManager::GetLinkedResourceScenes(Resource& Resource)
 {
 	auto Iterator = ResourceSceneLinks.find(&Resource);
 	if (Iterator != ResourceSceneLinks.end()) {
@@ -173,7 +176,7 @@ std::set<SCENE::Scene*> SCENE::ResourceDependencyManager::GetLinkedResourceScene
 	return std::set<Scene*>();
 }
 
-void SCENE::ResourceDependencyManager::MarkResourceDirty(SceneResource& Resource)
+void SCENE::ResourceDependencyManager::MarkResourceDirty(Resource& Resource)
 {
 	DirtyResourceFlags.set(Resource.ResourceID, true);
 }

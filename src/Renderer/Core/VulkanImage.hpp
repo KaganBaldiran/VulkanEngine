@@ -20,6 +20,16 @@ namespace RENDERER_CORE
 		void Destroy(VkDevice& LogicalDevice);
 	};
 
+	struct TextureDataMultipleSamplerViews
+	{
+		VkImage Image = VK_NULL_HANDLE;
+		VkDeviceMemory ImageMemory = VK_NULL_HANDLE;
+		std::vector<VkSampler> Samplers;
+		std::vector<VkImageView> ImageViews;
+
+		void Destroy(VkDevice& LogicalDevice);
+	};
+
 	struct RawImageData
 	{
 		int Width;

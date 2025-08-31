@@ -140,7 +140,7 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::PickPhysicalDevice(VulkanDeviceCreate
 
     if (DeviceCount == 0)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Failed to detect GPUs with Vulkan support!");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Failed to detect GPUs with Vulkan support!");
         return { VK_INCOMPLETE,"Failed to detect GPUs with Vulkan support!" };
     }
 
@@ -163,7 +163,7 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::PickPhysicalDevice(VulkanDeviceCreate
     }
     else
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Failed to detect a suitable physical device!");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Failed to detect a suitable physical device!");
         return { VK_INCOMPLETE,"Failed to detect a suitable physical device!" };
     }
 
@@ -234,32 +234,32 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
 
     if (vkCreateDevice(PhysicalDevice, &DeviceCreateInfo, nullptr, &LogicalDevice) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Failed to create device.");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Failed to create device.");
         return { VK_INCOMPLETE, "Failed to create the logical device!" };
     }
 
     if (indices.HasGraphics())
     {
         vkGetDeviceQueue(LogicalDevice, indices.GraphicsFamily.value(), 0, &GraphicsQueue);
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected graphics queue [" + std::to_string(reinterpret_cast<uintptr_t>(GraphicsQueue)) + "].");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Detected graphics queue [" + std::to_string(reinterpret_cast<uintptr_t>(GraphicsQueue)) + "].");
     }
     if (indices.HasPresent())
     {
         vkGetDeviceQueue(LogicalDevice, indices.PresentFamily.value(), 0, &PresentQueue);
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected present queue [" + std::to_string(reinterpret_cast<uintptr_t>(PresentQueue)) + "].");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Detected present queue [" + std::to_string(reinterpret_cast<uintptr_t>(PresentQueue)) + "].");
     }
     if (indices.HasCompute())
     {
         vkGetDeviceQueue(LogicalDevice, indices.ComputeFamily.value(), 0, &ComputeQueue);
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected compute queue [" + std::to_string(reinterpret_cast<uintptr_t>(ComputeQueue)) + "].");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Detected compute queue [" + std::to_string(reinterpret_cast<uintptr_t>(ComputeQueue)) + "].");
     }
     if (indices.HasComputeGraphics())
     {
         vkGetDeviceQueue(LogicalDevice, indices.GraphicsComputeFamily.value(), 0, &GraphicsComputeQueue);
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected graphics-compute queue [" + std::to_string(reinterpret_cast<uintptr_t>(GraphicsComputeQueue)) + "].");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Detected graphics-compute queue [" + std::to_string(reinterpret_cast<uintptr_t>(GraphicsComputeQueue)) + "].");
     }
 
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Created device [" + std::to_string(reinterpret_cast<uintptr_t>(LogicalDevice)) + "].");
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Created device [" + std::to_string(reinterpret_cast<uintptr_t>(LogicalDevice)) + "].");
     return VULKAN_SUCCESS;
 }
 
@@ -291,11 +291,11 @@ void RENDERER_CORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, Vk
     vkGetPhysicalDeviceProperties(physicalDevice, &DeviceProperties);
     vkGetPhysicalDeviceFeatures(physicalDevice, &DeviceFeatures);
 
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Detected a suitable physical device [name(" + std::string(DeviceProperties.deviceName) +
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Detected a suitable physical device [name(" + std::string(DeviceProperties.deviceName) +
         "), device type(" + string_VkPhysicalDeviceType(DeviceProperties.deviceType) + ")].");
     if (!DeviceFeatures.drawIndirectFirstInstance && !DeviceFeatures.shaderSampledImageArrayDynamicIndexing)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, "Physical Device " + std::string(DeviceProperties.deviceName) +
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Physical Device " + std::string(DeviceProperties.deviceName) +
             " doesn't support drawIndirectFirstInstance or shaderSampledImageArrayDynamicIndexing.");
         std::cout << "Physical Device '" << DeviceProperties.deviceName <<"' doesn't support drawIndirectFirstInstance or shaderSampledImageArrayDynamicIndexing! Exitting..." << std::endl;
         exit(-1);

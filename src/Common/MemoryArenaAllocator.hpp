@@ -25,7 +25,7 @@ namespace RENDERER_CORE
 		void Free(const MemoryRegion& RegionToFree);
 		void Defragment(std::vector<MemoryRegion> &Regions);
 		void Defragment(std::vector<MemoryRegion*> &Regions);
-		void Reset();
+		void Reset(size_t Capacity = 0);
 
 		double GetFragmentationPercent();
 		inline size_t GetCapacity() noexcept { return Capacity; };

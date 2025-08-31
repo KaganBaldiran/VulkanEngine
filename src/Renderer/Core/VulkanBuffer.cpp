@@ -42,7 +42,7 @@ void RENDERER_CORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& Logi
     if (vkCreateBuffer(LogicalDevice, &BufferCreateInfo, nullptr, &DestinationBuffer.BufferObject) != VK_SUCCESS)
     {
         LOG_FILE(GLOBAL_LOG_FILE_PATH, 
-            VKCOMMON::LOG_SEVERITY_ERROR,"Unable to create the buffer [address(" + std::to_string(reinterpret_cast<uintptr_t>(DestinationBuffer.BufferObject)) + ")" + ", size(" + std::to_string(Size) + ")]" + " object.");
+            COMMON::LOG_SEVERITY_ERROR,"Unable to create the buffer [address(" + std::to_string(reinterpret_cast<uintptr_t>(DestinationBuffer.BufferObject)) + ")" + ", size(" + std::to_string(Size) + ")]" + " object.");
         throw std::runtime_error("Failed to create vertex buffer!");
     }
 
@@ -56,12 +56,12 @@ void RENDERER_CORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& Logi
 
     if (vkAllocateMemory(LogicalDevice, &AllocationInfo, nullptr, &DestinationBuffer.BufferMemory) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, "Unable to allocate memory [" + std::to_string(MemoryRequirements.size) + "] for buffer.");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Unable to allocate memory [" + std::to_string(MemoryRequirements.size) + "] for buffer.");
         throw std::runtime_error("Failed to allocate memory!");
     }
     vkBindBufferMemory(LogicalDevice, DestinationBuffer.BufferObject, DestinationBuffer.BufferMemory, 0);
 
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO,
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO,
         std::string("Buffer[address(" + std::to_string(reinterpret_cast<uintptr_t>(DestinationBuffer.BufferObject)) + 
             ")" + ", size(" + std::to_string(MemoryRequirements.size) + 
             "), usage(" + string_VkBufferUsageFlags(Usage) +
@@ -83,7 +83,7 @@ void RENDERER_CORE::Buffer::Destroy(VkDevice &LogicalDevice)
         vkDestroyBuffer(LogicalDevice, BufferObject, nullptr);
         BufferObject = VK_NULL_HANDLE; 
     }
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Buffer[address(" + std::to_string(BufferPtr) + ")] destroyed!"));
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Buffer[address(" + std::to_string(BufferPtr) + ")] destroyed!"));
 }
 
 void RENDERER_CORE::CopyBuffer(
@@ -195,7 +195,7 @@ void RENDERER_CORE::PersistentBuffer::Map(VkDevice& LogicalDevice, VkDeviceSize 
 {
     if (vkMapMemory(LogicalDevice, Buffer.BufferMemory, Offset, Size, Flags, &MappedMemory) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed mapping memory [address(" +
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed mapping memory [address(" +
             std::to_string(reinterpret_cast<uintptr_t>(Buffer.BufferMemory)) + ")]"));
         throw std::runtime_error("Unable to map memory!");
     }

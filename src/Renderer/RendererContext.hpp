@@ -20,23 +20,27 @@
 #include "Core/VulkanRender.hpp"
 #include "Core/VulkanBuffer.hpp"
 #include "Core/VertexInputDescription.hpp"
+
+#include "../Common/DestructionQueue.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
 namespace SCENE
 {
     class Scene;
+    class TextureImportManager;
 }
 
 namespace RENDERER
 {
-	class RendererContext
+	class RendererContext : COMMON::Destructible
 	{
         friend class SCENE::Scene;
+        friend class SCENE::TextureImportManager;
 	public:
         RendererContext(bool EnableValidationLayers);
         RendererContext() = default;
         void Create(bool EnableValidationLayers);
-		void Destroy();
+		void Destroy() override;
 
         void WaitDeviceIdle();
 
@@ -61,10 +65,18 @@ namespace RENDERER
 
         // IndirectDescriptorSetLayout bindings:
         // 0: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Model matrixes to be used in the G-buffer pass vertex shader
-        // 1: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Indirect command buffers accessed from G-buffer pass vertex shader
-        // 2: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Draw meta data buffers accessed from G-buffer pass vertex shader
+        // 1: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Indirect command buffers accessed from culling compute shader
+        // 2: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Draw meta data buffers accessed from culling compute shader
+        /// !TODO 3: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Culled Indirect command buffers accessed from G-buffer pass vertex shader and culling compute shader
+        /// !TODO 4: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Culled Draw meta data buffers accessed from G-buffer pass vertex shader and culling compute shader
+        /// !TODO 5: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Mesh visibility data buffers accessed from culling compute shader
         RENDERER_CORE::DescriptorSetLayout IndirectDescriptorSetLayout;
         std::vector<VkDescriptorSetLayout> IndirectDescriptorSetLayouts;
+
+        // TextureIndicesDescriptorSetLayout bindings:
+        // 0: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Texture index buffers accessed from G-buffer pass fragment shader
+        RENDERER_CORE::DescriptorSetLayout TextureIndicesDescriptorSetLayout;
+        std::vector<VkDescriptorSetLayout> TextureIndicesDescriptorSetLayouts;
 
         RENDERER_CORE::DescriptorPool HDRIrenderPassDescriptorPool;
         RENDERER_CORE::DescriptorSetLayout HDRIrenderPassLayout;
@@ -75,7 +87,6 @@ namespace RENDERER
         RENDERER_CORE::VertexInputDescription QuadVertexDescription{};
         RENDERER_CORE::VertexInputDescription CubeVertexDescription{};
 
-        RENDERER_CORE::DescriptorSetLayout GbufferPassLayout;
         std::unordered_map<uint32_t,RENDERER_CORE::GraphicsPipeline> GbufferPassPassPipelines;
         RENDERER_CORE::ShaderModule GbufferVertexShaderModule;
         RENDERER_CORE::ShaderModule GbufferFragmentShaderModule;

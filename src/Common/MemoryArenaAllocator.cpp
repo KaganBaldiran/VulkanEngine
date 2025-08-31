@@ -144,10 +144,10 @@ double RENDERER_CORE::VirtualArenaAllocator::GetFragmentationPercent()
     return  1.0 - (static_cast<double>(LargestFreeRegion) / static_cast<double>(TotalFreeSpace));
 }
 
-void RENDERER_CORE::VirtualArenaAllocator::Reset()
+void RENDERER_CORE::VirtualArenaAllocator::Reset(size_t Capacity)
 {
     FreeRegions.clear();
-    Capacity = this->ChunkSize;
+    this->Capacity = Capacity;
     FreeRegions.push_back({ 0,Capacity });
     TotalFreeSpace = Capacity;
 }

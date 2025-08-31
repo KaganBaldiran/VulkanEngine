@@ -34,10 +34,10 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateWindow(GLFWwindow** Window, uin
     *Window = glfwCreateWindow(Width, Height, WindowName, nullptr, nullptr);
     if (Window == NULL)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_VERBOSE, std::string("Failed creating window [" + std::string(WindowName) + "]."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, std::string("Failed creating window [" + std::string(WindowName) + "]."));
         return { VK_INCOMPLETE,"Unable to create window!" };
     }
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created window [" + std::string(WindowName) + "]."));
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created window [" + std::string(WindowName) + "]."));
     return VULKAN_SUCCESS;
 }
 

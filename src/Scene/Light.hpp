@@ -24,12 +24,10 @@ namespace SCENE
 		LightType Type = DIRECTIONAL_LIGHT;
 	};
 
-	class Light : public SceneResource
+	class Light : public Resource
 	{
 	public:
-		Light(ResourceDependencyManager& DependencyManager);
-		Light() = default;
-		void Create(ResourceDependencyManager& DependencyManager);
+		Light();
 
 		LightData Data;
 		bool Updated = false;

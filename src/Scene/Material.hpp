@@ -20,11 +20,11 @@ namespace SCENE
 		MATERIAL_TEXTURE_TYPE_META_DATA_SIZE
 	};
 
-	class Material : public SceneResource
+	class Material
 	{
 	public:
 		Material();
-
+		
 		glm::vec4 Albedo;
 		float Roughness;
 		float Metallic;

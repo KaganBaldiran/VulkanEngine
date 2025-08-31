@@ -7,6 +7,8 @@
 #include "../Common/Log.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
+#include "../Renderer/RendererContext.hpp"
+
 std::array<glm::vec3, 8> SCENE::GetCameraFrustum(glm::mat4 InverseProjectMatrix, glm::mat4 InverseViewMatrix)
 {
     glm::mat4 InvCameraMatrix = InverseProjectMatrix * InverseViewMatrix;
@@ -64,10 +66,6 @@ glm::mat4 SCENE::GetLightSpaceMatrix(glm::vec3 LightDirection,std::array<glm::ve
 
     glm::mat4 LightProjection = glm::ortho(MinX, MaxX, MinY, MaxY, MinZ, MaxZ);
     return LightProjection * LightViewMatrix;
-}
-
-void SCENE::ShadowMapManager::Destroy(VkDevice LogicalDevice)
-{
 }
 
 SCENE::TexturePacker3D::TexturePacker3D(glm::ivec2 PageSize)
@@ -152,7 +150,7 @@ void SCENE::TexturePacker3D::Erase(const MemoryRegion3D& Region)
     auto Iterator = Page.Regions.find(Region.Region);
     if (Iterator == Page.Regions.end())
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Attempting to erase an nonexistent 3D memory region [offset(" 
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Attempting to erase an nonexistent 3D memory region [offset(" 
                                         + std::to_string(Region.Region.Offset.x) + "," + std::to_string(Region.Region.Offset.y) + 
                                         ")size(" + std::to_string(Region.Region.Size.x) + "," + std::to_string(Region.Region.Size.y) + ")]."));
         throw std::runtime_error("Attempting to erase an nonexistent 3D memory region.");
@@ -192,4 +190,102 @@ size_t SCENE::MemoryRegion2DHasher::operator()(const MemoryRegion2D& Region) con
     seed ^= Hash2 + 0x1e9185b9 + (seed << 6) + (seed >> 2);
     seed ^= Hash3 + 0x7e2749b9 + (seed << 6) + (seed >> 2);
     return seed;
+}
+
+SCENE::ShadowMapManager::ShadowMapManager(RENDERER::RendererContext& RendererContext, glm::ivec2 PageSize)
+{
+    Create(RendererContext,PageSize);
+}
+
+void SCENE::ShadowMapManager::Create(RENDERER::RendererContext& RendererContext, glm::ivec2 PageSize)
+{
+    this->RendererContext = &RendererContext;
+    this->PageSize = PageSize;
+    this->LayerCount = 10;
+
+    /*
+    ShadowMapImageFormat = RENDERER_CORE::FindSupportedFormat(RendererContext.DeviceContext.physicalDevice, { VK_FORMAT_D32_SFLOAT,VK_FORMAT_D16_UNORM },
+        VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+    RENDERER_CORE::CreateImage(
+        RendererContext.DeviceContext.physicalDevice, 
+        RendererContext.DeviceContext.logicalDevice,
+        PageSize.x,
+        PageSize.y,
+        VK_IMAGE_TILING_OPTIMAL,
+        ShadowMapImageFormat,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        this->ShadowMapTexture.Image,
+        ShadowMapTexture.ImageMemory,
+        LayerCount
+    );
+
+    for (size_t i = 0; i < LayerCount; i++)
+    {
+        RENDERER_CORE::CreateImageView(
+            this->ShadowMapTexture.Image,
+            ShadowMapImageFormat,
+            VK_IMAGE_VIEW_TYPE_2D,
+            VK_IMAGE_ASPECT_DEPTH_BIT, 
+            RendererContext.DeviceContext.logicalDevice
+        );
+    }
+   
+    ShadowMapTexture.Samplers.emplace_back();
+    RENDERER_CORE::CreateTextureSampler(
+        RendererContext.DeviceContext.physicalDevice, 
+        RendererContext.DeviceContext.logicalDevice, 
+        ShadowMapTexture.Samplers[0], 
+        VK_FILTER_LINEAR, 
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
+    );
+    */
+}
+
+void SCENE::ShadowMapManager::Destroy()
+{
+    /*
+    ShadowMapTexture.Destroy(RendererContext->DeviceContext.logicalDevice);
+    CascadedShadowMapsMetaDataBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
+    */
+}
+
+void SCENE::ShadowMapManager::AppendCascadedShadowMap(CascadedShadowMapAppendInfo Info)
+{
+    /*
+    auto& InputInfos = Info.Infos;
+    const auto& FrameIndex = Info.FrameIndex;
+
+    auto& CurrentMetaDataBuffer = CascadedShadowMapsMetaDataBuffers[FrameIndex];
+    auto& CurrentDataBuffer = CascadedShadowMapsDataBuffers[FrameIndex];
+    auto& CurrentMetaDataBufferAllocator = CurrentMetaDataBuffer.Allocator;
+    auto& CurrentDataBufferAllocator = CurrentDataBuffer.Allocator;
+
+    auto& CurrentShadowMapEntries = this->CascadedShadowMapEntries[FrameIndex];
+    size_t SizeOfMetaData = sizeof(CascadedMapMetaData), SizeOfData = sizeof(CascadedMapData);
+
+    for (auto& InputInfo : InputInfos)
+    {
+        if (!InputInfo.SourceLight) continue;
+
+        auto Iterator = CurrentShadowMapEntries.find(InputInfo.SourceLight);
+        if (Iterator != CurrentShadowMapEntries.end()) continue;
+
+        Iterator->second.MetaDataMemoryRegion = CurrentMetaDataBufferAllocator.Allocate(SizeOfMetaData);
+        RENDERER_CORE::MemoryRegion DataBatchRegion = CurrentDataBufferAllocator.Allocate(SizeOfData * InputInfo.CascadeCount);
+
+        CascadedMapMetaData MetaData{};
+        MetaData.CascadeCount = InputInfo.CascadeCount;
+        MetaData.Offset = DataBatchRegion.Offset / SizeOfMetaData;
+        for (size_t i = 0; i < InputInfo.CascadeCount; i++)
+        {
+            CascadeEntry NewEntry{};
+            NewEntry.TextureRegion = TexturePacker.Insert()
+            Iterator->second.CascadeEntries.push_back()
+        }
+
+        
+    }
+    */
 }

@@ -1,18 +1,11 @@
 #include "SceneResource.hpp"
 #include "DependencyManager.hpp"
 
-SCENE::SceneResource::SceneResource() : ResourceID(GenerateResourceID())
+SCENE::Resource::Resource() : ResourceID(GenerateResourceID())
 {
-	Name = "Resource" + std::to_string(ResourceID);
 }
 
-void SCENE::SceneResource::SetDirty()
-{
-	assert(dependencyManager != nullptr);
-	dependencyManager->MarkResourceDirty(*this);
-}
-
-uint64_t SCENE::SceneResource::GenerateResourceID()
+uint64_t SCENE::GenerateResourceID()
 {
 	static uint64_t Iterator = 1;
 	return Iterator++;

@@ -13,12 +13,40 @@ void SCENE::TextureImportManager::AppendImportTask(TextureImportInfo ImportInfo)
 	this->ImportQueue.push(ImportInfo);
 }
 
+SCENE::TextureImportManager::TextureImportManager(RENDERER::RendererContext& RendererContext)
+{
+    Create(RendererContext);
+}
+
+void SCENE::TextureImportManager::Create(RENDERER::RendererContext& RendererContext)
+{
+    this->RendererContext = &RendererContext;
+    IsDestroyed = false;
+    DestructionPriority = 2;
+    COMMON::DestructionQueue::Get()->Register(this);
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        TextureDescriptorIndexAllocators[i].Create();
+        this->TextureDescriptorUpperBounds[i] = 0;
+    }
+}
+
 void SCENE::TextureImportManager::Destroy()
 {
-    for (auto &[id,Data]:TextureDatas)
+    if (IsDestroyed) return;
+
+    for (size_t i = 0; i < TexturesDescriptors.size(); i++)
     {
-        Data.Destroy(this->RendererContext->DeviceContext.logicalDevice);
+        TexturesDescriptors[i].Destroy(this->RendererContext->DeviceContext.logicalDevice);
     }
+    for (auto &[id,TextureDataEntry]:TextureDatas)
+    {
+        TextureDataEntry.Data.Destroy(this->RendererContext->DeviceContext.logicalDevice);
+    }
+    IsDestroyed = true;
+
+    std::cout << "Texture import manager destroyed!" << std::endl;
 }
 
 void SCENE::TextureImportManager::SubmitImport()
@@ -37,7 +65,7 @@ void SCENE::TextureImportManager::SubmitImport()
             RENDERER_CORE::RawImageData NewRawImageData;
             auto Result = RENDERER_CORE::ReadTexture(ImportInfo.FileName.c_str(), NewRawImageData);
             if (Result < 0) {
-                LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, "Failed reading texture[" + ImportInfo.FileName + "].");
+                LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Failed reading texture[" + ImportInfo.FileName + "].");
                 return false;
             };
 
@@ -56,7 +84,7 @@ void SCENE::TextureImportManager::SubmitImport()
                 RendererContext->DeviceContext.logicalDevice,
                 TempCommandPool.commandPool,
                 RendererContext->DeviceContext.GraphicsQueue,
-                DestinationTextureData,
+                DestinationTextureData.Data,
                 Mutex
             );
 
@@ -82,7 +110,7 @@ void SCENE::TextureImportManager::SubmitImport()
         auto Iterator = TextureDatas.find(ImageID);
         if (Iterator == TextureDatas.end()) continue;
         PipelineBarrier.AppendImageMemoryBarrier(
-            Iterator->second.Image,
+            Iterator->second.Data.Image,
             VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             0,
@@ -90,6 +118,10 @@ void SCENE::TextureImportManager::SubmitImport()
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         );
+        for (size_t i = 0; i < this->DescriptorWriteQueue.size(); i++)
+        {
+            DescriptorWriteQueue[i].push_back(ImageID);
+        }
     }
 
     auto TransitionImages = [&PipelineBarrier](VkCommandBuffer& CommandBuffer) {
@@ -105,5 +137,136 @@ void SCENE::TextureImportManager::SubmitImport()
 
     double DeltaTime = glfwGetTime() - StartingTime;
     std::cout << "Textures were imported in: " << DeltaTime << " seconds" << std::endl;
+}
+
+void SCENE::TextureImportManager::UpdateDescriptors(uint32_t FrameIndex)
+{
+    auto& CurrentTextureDescriptorUpperBound = TextureDescriptorUpperBounds[FrameIndex];
+    auto& CurrentDescriptorWriteList = this->DescriptorWriteQueue[FrameIndex];
+    auto& CurrentTexturesDescriptor = TexturesDescriptors[FrameIndex];
+    auto& CurrentTextureDescriptorIndexAllocator = TextureDescriptorIndexAllocators[FrameIndex];
+
+    bool ShouldRewrite = CreateMeshTextureDescriptors(CurrentTextureDescriptorUpperBound + CurrentDescriptorWriteList.size(), FrameIndex);
+    std::vector<RENDERER_CORE::DescriptorSetWriteImage> ImageWrites;
+    if (ShouldRewrite)
+    {
+        for (auto& [TextureID, DataEntry] : TextureDatas)
+        {
+            auto& Data = DataEntry.Data;
+            RENDERER_CORE::DescriptorSetWriteImage NewTextureWrite(
+                Data.ImageView,
+                Data.Sampler,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                0,
+                CurrentTexturesDescriptor.DescriptorSets[0],
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                DataEntry.DescriptorSlots[FrameIndex],
+                1
+            );
+            ImageWrites.push_back(std::move(NewTextureWrite));
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < CurrentDescriptorWriteList.size(); i++)
+        {
+            auto TextureDataIterator = TextureDatas.find(CurrentDescriptorWriteList[i]);
+            if (TextureDataIterator == TextureDatas.end()) continue;
+
+            auto& Data = TextureDataIterator->second.Data;
+            auto& DescriptorSlots = TextureDataIterator->second.DescriptorSlots;
+
+            auto AllocatedIndex = CurrentTextureDescriptorIndexAllocator.Allocate(1);
+            DescriptorSlots[FrameIndex] = AllocatedIndex.Offset;
+
+            RENDERER_CORE::DescriptorSetWriteImage NewTextureWrite(
+                Data.ImageView,
+                Data.Sampler,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                0,
+                CurrentTexturesDescriptor.DescriptorSets[0],
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                AllocatedIndex.Offset,
+                1
+            );
+            ImageWrites.push_back(std::move(NewTextureWrite));
+        }
+    }
+
+    RENDERER_CORE::WriteDescriptorSets(
+        RendererContext->DeviceContext.logicalDevice,
+        {},
+        ImageWrites
+    );
+    CurrentDescriptorWriteList.clear();
+}
+
+bool SCENE::TextureImportManager::CreateMeshTextureDescriptors(
+    uint32_t DescriptorCount,
+    uint32_t FrameIndex
+)
+{
+    bool ShouldRewrite = false;
+    auto& CurrentTexturesDescriptor = TexturesDescriptors[FrameIndex];
+    auto& CurrentTextureDescriptorUpperBound = TextureDescriptorUpperBounds[FrameIndex];
+    if (DescriptorCount > CurrentTextureDescriptorUpperBound)
+    {
+        if (CurrentTextureDescriptorUpperBound)
+        {
+            CurrentTexturesDescriptor.Destroy(RendererContext->DeviceContext.logicalDevice);
+            ShouldRewrite = true;
+        }
+
+        CurrentTextureDescriptorUpperBound = static_cast<uint32_t>(glm::ceil((float)DescriptorCount / (float)TextureDescriptorBlockSize)) * TextureDescriptorBlockSize;
+        std::cout << "Creating texture descriptor set with upper bound: " << CurrentTextureDescriptorUpperBound << "\n";
+
+        CurrentTexturesDescriptor.DescriptorPool.Create(
+            { {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,CurrentTextureDescriptorUpperBound} },
+            1,
+            RendererContext->DeviceContext.logicalDevice,
+            VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
+        );
+
+        VkDescriptorBindingFlags LayoutFlags[2] = {
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+        };
+        VkDescriptorSetLayoutBindingFlagsCreateInfo BindingFlags{};
+        BindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+        BindingFlags.pBindingFlags = LayoutFlags;
+        BindingFlags.bindingCount = 1;
+
+        CurrentTexturesDescriptor.Layout.AppendLayoutBinding(
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            CurrentTextureDescriptorUpperBound,
+            0,
+            VK_SHADER_STAGE_FRAGMENT_BIT
+        );
+
+        CurrentTexturesDescriptor.Layout.CreateLayout(
+            RendererContext->DeviceContext.logicalDevice,
+            VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+            &BindingFlags
+        );
+
+        RENDERER_CORE::AllocateDescriptorSets(
+            RendererContext->DeviceContext.logicalDevice,
+            CurrentTexturesDescriptor.DescriptorSets.size(),
+            CurrentTexturesDescriptor.DescriptorPool.descriptorPool,
+            CurrentTexturesDescriptor.Layout.descriptorSetLayout,
+            CurrentTexturesDescriptor.DescriptorSets.data()
+        );
+
+        CurrentGbufferPassPipeline = RendererContext->AppendGbufferPassPipeline(CurrentTexturesDescriptor.Layout.descriptorSetLayout, CurrentTextureDescriptorUpperBound);
+        return ShouldRewrite;
+    }
+    return ShouldRewrite;
+}
+
+void SCENE::TextureImportManager::DestroyMeshTextureDescriptors()
+{
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        TexturesDescriptors[i].Destroy(RendererContext->DeviceContext.logicalDevice);
+    }
 }
 

@@ -132,7 +132,7 @@ void RENDERER_CORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateI
 
     if (vkCreatePipelineLayout(LogicalDevice, &PipelineLayoutCreateInfo, nullptr, &Layout) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating graphics pipeline layout."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed creating graphics pipeline layout."));
         throw std::runtime_error("Failed to create pipeline layout!");
     }
 
@@ -174,15 +174,15 @@ void RENDERER_CORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateI
 
     if (vkCreateGraphicsPipelines(LogicalDevice, VK_NULL_HANDLE, 1, &PipelineCreateInfo, nullptr, &pipeline) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating graphics pipeline."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed creating graphics pipeline."));
         throw std::runtime_error("Error creating the graphics pipeline!");
     }
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
 }
 
 void RENDERER_CORE::GraphicsPipeline::Destroy(VkDevice& LogicalDevice)
 {
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Destroyed graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Destroyed graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
     if (Layout != VK_NULL_HANDLE)
     {
         vkDestroyPipelineLayout(LogicalDevice, this->Layout, nullptr);
@@ -217,7 +217,7 @@ void RENDERER_CORE::ComputePipeline::Create(const ComputePipelineCreateInfo& Inf
 
     if (vkCreatePipelineLayout(LogicalDevice,&PipelineLayoutCreateInfo,nullptr,&Layout) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating compute pipeline layout."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed creating compute pipeline layout."));
         throw std::runtime_error("Failed to create compute pipeline layout!");
     }
 
@@ -228,14 +228,14 @@ void RENDERER_CORE::ComputePipeline::Create(const ComputePipelineCreateInfo& Inf
 
     if (vkCreateComputePipelines(LogicalDevice,nullptr,1, &PipelineCreateInfo,nullptr,&Pipeline) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating compute pipeline."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed creating compute pipeline."));
         throw std::runtime_error("Failed creating compute pipeline.");
     }
 }
 
 void RENDERER_CORE::ComputePipeline::Destroy(const VkDevice& LogicalDevice)
 {
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Destroyed compute pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(Pipeline)) + "]."));
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Destroyed compute pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(Pipeline)) + "]."));
     if (Layout != VK_NULL_HANDLE)
     {
         vkDestroyPipelineLayout(LogicalDevice, this->Layout, nullptr);

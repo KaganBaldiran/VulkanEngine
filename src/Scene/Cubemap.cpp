@@ -8,47 +8,55 @@
 #include "../Common/Log.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
-SCENE::Cubemap::Cubemap(RENDERER::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager,uint32_t Width, uint32_t Height)
+SCENE::Cubemap::Cubemap(RENDERER::RendererContext& RendererContext,uint32_t Width, uint32_t Height)
 {
-	Create(RendererContext,DependencyManager,Width, Height);
+	Create(RendererContext,Width, Height);
 }
 
-void SCENE::Cubemap::Create(RENDERER::RendererContext& RendererContext, ResourceDependencyManager& DependencyManager, uint32_t Width, uint32_t Height)
+void SCENE::Cubemap::Create(RENDERER::RendererContext& RendererContext, uint32_t Width, uint32_t Height)
 {
 	Size = { Width,Height };
 	
 	CreateCubemapTexture(RendererContext);
 	CreateConvolutionTexture(RendererContext);
 
-	this->dependencyManager = &DependencyManager;
 	resourceType = RESOURCE_TYPE_CUBEMAP;
+	this->RendererContext = &RendererContext;
+	this->IsDestroyed = false;
+	this->DestructionPriority = 2;
+	COMMON::DestructionQueue::Get()->Register(this);
 }
 
-void SCENE::Cubemap::Destroy(RENDERER::RendererContext& RendererContext)
+void SCENE::Cubemap::Destroy()
 {
+	if (IsDestroyed) return;
+
 	for (auto &ImageView : CubemapRenderImageViews)
 	{
 		if (ImageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(RendererContext.DeviceContext.logicalDevice, ImageView, nullptr);
+			vkDestroyImageView(RendererContext->DeviceContext.logicalDevice, ImageView, nullptr);
 			ImageView = VK_NULL_HANDLE;
 		}
 	}
 	if (CubemapSampleImageView != VK_NULL_HANDLE) {
-		vkDestroyImageView(RendererContext.DeviceContext.logicalDevice, CubemapSampleImageView, nullptr);
+		vkDestroyImageView(RendererContext->DeviceContext.logicalDevice, CubemapSampleImageView, nullptr);
 		CubemapSampleImageView = VK_NULL_HANDLE;
 	}
 	if (CubemapSampler != VK_NULL_HANDLE) {
-		vkDestroySampler(RendererContext.DeviceContext.logicalDevice, CubemapSampler, nullptr);
+		vkDestroySampler(RendererContext->DeviceContext.logicalDevice, CubemapSampler, nullptr);
 		CubemapSampler = VK_NULL_HANDLE;
 	}
 	if (CubemapImage != VK_NULL_HANDLE) {
-		vkDestroyImage(RendererContext.DeviceContext.logicalDevice, CubemapImage, nullptr);
+		vkDestroyImage(RendererContext->DeviceContext.logicalDevice, CubemapImage, nullptr);
 		CubemapImage = VK_NULL_HANDLE;
 	}
 	if (CubemapImageMemory != VK_NULL_HANDLE) {
-		vkFreeMemory(RendererContext.DeviceContext.logicalDevice, CubemapImageMemory, nullptr);
+		vkFreeMemory(RendererContext->DeviceContext.logicalDevice, CubemapImageMemory, nullptr);
 		CubemapImageMemory = VK_NULL_HANDLE;
 	}
+	IsDestroyed = true;
+
+	std::cout << "Cubemap destroyed!" << std::endl;
 }
 
 void SCENE::Cubemap::CreateCubemapTexture(RENDERER::RendererContext& RendererContext)
@@ -308,5 +316,5 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 	);
 
 	HdriTextureData.Destroy(RendererContext.DeviceContext.logicalDevice);
-	LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("HDRI imported! [" + std::string(HDRIfilePath) + "]"));
+	LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("HDRI imported! [" + std::string(HDRIfilePath) + "]"));
 }

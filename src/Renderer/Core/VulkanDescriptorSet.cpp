@@ -3,6 +3,8 @@
 
 void RENDERER_CORE::WriteDescriptorSets(VkDevice LogicalDevice,std::vector<DescriptorSetWriteBuffer> BufferWrites, std::vector<DescriptorSetWriteImage> ImageWrites)
 {
+    if (BufferWrites.empty() && ImageWrites.empty()) return;
+
     std::vector<VkWriteDescriptorSet> DescriptorWrites;
     DescriptorWrites.reserve(BufferWrites.size() + ImageWrites.size());
     for (auto &BufferWrite : BufferWrites)

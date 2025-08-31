@@ -1,20 +1,19 @@
 #version 450
 
 layout(location = 0) out vec4 outColor;
-
 layout(location = 0) in vec2 OutUVcoords;
 
-layout(set = 0,binding = 0) uniform FrameData{
+layout(push_constant) uniform FrameData{
     vec4 CameraDirection;
     vec4 CameraPosition;
     int StaticLightCount;
     int DynamicLightCount;
 };
 
-layout(set = 0,binding = 1) uniform sampler2D NormalBuffer;
-layout(set = 0,binding = 2) uniform sampler2D PositionBuffer;
-layout(set = 0,binding = 3) uniform sampler2D AlbedoBuffer;
-layout(set = 0,binding = 4) uniform sampler2D RoughnessMetallicBuffer;
+layout(set = 0,binding = 0) uniform sampler2D NormalBuffer;
+layout(set = 0,binding = 1) uniform sampler2D PositionBuffer;
+layout(set = 0,binding = 2) uniform sampler2D AlbedoBuffer;
+layout(set = 0,binding = 3) uniform sampler2D RoughnessMetallicBuffer;
 
 struct Light
 {
@@ -24,11 +23,11 @@ struct Light
 	int Type;
 };
 
-layout(std140 ,set = 1,binding = 0) readonly buffer StaticLightBuffers{
+layout(std430 ,set = 1,binding = 0) readonly buffer StaticLightBuffers{
     Light StaticLights[];
 };
 
-layout(std140 ,set = 1,binding = 1) readonly buffer DynamicLightBuffers{
+layout(std430 ,set = 1,binding = 1) readonly buffer DynamicLightBuffers{
     Light DynamicLights[];
 };
 

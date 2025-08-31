@@ -16,7 +16,7 @@ namespace RENDERER
 
 namespace SCENE
 {
-	class Texture : public SceneResource
+	class Texture : public Resource
 	{
 	public:
 		RENDERER_CORE::RawImageData ImageData;

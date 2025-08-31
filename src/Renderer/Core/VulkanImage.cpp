@@ -75,7 +75,7 @@ void RENDERER_CORE::CreateImage(
 
     if (vkCreateImage(LogicalDevice, &ImageCreateInfo, nullptr, &Image) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed to create image [(" + std::to_string(Width) +
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed to create image [(" + std::to_string(Width) +
             "x" + std::to_string(Height) + "),format(" + string_VkFormat(Format) + ")]."));
         throw std::runtime_error("Failed to create image!");
     }
@@ -90,13 +90,13 @@ void RENDERER_CORE::CreateImage(
 
     if (vkAllocateMemory(LogicalDevice, &ImageMemoryAllocationInfo, nullptr, &ImageMemory) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed to allocate memory for image [size(" +
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed to allocate memory for image [size(" +
                 std::to_string(ImageMemoryRequirements.size) + "),format(" + string_VkFormat(Format) + ")]."));
         throw std::runtime_error("Failed to allocate memory for the image");
     }
 
     vkBindImageMemory(LogicalDevice, Image, ImageMemory, 0);
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Image created [(" + std::to_string(Width) +
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Image created [(" + std::to_string(Width) +
         "x" + std::to_string(Height) + "),format(" + string_VkFormat(Format) + ")]."));
 }
 
@@ -301,6 +301,34 @@ void RENDERER_CORE::TextureData::Destroy(VkDevice& LogicalDevice)
         vkDestroySampler(LogicalDevice, Sampler, nullptr);
         Sampler = VK_NULL_HANDLE;
     }
+    if (Image != VK_NULL_HANDLE) {
+        vkDestroyImage(LogicalDevice, Image, nullptr);
+        Image = VK_NULL_HANDLE;
+    }
+    if (ImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(LogicalDevice, ImageMemory, nullptr);
+        ImageMemory = VK_NULL_HANDLE;
+    }
+}
+
+void RENDERER_CORE::TextureDataMultipleSamplerViews::Destroy(VkDevice& LogicalDevice)
+{
+    for (auto& Sampler : Samplers)
+    {
+        if (Sampler != VK_NULL_HANDLE) {
+            vkDestroySampler(LogicalDevice, Sampler, nullptr);
+        }
+    }
+    Samplers.clear();
+
+    for (auto& ImageView : ImageViews)
+    {
+        if (ImageView != VK_NULL_HANDLE) {
+            vkDestroyImageView(LogicalDevice, ImageView, nullptr);
+        }
+    }
+    ImageViews.clear();
+
     if (Image != VK_NULL_HANDLE) {
         vkDestroyImage(LogicalDevice, Image, nullptr);
         Image = VK_NULL_HANDLE;

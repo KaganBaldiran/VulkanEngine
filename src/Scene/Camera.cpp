@@ -3,12 +3,12 @@
 
 #include "DependencyManager.hpp"
 
-SCENE::Camera3D::Camera3D(RENDERER_CORE::Window& window, ResourceDependencyManager& DependencyManager)
+SCENE::Camera3D::Camera3D(RENDERER_CORE::Window& window,CameraSettingsInfo Settings)
 {
-    Create(window, DependencyManager);
+    Create(window,Settings);
 }
 
-void SCENE::Camera3D::Create(RENDERER_CORE::Window& window, ResourceDependencyManager& DependencyManager)
+void SCENE::Camera3D::Create(RENDERER_CORE::Window& window,CameraSettingsInfo Settings)
 {
     CameraPosition = { 0.0f,0.0f,0.0f };
     CameraDirection = { 0.0f,0.0f,-1.0f };
@@ -25,11 +25,72 @@ void SCENE::Camera3D::Create(RENDERER_CORE::Window& window, ResourceDependencyMa
     FirstTurn = true;
     AllowMove = glm::vec4(1.0f);
 
-    this->dependencyManager = &DependencyManager;
     resourceType = RESOURCE_TYPE_CAMERA;
+    SetCameraSettings(Settings);
 }
 
-void SCENE::Camera3D::Update(RENDERER_CORE::Window& window,float Sensitivity,float DeltaTime)
+void SCENE::Camera3D::SetCameraSettings(CameraSettingsInfo Settings)
+{
+    this->Mode = Settings.Mode;
+    switch (Settings.Mode)
+    {
+    case CAMERA_MODE_UNSPECIFIED:
+    {
+        throw std::runtime_error("Unset camera settings! Unable to initialize camera!");
+        exit(-1);
+        break;
+    }
+    case CAMERA_MODE_FREE_CAMERA:
+    {
+        if (auto ModeInfo = dynamic_cast<CameraFreeModeInfo*>(Settings.CameraModeInfo))
+        {
+            this->KeyBindings = ModeInfo->KeyBindings;
+        }
+        break;
+    }
+    case CAMERA_MODE_SCRIPTED_CAMERA:
+    {
+        if (auto ModeInfo = dynamic_cast<CameraScriptedModeInfo*>(Settings.CameraModeInfo))
+        {
+            this->Script = ModeInfo->Script;
+        }
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+void SCENE::Camera3D::Update(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime, glm::vec2 Extent, float Near, float Far)
+{
+    switch (this->Mode)
+    {
+    case CAMERA_MODE_UNSPECIFIED:
+    {
+        throw std::runtime_error("Unset camera settings! Unable to update camera!");
+        exit(-1);
+        break;
+    }
+    case CAMERA_MODE_FREE_CAMERA:
+    {
+        UpdateFreeCameraMode(window, Sensitivity, DeltaTime);
+        break;
+    }
+    case CAMERA_MODE_SCRIPTED_CAMERA:
+    {
+        Script(CameraPosition, CameraDirection, DeltaTime, Sensitivity, window);
+        break;
+    }
+    default:
+        break;
+    }
+
+    ViewMatrix = glm::lookAt(CameraPosition, CameraPosition + CameraDirection, Up);
+    ProjectionMatrix = glm::perspective(glm::radians((float)FOV), (float)Extent.x / (float)Extent.y, Near, Far);
+    ProjectionMatrix[1][1] *= -1;
+}
+
+void SCENE::Camera3D::UpdateFreeCameraMode(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime)
 {
     if (FirstTurn)
     {
@@ -38,36 +99,36 @@ void SCENE::Camera3D::Update(RENDERER_CORE::Window& window,float Sensitivity,flo
         FirstTurn = false;
     }
 
-    if (glfwGetKey(window.window, GLFW_KEY_ESCAPE) == GLFW_RELEASE) AllowPressExit = true;
+    if (glfwGetKey(window.window, KeyBindings.ToggleCameraInputKey) == GLFW_RELEASE) AllowPressExit = true;
 
     CameraRight = glm::normalize(glm::cross(CameraDirection, CameraDirection.y < 0.9999 ? Up : glm::vec3(0.0f, 0.0f, 1.0f)));
     CameraUp = glm::normalize(glm::cross(CameraDirection, CameraRight));
 
-    if (glfwGetKey(window.window, GLFW_KEY_UP) == GLFW_PRESS && AllowMove.x)
+    if (glfwGetKey(window.window, KeyBindings.ForwardKey) == GLFW_PRESS && AllowMove.x)
     {
         CameraPosition += CameraDirection * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, GLFW_KEY_DOWN) == GLFW_PRESS && AllowMove.w)
+    if (glfwGetKey(window.window, KeyBindings.BackKey) == GLFW_PRESS && AllowMove.w)
     {
         CameraPosition -= CameraDirection * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, GLFW_KEY_LEFT) == GLFW_PRESS && AllowMove.y)
+    if (glfwGetKey(window.window, KeyBindings.LeftKey) == GLFW_PRESS && AllowMove.y)
     {
         CameraPosition -= CameraRight * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, GLFW_KEY_RIGHT) == GLFW_PRESS && AllowMove.z)
+    if (glfwGetKey(window.window, KeyBindings.RightKey) == GLFW_PRESS && AllowMove.z)
     {
         CameraPosition += CameraRight * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    if (glfwGetKey(window.window, KeyBindings.UpKey) == GLFW_PRESS)
     {
         CameraPosition += Up * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+    if (glfwGetKey(window.window, KeyBindings.DownKey) == GLFW_PRESS)
     {
         CameraPosition -= Up * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, GLFW_KEY_ESCAPE) == GLFW_PRESS && AllowPressExit)
+    if (glfwGetKey(window.window, KeyBindings.ToggleCameraInputKey) == GLFW_PRESS && AllowPressExit)
     {
         CursorDisabled = !CursorDisabled;
         AllowPressExit = false;
@@ -105,9 +166,3 @@ void SCENE::Camera3D::Update(RENDERER_CORE::Window& window,float Sensitivity,flo
     }
 }
 
-void SCENE::Camera3D::UpdateMatrix(glm::vec2 Extent,float Near,float Far)
-{
-    ViewMatrix = glm::lookAt(CameraPosition, CameraPosition + CameraDirection, Up);
-    ProjectionMatrix = glm::perspective(glm::radians((float)FOV), (float)Extent.x / (float)Extent.y, Near, Far);
-    ProjectionMatrix[1][1] *= -1;
-}

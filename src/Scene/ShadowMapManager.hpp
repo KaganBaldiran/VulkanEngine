@@ -4,22 +4,30 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../Renderer/Core/VulkanBuffer.hpp"
+#include "../Renderer/Core/VulkanImage.hpp"
+#include "../Common/CommonDefinitions.hpp"
 
 #include <unordered_set>
 #include <array>
 #include <map>
 
+namespace RENDERER
+{
+	class RendererContext;
+}
+
 namespace SCENE
 {
 	//Forward Declarations 
 	class Light;
+
 	std::array<glm::vec3, 8> GetCameraFrustum(glm::mat4 InverseProjectMatrix, glm::mat4 InverseViewMatrix);
 	glm::mat4 GetLightSpaceMatrix(glm::vec3 LightDirection, std::array<glm::vec3, 8>& Frustum);
 
 	struct MemoryRegion2D
 	{
 		glm::ivec2 Size = glm::ivec2(0, 0);
-		glm::ivec2 Offset = glm::ivec2(0,0);
+		glm::ivec2 Offset = glm::ivec2(0, 0);
 
 		inline bool operator==(const MemoryRegion2D& Other) const
 		{
@@ -38,7 +46,6 @@ namespace SCENE
 		}
 	};
 
-
 	struct MemoryRegion2DHasher
 	{
 		size_t operator()(const MemoryRegion2D& Region) const;
@@ -51,13 +58,14 @@ namespace SCENE
 		std::unordered_set<MemoryRegion2D, MemoryRegion2DHasher> Regions;
 		static const MemoryRegion2D* DoesOverlap(
 			const std::vector<const MemoryRegion2D*>& Regions,
-			float Min_x, 
-			float Min_y, 
-			float Max_x, 
+			float Min_x,
+			float Min_y,
+			float Max_x,
 			float Max_y
 		);
 	};
 
+	//Virtually packs 2D textures with various sizes into a large layered 2D texture
 	class TexturePacker3D
 	{
 	public:
@@ -72,28 +80,76 @@ namespace SCENE
 		glm::ivec2 PageSize;
 	};
 
-	struct CascadedShadowMapInfo
+	//Meta data needed for cascaded shadow maps
+	struct CascadedMapData
 	{
-		Light* SourceLight;
+		glm::mat4 LightMatrix;
+		glm::vec2 TexturePosition;
+		float TextureSize;
+		float TextureLayer;
+		//glm::vec4 LightDirection;
+		//float ShadowCascadeLevel;
+	};
 
+	struct CascadedMapMetaData
+	{
+		float CascadeCount;
+		float Offset;
+	};
+
+	struct CascadeEntry
+	{
+		CascadedMapData Data;
+		RENDERER_CORE::MemoryRegion MemoryRegion;
+		MemoryRegion3D TextureRegion;
 	};
 
 	struct CascadedShadowMapEntry
 	{
-
+		CascadedMapMetaData MetaData;
+		RENDERER_CORE::MemoryRegion MetaDataMemoryRegion;
+		std::vector<CascadeEntry> CascadeEntries;
 	};
 
+	enum CascadedShadowMapDistanceFunction
+	{
+		CASCADED_SHADOW_MAP_DISTANCE_FUNCTION_LINEAR = 1,
+		CASCADED_SHADOW_MAP_DISTANCE_FUNCTION_LOGARITHMIC = 2
+	};
+
+	struct CascadedShadowMapInfo
+	{
+		Light* SourceLight = nullptr;
+		uint32_t CascadeCount = 5;
+		CascadedShadowMapDistanceFunction DistanceFunction = CASCADED_SHADOW_MAP_DISTANCE_FUNCTION_LOGARITHMIC;
+	};
+
+	struct CascadedShadowMapAppendInfo
+	{
+		std::vector<CascadedShadowMapInfo> Infos;
+		uint32_t FrameIndex;
+	};
+
+	//Centralized manager responsible for storing and managing shadow maps 
 	class ShadowMapManager
 	{
 	public:
-
+		ShadowMapManager(RENDERER::RendererContext& RendererContext, glm::ivec2 PageSize);
 		ShadowMapManager() = default;
-		void Create();
-		void Destroy(VkDevice LogicalDevice);
+		void Create(RENDERER::RendererContext& RendererContext,glm::ivec2 PageSize);
+		void Destroy();
 
-
+		void AppendCascadedShadowMap(CascadedShadowMapAppendInfo Info);
 	private:
-		RENDERER_CORE::Buffer CascadedShadowMapsBuffer;
-		std::map<Light*, CascadedShadowMapEntry,std::less<Light*>> CascadedShadowMapEntries;
+		std::array<RENDERER_CORE::TextureDataMultipleSamplerViews,MAX_FRAMES_IN_FLIGHT> ShadowMapTextures;
+		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> CascadedShadowMapsMetaDataBuffers;
+		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> CascadedShadowMapsDataBuffers;
+		glm::ivec2 PageSize;
+		uint32_t LayerCount;
+		std::array<std::map<Light*, CascadedShadowMapEntry,std::less<Light*>>,MAX_FRAMES_IN_FLIGHT> CascadedShadowMapEntries;
+
+		TexturePacker3D TexturePacker;
+		VkFormat ShadowMapImageFormat;
+		RENDERER::RendererContext* RendererContext;
 	};
 }

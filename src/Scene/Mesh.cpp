@@ -11,6 +11,7 @@
 
 void ProcessMeshMaterial(std::string MeshDirectory,SCENE::TextureImportManager& ImportManager, aiMaterial* SourceMaterial, SCENE::Material& DestinationMaterial);
 
+/*
 SCENE::MeshImporter::MeshImporter(TextureImportManager& ImportManager)
 {
     Create(ImportManager);
@@ -33,7 +34,7 @@ void SCENE::MeshImporter::SubmitImport()
     {
         auto Import = std::move(ImportQueue.front());
         Futures.push_back(std::async(std::launch::async, SCENE::Import3Dmodel, Import.ModelFilePath, std::ref(*Import.DestinationModel), std::ref(*ImportManager)));
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Imported model [" + std::string(Import.ModelFilePath) + "].");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Imported model [" + std::string(Import.ModelFilePath) + "].");
         ImportQueue.pop();
     }
 }
@@ -48,8 +49,9 @@ void SCENE::MeshImporter::WaitImportIdle()
 
     double DeltaTime = glfwGetTime() - StartingTime;
     std::cout << "Models were imported in: " << DeltaTime << " seconds" << std::endl;
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Models were imported in " + std::to_string(DeltaTime) + " seconds.");
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Models were imported in " + std::to_string(DeltaTime) + " seconds.");
 }
+*/
 
 VkVertexInputBindingDescription SCENE::Vertex2D::GetBindingDescription()
 {
@@ -134,7 +136,7 @@ void SCENE::Import3Dmodel(const char* FilePath, Model3D& DstModel,SCENE::Texture
     aiScene* Scene = const_cast<aiScene*>(scene);
 
     if (nullptr == Scene) {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, "Failed importing model with the error code [" + std::string(Importer.GetErrorString()) + "].");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Failed importing model with the error code [" + std::string(Importer.GetErrorString()) + "].");
         std::cout << "Error code :: " << Importer.GetErrorString() << std::endl;
         throw std::runtime_error("Unable to import a 3D model(" + std::string(FilePath) + ")");
     }
@@ -152,6 +154,13 @@ void SCENE::Import3Dmodel(const char* FilePath, Model3D& DstModel,SCENE::Texture
         NodesToProcess.pop();
         for (size_t MeshIndex = 0; MeshIndex < Node->mNumMeshes; MeshIndex++)
         {
+            float minX = std::numeric_limits<float>::max();
+            float maxX = std::numeric_limits<float>::lowest();
+            float minY = std::numeric_limits<float>::max();
+            float maxY = std::numeric_limits<float>::lowest();
+            float minZ = std::numeric_limits<float>::max();
+            float maxZ = std::numeric_limits<float>::lowest();
+
             Mesh NewMesh;
             auto& aiMesh = Scene->mMeshes[Node->mMeshes[MeshIndex]];
             NewMesh.Vertices.reserve(aiMesh->mNumVertices);
@@ -160,6 +169,13 @@ void SCENE::Import3Dmodel(const char* FilePath, Model3D& DstModel,SCENE::Texture
                 Vertex3D Vertex;
                 auto& AiVertexPosition = aiMesh->mVertices[VertexIndex];
                 Vertex.Position = { AiVertexPosition.x , AiVertexPosition.y , AiVertexPosition.z };
+
+                maxX = std::max(Vertex.Position.x, maxX);
+                maxY = std::max(Vertex.Position.y, maxY);
+                maxZ = std::max(Vertex.Position.z, maxZ);
+                minX = std::min(Vertex.Position.x, minX);
+                minY = std::min(Vertex.Position.y, minY);
+                minZ = std::min(Vertex.Position.z, minZ);
 
                 if (aiMesh->HasNormals())
                 {
@@ -195,7 +211,110 @@ void SCENE::Import3Dmodel(const char* FilePath, Model3D& DstModel,SCENE::Texture
 
             aiMaterial* material = scene->mMaterials[aiMesh->mMaterialIndex];
             ProcessMeshMaterial(MeshDirectory,ImportManager, material, NewMesh.MeshMaterial);
+
+            NewMesh.BoundingBox.Center = (glm::vec3(maxX, maxY, maxZ) + glm::vec3(minX, minY, minZ)) * 0.5f;
+            NewMesh.BoundingBox.Extends = (glm::vec3(maxX, maxY, maxZ) - glm::vec3(minX, minY, minZ)) * 0.5f;
             DstModel.Meshes.push_back(NewMesh);
+        }
+
+        for (size_t i = 0; i < Node->mNumChildren; i++)
+        {
+            NodesToProcess.push(*(Node->mChildren + i));
+        }
+    }
+}
+
+void SCENE::Import3DGeometry(const char* FilePath, std::vector<GeometryData>& DstGeometryDatas, SCENE::TextureImportManager& ImportManager)
+{
+    Assimp::Importer Importer;
+    const aiScene* scene = Importer.ReadFile(FilePath,
+        aiProcess_CalcTangentSpace |
+        aiProcess_Triangulate |
+        aiProcess_SortByPType |
+        aiProcess_PreTransformVertices |
+        aiProcess_GenSmoothNormals);
+    aiScene* Scene = const_cast<aiScene*>(scene);
+
+    if (nullptr == Scene) {
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Failed importing model with the error code [" + std::string(Importer.GetErrorString()) + "].");
+        std::cout << "Error code :: " << Importer.GetErrorString() << std::endl;
+        throw std::runtime_error("Unable to import a 3D model(" + std::string(FilePath) + ")");
+    }
+
+    if (!Scene->HasMeshes()) return;
+    std::string MeshDirectory = std::string(FilePath);
+    MeshDirectory = MeshDirectory.substr(0, MeshDirectory.find_last_of("\\"));
+
+    std::queue<aiNode*> NodesToProcess;
+    NodesToProcess.push(Scene->mRootNode);
+    aiNode* Node = nullptr;
+    while (!NodesToProcess.empty())
+    {
+        Node = NodesToProcess.front();
+        NodesToProcess.pop();
+        for (size_t MeshIndex = 0; MeshIndex < Node->mNumMeshes; MeshIndex++)
+        {
+            float minX = std::numeric_limits<float>::max();
+            float maxX = std::numeric_limits<float>::lowest();
+            float minY = std::numeric_limits<float>::max();
+            float maxY = std::numeric_limits<float>::lowest();
+            float minZ = std::numeric_limits<float>::max();
+            float maxZ = std::numeric_limits<float>::lowest();
+
+            GeometryData NewMesh;
+            auto& aiMesh = Scene->mMeshes[Node->mMeshes[MeshIndex]];
+            NewMesh.Vertices.reserve(aiMesh->mNumVertices);
+            for (size_t VertexIndex = 0; VertexIndex < aiMesh->mNumVertices; VertexIndex++)
+            {
+                Vertex3D Vertex;
+                auto& AiVertexPosition = aiMesh->mVertices[VertexIndex];
+                Vertex.Position = { AiVertexPosition.x , AiVertexPosition.y , AiVertexPosition.z };
+
+                maxX = std::max(Vertex.Position.x, maxX);
+                maxY = std::max(Vertex.Position.y, maxY);
+                maxZ = std::max(Vertex.Position.z, maxZ);
+                minX = std::min(Vertex.Position.x, minX);
+                minY = std::min(Vertex.Position.y, minY);
+                minZ = std::min(Vertex.Position.z, minZ);
+
+                if (aiMesh->HasNormals())
+                {
+                    auto& AiVertexNormal = aiMesh->mNormals[VertexIndex];
+                    Vertex.Normal = { AiVertexNormal.x , AiVertexNormal.y , AiVertexNormal.z };
+                }
+
+                if (aiMesh->HasTangentsAndBitangents())
+                {
+                    auto& AiVertexTangent = aiMesh->mTangents[VertexIndex];
+                    auto& AiVertexBitangent = aiMesh->mBitangents[VertexIndex];
+                    Vertex.Tangent = { AiVertexTangent.x , AiVertexTangent.y , AiVertexTangent.z };
+                    Vertex.Bitangent = { AiVertexBitangent.x , AiVertexBitangent.y , AiVertexBitangent.z };
+                }
+
+                if (aiMesh->HasTextureCoords(0))
+                {
+                    auto& AiVertexTextCoords = aiMesh->mTextureCoords[0][VertexIndex];
+                    Vertex.UV = { AiVertexTextCoords.x , AiVertexTextCoords.y };
+                }
+                NewMesh.Vertices.push_back(Vertex);
+            }
+
+            NewMesh.Indices.reserve(aiMesh->mNumFaces * 3);
+            for (size_t FaceIndex = 0; FaceIndex < aiMesh->mNumFaces; FaceIndex++)
+            {
+                auto& Face = aiMesh->mFaces[FaceIndex];
+                for (size_t Index = 0; Index < Face.mNumIndices; Index++)
+                {
+                    NewMesh.Indices.push_back(Face.mIndices[Index]);
+                }
+            }
+
+            aiMaterial* material = scene->mMaterials[aiMesh->mMaterialIndex];
+            ProcessMeshMaterial(MeshDirectory, ImportManager, material, NewMesh.MeshMaterial);
+
+            NewMesh.BoundingBox.Center = (glm::vec3(maxX, maxY, maxZ) + glm::vec3(minX, minY, minZ)) * 0.5f;
+            NewMesh.BoundingBox.Extends = (glm::vec3(maxX, maxY, maxZ) - glm::vec3(minX, minY, minZ)) * 0.5f;
+            DstGeometryDatas.push_back(NewMesh);
         }
 
         for (size_t i = 0; i < Node->mNumChildren; i++)

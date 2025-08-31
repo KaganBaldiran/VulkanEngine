@@ -27,11 +27,11 @@ void RENDERER_CORE::DescriptorSetLayout::CreateLayout(VkDevice& LogicalDevice,Vk
 
     if (vkCreateDescriptorSetLayout(LogicalDevice, &LayoutCreateInfo, nullptr, &this->descriptorSetLayout) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed creating descriptor layout [binding count(" + std::to_string(Bindings.size()) + ")]."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed creating descriptor layout [binding count(" + std::to_string(Bindings.size()) + ")]."));
         throw std::runtime_error("Failed to create descriptor set layout!");
     }
 
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Created descriptor layout [binding count(" + std::to_string(Bindings.size()) + ")]."));
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created descriptor layout [binding count(" + std::to_string(Bindings.size()) + ")]."));
     Bindings.clear();
 }
 

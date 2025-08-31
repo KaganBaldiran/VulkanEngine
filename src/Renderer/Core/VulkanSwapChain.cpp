@@ -113,7 +113,7 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateSwapChain(
 
     if (vkCreateSwapchainKHR(logicalDevice, &swapChainCreateInfo, nullptr, &swapChain) != VK_SUCCESS)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Failed to create swap chain [" + std::to_string(reinterpret_cast<uintptr_t>(swapChain)) + "].");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Failed to create swap chain [" + std::to_string(reinterpret_cast<uintptr_t>(swapChain)) + "].");
         return { VK_INCOMPLETE, "Failed to create swap chain!" };
     }
 
@@ -121,7 +121,7 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateSwapChain(
     swapChainImages.resize(swapChainImageCount);
     vkGetSwapchainImagesKHR(logicalDevice, swapChain, &swapChainImageCount, swapChainImages.data());
 
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, "Created swap chain [" + std::to_string(reinterpret_cast<uintptr_t>(swapChain)) + "].");
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Created swap chain [" + std::to_string(reinterpret_cast<uintptr_t>(swapChain)) + "].");
     return VULKAN_SUCCESS;
 }
 

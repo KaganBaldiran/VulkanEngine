@@ -28,6 +28,8 @@
 #include "../Scene/Camera.hpp"
 #include "../Scene/Cubemap.hpp"
 
+#include "../Common/DestructionQueue.hpp"
+
 #include "GeometryBuffer.hpp"
 #include "RendererContext.hpp"
 
@@ -43,15 +45,25 @@ const bool EnableValidationLayers = true;
 
 namespace RENDERER
 { 
+    //Forward declarations.
     struct Matrixes;
     struct PersistentBuffer;
 
-    class Renderer
+    /// <summary>
+    /// Main deferred renderer class.
+    /// It renders the scene using the buffers passed along from the scene class.
+    /// Rendering is done on the renderer context given whilst the renderer creation.
+    /// Context cannot be changed past the creation phase.
+    /// </summary>
+    class Renderer : COMMON::Destructible
     {
     public:
-        void Initialize(RendererContext& DestinationRendererContext,bool EnablePhysicsDebugDrawing);
+        Renderer(RendererContext& DestinationRendererContext, bool EnablePhysicsDebugDrawing);
+        Renderer() = default;
+        void Create(RendererContext& DestinationRendererContext, bool EnablePhysicsDebugDrawing);
+
         void RenderFrame(SCENE::Scene &Scene);
-        void Destroy();
+        void Destroy() override;
 
         bool EnablePhysicsDebugDrawing;
         RendererContext* rendererContext = nullptr;
@@ -63,10 +75,10 @@ namespace RENDERER
 
         std::vector<VkCommandBuffer> CommandBuffers;
 
-        std::vector<RENDERER_CORE::Buffer> UBO;
-        std::vector<void*> UBOmapped;
+        //std::vector<RENDERER_CORE::Buffer> UBO;
+        //std::vector<void*> UBOmapped;
 
-        std::vector<RENDERER_CORE::PersistentBuffer> LightingPassUBOs;
+        //std::vector<RENDERER_CORE::PersistentBuffer> LightingPassUBOs;
 
         std::vector<RENDERER_CORE::PersistentBuffer> PhysicsDebugLineVertexBuffers;
         int MaxLines;
@@ -78,9 +90,6 @@ namespace RENDERER
         RENDERER_CORE::DescriptorSetLayout LightingPassLayout;
         std::vector<VkDescriptorSet> LightingPassDescriptorSets;
         std::vector<VkDescriptorSetLayout> LightingPassLayouts;
-
-        std::vector<VkDescriptorSet> GbufferPassDescriptorSets;
-        std::vector<VkDescriptorSetLayout> GbufferPassLayouts;
 
         RENDERER_CORE::TextureData DepthImage{};
 

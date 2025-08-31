@@ -15,9 +15,9 @@ VkShaderModule RENDERER_CORE::CreateModule(const std::vector<char>& CodeSource,V
     if (vkCreateShaderModule(LogicalDevice, &ShaderModuleCreateInfo, nullptr, &Module) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create a shader module!");
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Shader module created [" + std::to_string(reinterpret_cast<uintptr_t>(Module)) + "]."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Shader module created [" + std::to_string(reinterpret_cast<uintptr_t>(Module)) + "]."));
     }
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Shader module created [" + std::to_string(reinterpret_cast<uintptr_t>(Module)) + "]."));
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Shader module created [" + std::to_string(reinterpret_cast<uintptr_t>(Module)) + "]."));
     return Module;
 }
 
@@ -44,11 +44,11 @@ int RENDERER_CORE::CompileGLSL(const std::string& SourceFileName, const std::str
     int Result = std::system(Command.c_str());
     if (Result != 0)
     {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_ERROR, std::string("Failed to compile shader [" + SourceFileName + " -> " + DestinationFileName + "]."));
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed to compile shader [" + SourceFileName + " -> " + DestinationFileName + "]."));
         throw std::runtime_error("Failed to compile glsl into spir-v");
     }
 
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, VKCOMMON::LOG_SEVERITY_INFO, std::string("Shader [" + SourceFileName + " -> " + DestinationFileName + "] compiled."));
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Shader [" + SourceFileName + " -> " + DestinationFileName + "] compiled."));
 }
 
 RENDERER_CORE::ShaderModule::ShaderModule(const char* FileName, const char* SpirvFileName, bool CompileShaderIntoSpirv, VkDevice& LogicalDevice)

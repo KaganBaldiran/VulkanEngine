@@ -29,31 +29,20 @@ namespace SCENE
 	//Forward Declarations;
 	class ModelInstance;
 	class TextureImportManager;
+	class MeshManager;
 
 	template<uint32_t BufferSetCount>
-	struct MeshDrawArenaBufferGroup
+	struct MeshFrustumCullBuffers
 	{
-		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> VertexBuffers;
-		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> IndexBuffers;
-		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> IndirectBuffers;
-		std::array<RENDERER_CORE::PersistentBufferAllocator, BufferSetCount> ModelMatricesBuffers;
-
-		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> DrawMetaDataBuffer;
-		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> TexturesIndexBuffers;
-
-		std::array<size_t, BufferSetCount> EnabledMeshCount;
+		std::array<RENDERER_CORE::Buffer, BufferSetCount> CulledIndirectBuffers;
+		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> MeshVisibilityCountBuffers;
+		std::array<RENDERER_CORE::Buffer, BufferSetCount> CulledDrawMetaDataBuffer;
 
 		inline void Create()
 		{
-			EnabledMeshCount.fill(0);
 			for (size_t i = 0; i < BufferSetCount; i++)
 			{
-				VertexBuffers[i].Create();
-				IndexBuffers[i].Create();
-				IndirectBuffers[i].Create();
-				ModelMatricesBuffers[i].Create();
-				DrawMetaDataBuffer[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
-				TexturesIndexBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
+				MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
 			}
 		}
 
@@ -61,47 +50,89 @@ namespace SCENE
 		{
 			for (size_t i = 0; i < BufferSetCount; i++)
 			{
-				VertexBuffers[i].Buffer.Destroy(LogicalDevice);
-				IndexBuffers[i].Buffer.Destroy(LogicalDevice);
-				IndirectBuffers[i].Buffer.Destroy(LogicalDevice);
-				ModelMatricesBuffers[i].Buffer.Destroy(LogicalDevice);
-				DrawMetaDataBuffer[i].Buffer.Destroy(LogicalDevice);
-				TexturesIndexBuffers[i].Buffer.Destroy(LogicalDevice);
+				MeshVisibilityCountBuffers[i].Buffer.Destroy(LogicalDevice);
+				CulledIndirectBuffers[i].Buffer.Destroy(LogicalDevice);
+				CulledDrawMetaDataBuffer[i].Buffer.Destroy(LogicalDevice);
 			}
 		}
 	};
 
-	struct MeshMetaData
+	template<uint32_t BufferSetCount>
+	struct MeshDrawArenaBufferGroup
 	{
-		ModelInstance* ModelInstance;
-		DrawInfo DrawInfo;
-		size_t ModelIndex = 0;
-		std::array<RENDERER_CORE::MemoryRegion,3> MemoryRegions;
+		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> IndirectBuffers;
+		MeshFrustumCullBuffers<BufferSetCount> CullBuffers;
+		std::array<RENDERER_CORE::PersistentBufferAllocator, BufferSetCount> ModelMatricesBuffers;
+		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> DrawMetaDataBuffer;
+		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> TexturesIndexBuffers;
+
+		std::array<size_t, BufferSetCount> EnabledMeshCount;
+		std::array<bool, BufferSetCount> TexturesIndexBuffersReallocated;
+
+		inline void Create()
+		{
+			EnabledMeshCount.fill(0);
+			for (size_t i = 0; i < BufferSetCount; i++)
+			{
+				IndirectBuffers[i].Create();
+				ModelMatricesBuffers[i].Create();
+				DrawMetaDataBuffer[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
+				TexturesIndexBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
+				CullBuffers.MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
+			}
+		}
+
+		inline void Destroy(VkDevice& LogicalDevice)
+		{
+			for (size_t i = 0; i < BufferSetCount; i++)
+			{
+				IndirectBuffers[i].Buffer.Destroy(LogicalDevice);
+				ModelMatricesBuffers[i].Buffer.Destroy(LogicalDevice);
+				DrawMetaDataBuffer[i].Buffer.Destroy(LogicalDevice);
+				TexturesIndexBuffers[i].Buffer.Destroy(LogicalDevice);
+				CullBuffers.MeshVisibilityCountBuffers[i].Buffer.Destroy(LogicalDevice);
+				CullBuffers.CulledIndirectBuffers[i].Destroy(LogicalDevice);
+				CullBuffers.CulledDrawMetaDataBuffer[i].Destroy(LogicalDevice);
+			}
+		}
+	};
+
+	struct InstanceMeshLink
+	{
+		size_t ResourceID;
+		RENDERER_CORE::MemoryRegion DrawDataMemoryRegion;
 	};
 
 	struct MeshEntry
 	{
-		Mesh* MeshPtr;
-		MeshMetaData MetaData;
-	};
-
-	struct ModelMetaData
-	{
-		uint32_t Index,ReferenceCount = 0;
+		uint32_t Index, ReferenceCount = 0;
 		bool IsChanged = false;
+		size_t ResourceID;
+		RENDERER_CORE::MemoryRegion IndirectBufferMemoryRegion;
+		DrawInfo Info;
+		BoundingBoxAABB BoundingBox;
+		std::vector<InstanceMeshLink> InstanceLinks;
 	};
 
-	struct ModelEntry
+	struct MaterialMetaData
 	{
-		ModelMetaData MetaData;
-		std::map<ModelInstance* , std::array<RENDERER_CORE::MemoryRegion, 2>, std::less<ModelInstance*>> Instances;
-		std::vector<MeshEntry> MeshEntries;
-		//std::unordered_map<Mesh*, MeshMetaData> MeshEntries;
+		Material Material;
+		std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
+		RENDERER_CORE::MemoryRegion TextureIndexMemoryRegion;
 	};
 
-	struct ModelEntryManager
+	struct InstanceEntry
 	{
-		std::map<Model3D*, ModelEntry, std::less<Model3D*>> ModelEntries;
+		std::unordered_map<size_t,MaterialMetaData> Materials;
+		RENDERER_CORE::MemoryRegion TransformationMatrixMemoryRegion;
+	};
+
+	struct EntryManager
+	{
+		std::map<size_t, InstanceEntry> InstanceEntries;
+		std::map<size_t, MeshEntry> MeshEntries;
+
+		std::vector<ModelInstance*> MaterialUpdateList;
 	};
 
 	struct MeshAppendInfo
@@ -115,7 +146,7 @@ namespace SCENE
 	{
 		TextureImportManager *TextureImportManagerPtr;
 		uint32_t FrameIndex;
-		std::array<VkDescriptorSet,MAX_FRAMES_IN_FLIGHT> TargetDescriptorSets;
+		std::vector<VkDescriptorSet> TargetDescriptorSets;
 	};
 
 	struct MeshEraseInfo
@@ -132,7 +163,7 @@ namespace SCENE
 		int FirstIndex;
 		int VertexOffset;
 		int FirstInstance;
-		int MeshIndex;
+		BoundingBoxAABB BoundingBox;
 	};
 
 	struct DrawMetadata {
@@ -140,13 +171,18 @@ namespace SCENE
 		int ModelMatrixIndex;
 	};
 	
-	class MeshManager
+	/// <summary>
+	/// Centralized class to manage buffers needed for indirect rendering.
+	/// It packs the meshes tightly into centralized classes to reduce state changes.
+	/// It's meant for internal usage in the scene class but can easily be adapted for special use cases.
+	/// </summary>
+	class SceneMeshManager
 	{
 		friend class Scene;
 	public:
-		MeshManager(RENDERER::RendererContext& RendererContext);
-		MeshManager() = default;
-		void Create(RENDERER::RendererContext& RendererContext);
+		SceneMeshManager(MeshManager& MeshManager,RENDERER::RendererContext& RendererContext);
+		SceneMeshManager() = default;
+		void Create(MeshManager& MeshManager,RENDERER::RendererContext& RendererContext);
 		void Destroy(VkDevice& LogicalDevice);
 
 		MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> PerformanceModeBuffers;
@@ -156,8 +192,7 @@ namespace SCENE
 		uint32_t CurrentBalancedBuffer = 0;
 		std::vector<RENDERER_CORE::Buffer> SceneMeshIndexBuffers;
 
-		RENDERER::RendererContext* RendererContext = nullptr;
-		std::array<ModelEntryManager,MAX_FRAMES_IN_FLIGHT> ModelEntries;
+		std::array<EntryManager,MAX_FRAMES_IN_FLIGHT> ModelEntries;
 		
 		void UpdateMeshTransformations(std::vector<ModelInstance*> &UpdateList,uint32_t CurrentFrame);
 
@@ -167,7 +202,7 @@ namespace SCENE
 	private:
 		void WriteTexture(
 			uint32_t TextureTypeIndex,
-			SCENE::Mesh& Mesh,
+			SCENE::Material& Material,
 			SCENE::TextureImportManager& TextureImportManager,
 			std::vector<RENDERER_CORE::DescriptorSetWriteImage>& ImageWrites,
 			std::vector<int>& TextureIndexes,
@@ -175,6 +210,7 @@ namespace SCENE
 			VkDescriptorSet DestinationDescriptorSet
 		);
 
-		Scene* Owner = nullptr;
+		MeshManager* MeshManagerPtr = nullptr;
+		RENDERER::RendererContext* RendererContext = nullptr;
 	};
 }

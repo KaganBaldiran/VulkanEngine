@@ -2,12 +2,12 @@
 #include <chrono>
 #include <iostream>
 
-VKCOMMON::Logger::Logger()
+COMMON::Logger::Logger()
 {
 	MessageQueue.reserve(500);
 }
 
-VKCOMMON::Logger::~Logger()
+COMMON::Logger::~Logger()
 {
 	std::unique_lock<std::mutex> Lock(Mutex);
 	FileFlush();
@@ -17,13 +17,13 @@ VKCOMMON::Logger::~Logger()
 	}
 }
 
-VKCOMMON::Logger& VKCOMMON::Logger::Get()
+COMMON::Logger& COMMON::Logger::Get()
 {
 	static Logger GlobalLogger;
 	return GlobalLogger;
 }
 
-void VKCOMMON::Logger::FileLog(const char* FilePath,const LogMessage& Message)
+void COMMON::Logger::FileLog(const char* FilePath,const LogMessage& Message)
 {
 	std::unique_lock<std::mutex> Lock(Mutex);
 	MessageQueue.push_back({ Message,std::string(FilePath) });
@@ -31,7 +31,7 @@ void VKCOMMON::Logger::FileLog(const char* FilePath,const LogMessage& Message)
 	if (Message.Severity >= LOG_SEVERITY_ERROR) FileFlush();
 }
 
-void VKCOMMON::Logger::ConsoleLog(const LogMessage& Message)
+void COMMON::Logger::ConsoleLog(const LogMessage& Message)
 {
 	switch (Message.Severity)
 	{
@@ -44,7 +44,7 @@ void VKCOMMON::Logger::ConsoleLog(const LogMessage& Message)
 	std::cout << Message.Message << std::endl;
 }
 
-void VKCOMMON::Logger::FileFlush()
+void COMMON::Logger::FileFlush()
 {
 	for(auto& Message : MessageQueue)
 	{
