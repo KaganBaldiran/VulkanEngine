@@ -4,8 +4,10 @@ layout(location = 0) out vec4 outColor;
 layout(location = 0) in vec2 OutUVcoords;
 
 layout(push_constant) uniform FrameData{
-    vec4 CameraDirection;
-    vec4 CameraPosition;
+    vec3 CameraDirection;
+    float FogIntensity;
+    vec3 CameraPosition;
+    float CameraFrustumLength;
     int StaticLightCount;
     int DynamicLightCount;
 };
@@ -175,5 +177,10 @@ void main() {
     vec3 Irradiance = texture(Cubemap,N).xyz;
     vec3 Diffuse = Irradiance * Albedo;
     vec3 Ambient = (FresnelDiffuse * Diffuse);
-    outColor = vec4(Ambient + Lo,1.0f);
+
+    float Distance = dot(Position - CameraPosition,Position - CameraPosition);
+    float FogAmount = clamp(exp(-Distance / (CameraFrustumLength * CameraFrustumLength) * FogIntensity),0.0f,1.0f);
+
+    outColor = vec4(mix(vec3(0.6f,0.7f,0.6f),Ambient + Lo,FogAmount),1.0f);
+   // outColor = vec4(1.0f,1.0f,1.0f,1.0f);
 }

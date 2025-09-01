@@ -139,21 +139,21 @@ namespace SCENE
 	{
 		std::vector<ModelInstance*> ModelInstances;
 		uint32_t FrameIndex;
-		std::vector<VkDescriptorSet> TargetDescriptorSets;
+		std::array<VkDescriptorSet,MAX_FRAMES_IN_FLIGHT> TargetDescriptorSets;
 	};
 
 	struct MeshTextureUpdateInfo
 	{
 		TextureImportManager *TextureImportManagerPtr;
 		uint32_t FrameIndex;
-		std::vector<VkDescriptorSet> TargetDescriptorSets;
+		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> TargetDescriptorSets;
 	};
 
 	struct MeshEraseInfo
 	{
 		std::vector<ModelInstance*> ModelInstances;
 		uint32_t FrameIndex;
-		std::vector<VkDescriptorSet> TargetDescriptorSets;
+		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> TargetDescriptorSets;
 	};
 
 	struct ExtendedIndirectCommand
@@ -185,14 +185,10 @@ namespace SCENE
 		void Create(MeshManager& MeshManager,RENDERER::RendererContext& RendererContext);
 		void Destroy(VkDevice& LogicalDevice);
 
-		MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> PerformanceModeBuffers;
-		//MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> BalancedModeBuffers;
-		//MeshDrawArenaBufferGroup<1> MemorySavingModeBuffers;
+		MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> SceneBuffers;
 
 		uint32_t CurrentBalancedBuffer = 0;
-		std::vector<RENDERER_CORE::Buffer> SceneMeshIndexBuffers;
-
-		std::array<EntryManager,MAX_FRAMES_IN_FLIGHT> ModelEntries;
+		std::array<EntryManager,MAX_FRAMES_IN_FLIGHT> Entries;
 		
 		void UpdateMeshTransformations(std::vector<ModelInstance*> &UpdateList,uint32_t CurrentFrame);
 
@@ -200,16 +196,6 @@ namespace SCENE
 		void EraseModels(MeshEraseInfo Info);
 		void UpdateTextureDescriptors(MeshTextureUpdateInfo Info);
 	private:
-		void WriteTexture(
-			uint32_t TextureTypeIndex,
-			SCENE::Material& Material,
-			SCENE::TextureImportManager& TextureImportManager,
-			std::vector<RENDERER_CORE::DescriptorSetWriteImage>& ImageWrites,
-			std::vector<int>& TextureIndexes,
-			int& CurrentImageIndex,
-			VkDescriptorSet DestinationDescriptorSet
-		);
-
 		MeshManager* MeshManagerPtr = nullptr;
 		RENDERER::RendererContext* RendererContext = nullptr;
 	};

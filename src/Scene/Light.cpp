@@ -1,5 +1,4 @@
 #include "Light.hpp"
-#include "DependencyManager.hpp"
 
 SCENE::Light::Light()
 {

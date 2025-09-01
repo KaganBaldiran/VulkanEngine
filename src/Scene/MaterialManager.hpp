@@ -21,6 +21,7 @@ namespace RENDERER
 {
 	class RendererContext;
 	class Renderer;
+	class DeferredRenderPipeline;
 }
 
 namespace SCENE
@@ -47,6 +48,7 @@ namespace SCENE
 	{
 		friend class SceneMeshManager;
 		friend class RENDERER::Renderer;
+		friend class RENDERER::DeferredRenderPipeline;
 	public:
 		TextureImportManager(RENDERER::RendererContext& RendererContext);
 		TextureImportManager() = default;

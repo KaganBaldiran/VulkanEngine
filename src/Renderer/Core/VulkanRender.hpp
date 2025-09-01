@@ -62,7 +62,10 @@ namespace RENDERER_CORE
 			VkImageLayout imageLayout,
 			VkAttachmentLoadOp loadOp,
 			VkAttachmentStoreOp storeOp,
-			const VkClearValue& clearValue
+			const VkClearValue& clearValue,
+			VkResolveModeFlagBits resolveMode = VK_RESOLVE_MODE_NONE,
+			VkImageView resolveImageView = VK_NULL_HANDLE,
+			VkImageLayout resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED
 		);
 		void BeginRendering(const VkCommandBuffer& CommandBuffer,VkRect2D& RenderArea);
 		void EndRendering(const VkCommandBuffer& CommandBuffer);

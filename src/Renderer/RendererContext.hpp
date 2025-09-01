@@ -32,6 +32,16 @@ namespace SCENE
 
 namespace RENDERER
 {
+    struct LightingPassUBOdata
+    {
+        glm::vec3 CameraDirection;
+        float FogIntensity;
+        glm::vec3 CameraPosition;
+        float CameraFrustumLength;
+        int StaticLightCount;
+        int DynamicLightCount;
+    };
+
 	class RendererContext : COMMON::Destructible
 	{
         friend class SCENE::Scene;
@@ -91,10 +101,14 @@ namespace RENDERER
         RENDERER_CORE::ShaderModule GbufferVertexShaderModule;
         RENDERER_CORE::ShaderModule GbufferFragmentShaderModule;
 
+        RENDERER_CORE::GraphicsPipeline DeferredLightingPassGraphicsPipeline;
+        RENDERER_CORE::DescriptorSetLayout LightingPassLayout;
+
         RENDERER_CORE::Buffer QuadVertexBuffer{};
         RENDERER_CORE::Buffer CubeVertexBuffer{};
 	private:
         void CreateHDRIrenderPassResources();
         RENDERER_CORE::GraphicsPipeline* AppendGbufferPassPipeline(VkDescriptorSetLayout Layout,uint32_t MaxTextureCount);
+        void CreateDeferredLightingPassPipeline();
 	};
 }

@@ -81,6 +81,7 @@ namespace SCENE
 		double Yaw;
 		double Pitch;
 		double FOV;
+		float NearPlane, FarPlane;
 
 		double LastX;
 		double LastY;

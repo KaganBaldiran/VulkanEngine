@@ -1,3 +1,4 @@
+#pragma once
 #include "Mesh.hpp"
 #include "../Renderer/Core/VulkanBuffer.hpp"
 
@@ -8,6 +9,7 @@ namespace RENDERER
 {
     class RendererContext;
     class Renderer;
+    class DeferredRenderPipeline;
 }
 
 namespace SCENE
@@ -44,6 +46,7 @@ namespace SCENE
     {
         friend class SceneMeshManager;
         friend class RENDERER::Renderer;
+        friend class RENDERER::DeferredRenderPipeline;
     public:
         MeshManager(TextureImportManager& ImportManager, RENDERER::RendererContext& RendererContext);
         MeshManager() = default;

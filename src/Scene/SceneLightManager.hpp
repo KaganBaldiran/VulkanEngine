@@ -30,7 +30,7 @@ namespace SCENE
 	{
 		std::vector<Light*> StaticLights;
 		std::vector<Light*> DynamicLights;
-		std::vector<VkDescriptorSet> TargetDescriptorSets;
+		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> TargetDescriptorSets;
 		uint32_t FrameIndex;
 	};
 

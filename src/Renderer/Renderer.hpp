@@ -32,6 +32,8 @@
 
 #include "GeometryBuffer.hpp"
 #include "RendererContext.hpp"
+#include "RenderPipeline.hpp"
+#include "DeferredRenderPipeline.hpp"
 
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btVector3.h>
@@ -62,7 +64,9 @@ namespace RENDERER
         Renderer() = default;
         void Create(RendererContext& DestinationRendererContext, bool EnablePhysicsDebugDrawing);
 
-        void RenderFrame(SCENE::Scene &Scene);
+        void AddRenderPass(RenderPassConfiguration RenderPass);
+        void RemoveRenderPass(std::string RenderPassName);
+        void RenderFrame();
         void Destroy() override;
 
         bool EnablePhysicsDebugDrawing;
@@ -74,28 +78,13 @@ namespace RENDERER
         uint32_t GraphicsQueueIndex;
 
         std::vector<VkCommandBuffer> CommandBuffers;
-
-        //std::vector<RENDERER_CORE::Buffer> UBO;
-        //std::vector<void*> UBOmapped;
-
-        //std::vector<RENDERER_CORE::PersistentBuffer> LightingPassUBOs;
-
         std::vector<RENDERER_CORE::PersistentBuffer> PhysicsDebugLineVertexBuffers;
         int MaxLines;
         VkDeviceSize PhysicsDebugLineVertexBuffersize;
 
-        std::vector<GeometryBuffer> Gbuffers;
-
-        RENDERER_CORE::DescriptorPool descriptorPool;
-        RENDERER_CORE::DescriptorSetLayout LightingPassLayout;
-        std::vector<VkDescriptorSet> LightingPassDescriptorSets;
-        std::vector<VkDescriptorSetLayout> LightingPassLayouts;
-
         RENDERER_CORE::TextureData DepthImage{};
 
-        RENDERER_CORE::GraphicsPipeline LightingPassGraphicsPipeline;
         RENDERER_CORE::GraphicsPipeline PhysicsDebugGraphicsPipeline;
-
         RENDERER_CORE::PipelineBarrier2 PipelineBarrier2;
 
         std::vector<RENDERER_CORE::FrameSyncObjects> SyncObjects;
@@ -103,22 +92,6 @@ namespace RENDERER
     private:
         void InitializePipelines();
         void OnRecreateSwapChain();
-
-        void RenderGeometryPass(
-            SCENE::Scene& Scene,
-            SCENE::Camera3D& Camera, 
-            VkCommandBuffer& CommandBuffer, 
-            uint32_t CurrentImageIndex,
-            uint32_t CurrentFrame
-        );
-
-        void RenderLightingPass(
-            SCENE::Scene& Scene,
-            SCENE::Camera3D &Camera,
-            VkCommandBuffer& CommandBuffer,
-            uint32_t CurrentImageIndex,
-            uint32_t CurrentFrame
-        );
 
         void RenderPhysicsDebugPass(
             SCENE::Scene& Scene,
@@ -128,6 +101,7 @@ namespace RENDERER
             uint32_t CurrentFrame
         );
 
+        std::vector<RenderPassConfiguration> RenderPasses;
         std::queue<std::function<void(VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)>> RenderTasks;
         std::vector<RENDERER_CORE::Buffer*> SceneBufferDestroyList;
     };

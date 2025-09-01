@@ -3,8 +3,6 @@
 #include "../include/stbi/stb_image.h"
 #include "../Renderer/Core/VulkanPipeline.hpp"
 
-#include "DependencyManager.hpp"
-
 #include "../Common/Log.hpp"
 #include "../Common/CommonDefinitions.hpp"
 

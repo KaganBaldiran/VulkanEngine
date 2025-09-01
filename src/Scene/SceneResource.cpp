@@ -1,5 +1,4 @@
 #include "SceneResource.hpp"
-#include "DependencyManager.hpp"
 
 SCENE::Resource::Resource() : ResourceID(GenerateResourceID())
 {

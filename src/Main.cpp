@@ -1,7 +1,4 @@
 #include "Renderer/Renderer.hpp"
-#include "Scene/DependencyManager.hpp"
-#include "Scene/MaterialManager.hpp"
-#include "Scene/MeshManager.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../include/stbi/stb_image.h"
@@ -12,7 +9,6 @@
 
 #include "Physics/PhysicsContext.hpp"
 #include "Common/MemoryArenaAllocator.hpp"
-
 #include "Scene/ShadowMapManager.hpp"
 
 #include <random>
@@ -28,8 +24,6 @@ int main()
 
         RENDERER::RendererContext RendererContext(true);
         RENDERER::Renderer Renderer(RendererContext, false);
-
-        SCENE::ResourceDependencyManager DependencyManager(RendererContext);
 
         SCENE::ModelHandle SponzaModel;
         SCENE::ModelHandle ShovelModel;
@@ -57,9 +51,6 @@ int main()
         Importer.AppendImportTask({ &ShovelModel , "resources\\shovel2.obj" });
         Importer.AppendImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
         Importer.SubmitImport();
-        Importer.WaitImportIdle();
-        TextureImportManager.AppendImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.ResourceID});
-        TextureImportManager.SubmitImport();
 
         SCENE::ModelInstance SponzaTextured(SponzaModel);
         SCENE::Material SponzaOverride{};
@@ -119,17 +110,22 @@ int main()
         Light2.SetDirection(glm::vec4(0.8f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
         Light2.SetType(SCENE::DIRECTIONAL_LIGHT);
 
+        Importer.WaitImportIdle();
+        TextureImportManager.AppendImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.ResourceID });
+        TextureImportManager.SubmitImport();
+
         SCENE::Scene Scene0;
         Scene0.Create(RendererContext,TextureImportManager, Importer);
 
+        SCENE::Scene Scene1;
+        Scene1.Create(RendererContext, TextureImportManager, Importer);
+
         Shovel1.Transformations.TranslationMatrix = glm::translate(glm::mat4(1.0f), { 30,100,40.0f });
 
-        
-     
         Scene0.LinkModelInstance(Sponza);
-        Scene0.LinkModelInstance(SponzaTextured);
+        Scene1.LinkModelInstance(SponzaTextured);
         Scene0.LinkModelInstance(Shovel);
-        Scene0.LinkModelInstance(Shovel1);
+        Scene1.LinkModelInstance(Shovel1);
 
         for (size_t i = 0; i < 100; i++)
         {
@@ -141,7 +137,16 @@ int main()
         Scene0.LinkStaticLight(Light1);
         Scene0.LinkDynamicLight(Light2);
 
+        Scene1.LinkStaticLight(Light0);
+        Scene1.LinkStaticLight(Light1);
+        Scene1.LinkDynamicLight(Light2);
+
         Scene0.FlushPendingUpdates(
+            SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
+            FRAME_INDEX_ALL_FRAMES
+        );
+
+        Scene1.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
             FRAME_INDEX_ALL_FRAMES
         );
@@ -149,6 +154,10 @@ int main()
         Scene0.LinkCubemap(Cubemap0);
         Scene0.LinkCamera(Camera);
 
+        Scene1.LinkCubemap(Cubemap0);
+        Scene1.LinkCamera(Camera);
+
+       
         /*
         VKPHYSICS::PhysicsContext PhyContext;
         PhyContext.DynamicsWorld->setGravity({ 0,-10,0 });
@@ -192,6 +201,20 @@ int main()
         PhyContext.DynamicsWorld->setDebugDrawer(&PhysicsDebugDrawer);
         Scene0.DebugDrawer = &PhysicsDebugDrawer;
          */
+        RENDERER::DeferredRenderPipeline DeferredPipeline(RendererContext);
+        RENDERER::RenderPassConfiguration PassConfiguration0{};
+        PassConfiguration0.Name = "DeferredPass";
+        PassConfiguration0.Pipeline = &DeferredPipeline;
+        PassConfiguration0.Scene = &Scene0;
+        PassConfiguration0.EnableDepthTesting = true;
+        Renderer.AddRenderPass(PassConfiguration0);
+
+        RENDERER::RenderPassConfiguration PassConfiguration1{};
+        PassConfiguration1.Name = "DeferredPass1";
+        PassConfiguration1.Pipeline = &DeferredPipeline;
+        PassConfiguration1.Scene = &Scene1;
+        PassConfiguration1.EnableDepthTesting = true;
+        Renderer.AddRenderPass(PassConfiguration1);
 
         float DeltaTime = 0.0f;
         float LastFrame = 0.0f;
@@ -232,28 +255,7 @@ int main()
             Light2.SetDirection(glm::vec4(1.0f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
             Scene0.MarkResourceChanged(&Light2, SCENE::MARK_CHANGED_TYPE_DYNAMIC_LIGHT, Renderer.CurrentFrame);
             //Scene0.UpdateDynamicFrameLightBuffers(Renderer.CurrentFrame);
-            static bool AllowKey1 = true;
-            if (!AllowKey1 && glfwGetKey(RendererContext.Window.window, GLFW_KEY_1) == GLFW_RELEASE)
-            {
-                AllowKey1 = true;
-            }
-            if (AllowKey1 && glfwGetKey(RendererContext.Window.window, GLFW_KEY_1) == GLFW_PRESS)
-            {
-                DependencyManager.LinkSceneResource(Cubemap1, Scene0);
-                AllowKey1 = false;
-            }
-
-            static bool AllowKey0 = true;
-            if (!AllowKey0 && glfwGetKey(RendererContext.Window.window, GLFW_KEY_0) == GLFW_RELEASE)
-            {
-                AllowKey0 = true;
-            }
-            if (AllowKey0 && glfwGetKey(RendererContext.Window.window, GLFW_KEY_0) == GLFW_PRESS)
-            {
-                DependencyManager.LinkSceneResource(Cubemap0, Scene0);
-                AllowKey0 = false;
-            }
-
+          
             Shovel.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), 10 * (float)glm::max(0.0,glm::cos(glfwGetTime())), glm::vec3(0.0, 1.0, 0.0));
             Scene0.MarkResourceChanged(&Shovel, SCENE::MARK_CHANGED_TYPE_MESH_TRANSFORMATION, Renderer.CurrentFrame);
 
@@ -267,9 +269,8 @@ int main()
                 0.1f,
                 2000.0f
             );
-            Renderer.RenderFrame(Scene0);
-
-            DependencyManager.UpdateDependencies();
+            Renderer.RenderFrame();
+            glfwPollEvents();
             //PhysicsDebugDrawer.ClearDebugBuffers();
         }
 

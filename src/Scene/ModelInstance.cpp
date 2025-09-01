@@ -1,5 +1,4 @@
 #include "ModelInstance.hpp"
-#include "DependencyManager.hpp"
 
 SCENE::ModelInstance::ModelInstance(ModelHandle& Source)
 {

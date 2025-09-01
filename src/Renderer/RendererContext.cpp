@@ -111,6 +111,12 @@ void RENDERER::RendererContext::Create(bool EnableValidationLayers)
     TextureIndicesDescriptorSetLayout.CreateLayout(DeviceContext.logicalDevice);
     TextureIndicesDescriptorSetLayouts.resize(MAX_FRAMES_IN_FLIGHT, TextureIndicesDescriptorSetLayout.descriptorSetLayout);
 
+    LightingPassLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0, VK_SHADER_STAGE_FRAGMENT_BIT);
+    LightingPassLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
+    LightingPassLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 2, VK_SHADER_STAGE_FRAGMENT_BIT);
+    LightingPassLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 3, VK_SHADER_STAGE_FRAGMENT_BIT);
+    LightingPassLayout.CreateLayout(DeviceContext.logicalDevice);
+
     //Quad buffer
     RENDERER_CORE::UploadDataToDeviceLocalBuffer(
         DeviceContext.logicalDevice,
@@ -135,12 +141,20 @@ void RENDERER::RendererContext::Create(bool EnableValidationLayers)
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
     );
 
+    QuadVertexDescription.SetBindingDescription(0, sizeof(float) * 5, VK_VERTEX_INPUT_RATE_VERTEX);
+    QuadVertexDescription.AppendAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
+    QuadVertexDescription.AppendAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3);
+
+    CubeVertexDescription.SetBindingDescription(0, sizeof(float) * 3, VK_VERTEX_INPUT_RATE_VERTEX);
+    CubeVertexDescription.AppendAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
+
     DepthImageFormat = RENDERER_CORE::FindSupportedFormat(DeviceContext.physicalDevice, { VK_FORMAT_D32_SFLOAT,VK_FORMAT_D32_SFLOAT_S8_UINT,VK_FORMAT_D24_UNORM_S8_UINT },
         VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
     GbufferVertexShaderModule.Create("Shaders\\GeometryBufferShader.vert", "Shaders\\GeometryBufferShaderVert.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
     GbufferFragmentShaderModule.Create("Shaders\\GeometryBufferShader.frag", "Shaders\\GeometryBufferShaderFrag.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
 
+    CreateDeferredLightingPassPipeline();
     CreateHDRIrenderPassResources();
     this->IsDestroyed = false;
     this->DestructionPriority = 0;
@@ -157,6 +171,8 @@ void RENDERER::RendererContext::Destroy()
     {
         Pipeline.Destroy(DeviceContext.logicalDevice);
     }
+    LightingPassLayout.Destroy(DeviceContext.logicalDevice);
+    DeferredLightingPassGraphicsPipeline.Destroy(DeviceContext.logicalDevice);
     HDRIrenderPassLayout.Destroy(DeviceContext.logicalDevice);
     TextureIndicesDescriptorSetLayout.Destroy(DeviceContext.logicalDevice);
     HDRIrenderPassDescriptorPool.Destroy(DeviceContext.logicalDevice);
@@ -205,13 +221,6 @@ void RENDERER::RendererContext::CreateHDRIrenderPassResources()
     //HDRI render pass pipeline
     RENDERER_CORE::ShaderModule HDRIrenderVertexShader("Shaders\\HDRIrenderShader.vert", "Shaders\\HDRIrenderVertexShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
     RENDERER_CORE::ShaderModule HDRIrenderFragmentShader("Shaders\\HDRIrenderShader.frag", "Shaders\\HDRIrenderFragmentShader.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
-
-    QuadVertexDescription.SetBindingDescription(0, sizeof(float) * 5, VK_VERTEX_INPUT_RATE_VERTEX);
-    QuadVertexDescription.AppendAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
-    QuadVertexDescription.AppendAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3);
-
-    CubeVertexDescription.SetBindingDescription(0, sizeof(float) * 3, VK_VERTEX_INPUT_RATE_VERTEX);
-    CubeVertexDescription.AppendAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
 
     VkPushConstantRange HDRIrenderPassPushConstantsRange{};
     HDRIrenderPassPushConstantsRange.size = 2 * sizeof(glm::mat4);
@@ -293,4 +302,40 @@ RENDERER_CORE::GraphicsPipeline* RENDERER::RendererContext::AppendGbufferPassPip
     GbufferPassPassPipelines[MaxTextureCount] = GbufferGraphicsPipeline;
 
     return &GbufferPassPassPipelines[MaxTextureCount];
+}
+void RENDERER::RendererContext::CreateDeferredLightingPassPipeline()
+{
+    RENDERER_CORE::ShaderModule LightingVertexShaderModule("Shaders\\LightingPassShader.vert", "Shaders\\LightingPassShaderVert.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
+    RENDERER_CORE::ShaderModule LightingFragmentShaderModule("Shaders\\LightingPassShader.frag", "Shaders\\LightingPassShaderFrag.spv", VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS, DeviceContext.logicalDevice);
+
+    VkPushConstantRange LightingPassPushConstantRange{};
+    LightingPassPushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    LightingPassPushConstantRange.size = sizeof(LightingPassUBOdata);
+    LightingPassPushConstantRange.offset = 0;
+
+    RENDERER_CORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
+    PipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
+    PipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
+    PipelineCreateInfo.ViewportHeight = static_cast<float>(SwapChain.Extent.height);
+    PipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
+    PipelineCreateInfo.RenderPass = nullptr;
+    PipelineCreateInfo.ScissorOffset = { 0,0 };
+    PipelineCreateInfo.ScissorExtent = { SwapChain.Extent.width ,SwapChain.Extent.height };
+    PipelineCreateInfo.ViewportMinDepth = 0.0f;
+    PipelineCreateInfo.ViewportMaxDepth = 1.0f;
+    PipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
+    PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R8G8B8A8_SRGB };
+    PipelineCreateInfo.ShaderModules = { {&LightingVertexShaderModule,VK_SHADER_STAGE_VERTEX_BIT} ,{&LightingFragmentShaderModule,VK_SHADER_STAGE_FRAGMENT_BIT} };
+    PipelineCreateInfo.AttributeDescriptions = QuadVertexDescription.AttributeDescriptions;
+    PipelineCreateInfo.BindingDescription = QuadVertexDescription.BindingDescription;
+    PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
+    PipelineCreateInfo.EnableDepthTesting = VK_FALSE;
+    PipelineCreateInfo.EnableDepthWriting = VK_FALSE;
+    PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    PipelineCreateInfo.DescriptorSetLayouts = { LightingPassLayout.descriptorSetLayout,SceneDescriptorSetLayout.descriptorSetLayout };
+    PipelineCreateInfo.PushConstantRanges = { LightingPassPushConstantRange };
+    DeferredLightingPassGraphicsPipeline.Create(PipelineCreateInfo, DeviceContext.logicalDevice);
+
+    LightingVertexShaderModule.Destroy(DeviceContext.logicalDevice);
+    LightingFragmentShaderModule.Destroy(DeviceContext.logicalDevice);
 };

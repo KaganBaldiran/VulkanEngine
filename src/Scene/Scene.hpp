@@ -23,6 +23,8 @@
 #include "SceneLightManager.hpp"
 #include "Light.hpp"
 #include "ModelInstance.hpp"
+#include "MaterialManager.hpp"
+#include "MeshManager.hpp"
 
 namespace RENDERER_CORE
 {
@@ -36,6 +38,7 @@ namespace RENDERER
 {
 	class Renderer;
 	class RendererContext;
+	class DeferredRenderPipeline;
 }
 
 namespace SCENE
@@ -44,8 +47,6 @@ namespace SCENE
 	class Camera3D;
 	class Cubemap;
 	class Resource;
-	class TextureImportManager;
-	class MeshManager;
 
 	enum SceneUpdateType
 	{
@@ -90,13 +91,12 @@ namespace SCENE
 		friend class RENDERER::Renderer;
 		friend class ResourceDependencyManager;
 		friend class MeshManager;
+		friend class RENDERER::DeferredRenderPipeline;
 	public:
 		Scene(RENDERER::RendererContext& RendererContext,TextureImportManager& Manager, MeshManager& MeshManager);
 		Scene() = default;
 		void Create(RENDERER::RendererContext& RendererContext, TextureImportManager& Manager, MeshManager& MeshManager);
 		void Destroy() override;
-
-		std::array<std::unordered_set<ModelInstance*>,MAX_FRAMES_IN_FLIGHT> ModelInstances;
 
 		void LinkModelInstance(ModelInstance &Instance);
 		void LinkModelInstance(std::vector<ModelInstance*> &Instances);
@@ -108,9 +108,6 @@ namespace SCENE
 		void LinkStaticLight(Light& StaticLight);
 		void LinkDynamicLight(std::vector<Light*>& DynamicLights);
 		void LinkStaticLight(std::vector<Light*>& StaticLights);
-
-		std::unordered_map<uint64_t, Light*> StaticLights;
-		std::unordered_map<uint64_t, Light*> DynamicLights;
 
 		VKPHYSICS::DebugDrawer* DebugDrawer = nullptr;
 
@@ -148,15 +145,15 @@ namespace SCENE
 		std::array<uint32_t, MAX_FRAMES_IN_FLIGHT> PendingUpdateBits;
 
 		RENDERER_CORE::DescriptorPool SceneDescriptorPool;
-		std::vector<VkDescriptorSet> SceneDescriptorSets;
+		std::array<VkDescriptorSet,MAX_FRAMES_IN_FLIGHT> SceneDescriptorSets;
 	
 		// 0: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Texture index buffers accessed from G-buffer pass fragment shader
-		std::vector<VkDescriptorSet> TextureIndicesDescriptorSets;
+		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> TextureIndicesDescriptorSets;
 
 		//RENDERER_CORE::GraphicsPipeline* CurrentGbufferPassPipeline = nullptr;
 		//uint32_t ActualTextureUpperBound;
 		
-		std::vector<VkDescriptorSet> IndirectDescriptorSets;
+		std::array<VkDescriptorSet,MAX_FRAMES_IN_FLIGHT> IndirectDescriptorSets;
 
 		RENDERER::RendererContext* RendererContext = nullptr;
 		SCENE::ResourceDependencyManager* DependencyManager = nullptr;

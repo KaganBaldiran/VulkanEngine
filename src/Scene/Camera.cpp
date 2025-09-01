@@ -1,8 +1,6 @@
 #include "Camera.hpp"
 #include "../Renderer/Core/VulkanWindow.hpp"
 
-#include "DependencyManager.hpp"
-
 SCENE::Camera3D::Camera3D(RENDERER_CORE::Window& window,CameraSettingsInfo Settings)
 {
     Create(window,Settings);
@@ -63,6 +61,9 @@ void SCENE::Camera3D::SetCameraSettings(CameraSettingsInfo Settings)
 
 void SCENE::Camera3D::Update(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime, glm::vec2 Extent, float Near, float Far)
 {
+    this->FarPlane = Far;
+    this->NearPlane = Near;
+
     switch (this->Mode)
     {
     case CAMERA_MODE_UNSPECIFIED:

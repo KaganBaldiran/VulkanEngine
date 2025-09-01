@@ -153,7 +153,10 @@ void RENDERER_CORE::DynamicRenderingPass::AppendAttachment(
     VkImageLayout imageLayout,
     VkAttachmentLoadOp loadOp,
     VkAttachmentStoreOp storeOp,
-    const VkClearValue& clearValue
+    const VkClearValue& clearValue,
+    VkResolveModeFlagBits resolveMode,
+    VkImageView resolveImageView,
+    VkImageLayout resolveImageLayout
 )
 {
     VkRenderingAttachmentInfo NewAttachmentInfo{};
@@ -163,6 +166,9 @@ void RENDERER_CORE::DynamicRenderingPass::AppendAttachment(
     NewAttachmentInfo.imageView = imageView;
     NewAttachmentInfo.imageLayout = imageLayout;
     NewAttachmentInfo.clearValue = clearValue;
+    NewAttachmentInfo.resolveMode = resolveMode;
+    NewAttachmentInfo.resolveImageView = resolveImageView;
+    NewAttachmentInfo.resolveImageLayout = resolveImageLayout;
     if (imageLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ||
         imageLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL)
     {

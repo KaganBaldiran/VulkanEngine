@@ -7,7 +7,6 @@
 #include "Cubemap.hpp"
 #include "../Renderer/Core/VulkanPipeline.hpp"
 
-#include "DependencyManager.hpp"
 #include "MaterialManager.hpp"
 
 SCENE::Scene::Scene(RENDERER::RendererContext& RendererContext,TextureImportManager &Manager, MeshManager& MeshManager)
@@ -32,14 +31,9 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,TextureImpo
         RendererContext.DeviceContext.logicalDevice
     );
     
-    SceneDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.SceneDescriptorSetLayouts, SceneDescriptorSets);
-    
-    IndirectDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.IndirectDescriptorSetLayouts, IndirectDescriptorSets);
-    
-    TextureIndicesDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.TextureIndicesDescriptorSetLayouts, TextureIndicesDescriptorSets);
+    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.SceneDescriptorSetLayout.descriptorSetLayout, SceneDescriptorSets.data());
+    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.IndirectDescriptorSetLayout.descriptorSetLayout, IndirectDescriptorSets.data());
+    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.TextureIndicesDescriptorSetLayout.descriptorSetLayout, TextureIndicesDescriptorSets.data());
 
     this->RendererContext = &RendererContext;
     DrawCubeMap = true;

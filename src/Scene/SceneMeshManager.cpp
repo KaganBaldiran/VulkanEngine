@@ -24,19 +24,12 @@ void SCENE::SceneMeshManager::Create(MeshManager& MeshManager, RENDERER::Rendere
 {
     this->RendererContext = &RendererContext;
     this->MeshManagerPtr = &MeshManager;
-    SceneMeshIndexBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    PerformanceModeBuffers.Create();
+    SceneBuffers.Create();
 }
 
 void SCENE::SceneMeshManager::Destroy(VkDevice& LogicalDevice)
 {
-    PerformanceModeBuffers.Destroy(RendererContext->DeviceContext.logicalDevice);
-    //BalancedModeBuffers.Destroy(RendererContext->DeviceContext.logicalDevice);
-    //MemorySavingModeBuffers.Destroy(RendererContext->DeviceContext.logicalDevice);
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        SceneMeshIndexBuffers[i].Destroy(RendererContext->DeviceContext.logicalDevice);
-    }
+    SceneBuffers.Destroy(RendererContext->DeviceContext.logicalDevice);
 }
 
 //Update mesh transformation buffers based on the update list
@@ -44,9 +37,9 @@ void SCENE::SceneMeshManager::UpdateMeshTransformations(std::vector<ModelInstanc
 {
     if (UpdateList.empty()) return;
 
-    auto& ModelMatrixBuffer = PerformanceModeBuffers.ModelMatricesBuffers[CurrentFrame].Buffer;
+    auto& ModelMatrixBuffer = SceneBuffers.ModelMatricesBuffers[CurrentFrame].Buffer;
     uint8_t* Destination = reinterpret_cast<uint8_t*>(ModelMatrixBuffer.MappedMemory);
-    auto& CurrentFrameInstanceEntries = ModelEntries[CurrentFrame].InstanceEntries;
+    auto& CurrentFrameInstanceEntries = Entries[CurrentFrame].InstanceEntries;
 
     std::vector<VkMappedMemoryRange> MemoryRanges;
     MemoryRanges.reserve(UpdateList.size());
@@ -116,18 +109,18 @@ void SCENE::SceneMeshManager::AppendModels(MeshAppendInfo Info)
     auto& CurrentFrame = Info.FrameIndex;
     this->MeshManagerPtr->UpdateGeometryEntries(CurrentFrame);
 
-    auto& EnabledMeshCount = PerformanceModeBuffers.EnabledMeshCount[CurrentFrame];
+    auto& EnabledMeshCount = SceneBuffers.EnabledMeshCount[CurrentFrame];
 
-    auto& IndirectBuffer = PerformanceModeBuffers.IndirectBuffers[CurrentFrame];
-    auto& TexturesIndexBuffer = PerformanceModeBuffers.TexturesIndexBuffers[CurrentFrame];
+    auto& IndirectBuffer = SceneBuffers.IndirectBuffers[CurrentFrame];
+    auto& TexturesIndexBuffer = SceneBuffers.TexturesIndexBuffers[CurrentFrame];
 
-    auto& CullBuffers = PerformanceModeBuffers.CullBuffers;
+    auto& CullBuffers = SceneBuffers.CullBuffers;
     auto& CulledMetaDataBuffer = CullBuffers.CulledDrawMetaDataBuffer[CurrentFrame];
     auto& CulledIndirectBuffer = CullBuffers.CulledIndirectBuffers[CurrentFrame];
     auto& MeshVisibilityCountBuffer = CullBuffers.MeshVisibilityCountBuffers[CurrentFrame];
 
-    auto& DrawMetaDataBuffer = PerformanceModeBuffers.DrawMetaDataBuffer[CurrentFrame];
-    auto& ModelMatricesBuffer = PerformanceModeBuffers.ModelMatricesBuffers[CurrentFrame];
+    auto& DrawMetaDataBuffer = SceneBuffers.DrawMetaDataBuffer[CurrentFrame];
+    auto& ModelMatricesBuffer = SceneBuffers.ModelMatricesBuffers[CurrentFrame];
 
     auto& IndirectBufferAllocator = IndirectBuffer.Allocator;
     auto& ModelMatricesBufferAllocator = ModelMatricesBuffer.Allocator;
@@ -135,7 +128,7 @@ void SCENE::SceneMeshManager::AppendModels(MeshAppendInfo Info)
     auto& MeshVisibilityCountBufferAllocator = MeshVisibilityCountBuffer.Allocator;
     auto& TexturesIndexBufferAllocator = TexturesIndexBuffer.Allocator;
 
-    auto& TexturesIndexBufferReallocated = PerformanceModeBuffers.TexturesIndexBuffersReallocated[CurrentFrame];
+    auto& TexturesIndexBufferReallocated = SceneBuffers.TexturesIndexBuffersReallocated[CurrentFrame];
 
     size_t VertexSize, IndexSize,IndirectSize, VertexBufferSize = 0,IndexBufferSize = 0,IndirectBufferSize = 0;
     size_t SizeOfVertex = sizeof(Vertex3D), 
@@ -154,7 +147,7 @@ void SCENE::SceneMeshManager::AppendModels(MeshAppendInfo Info)
 
     uint32_t MaterialTextureTypeCount = static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE);
     //auto& CurrentFrameMeshEntries = MeshEntries[CurrentFrame];
-    auto& CurrentFrameEntries = ModelEntries[CurrentFrame];
+    auto& CurrentFrameEntries = Entries[CurrentFrame];
     auto& CurrentFrameGeometryEntries = this->MeshManagerPtr->GeometryEntries[CurrentFrame];
     //Process newly inserted meshes.
     std::set<size_t> InsertedMetaDatas;
@@ -719,14 +712,14 @@ void SCENE::SceneMeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Inf
     auto& CurrentDescriptorSet = DescriptorSets[FrameIndex];
 
     TextureImportManager.UpdateDescriptors(FrameIndex);
-    auto& CurrentFrameEntries = ModelEntries[FrameIndex];
+    auto& CurrentFrameEntries = Entries[FrameIndex];
 
     if (CurrentFrameEntries.MaterialUpdateList.empty()) return;
 
-    auto& CurrentTextureIndexBuffer = PerformanceModeBuffers.TexturesIndexBuffers[FrameIndex];
+    auto& CurrentTextureIndexBuffer = SceneBuffers.TexturesIndexBuffers[FrameIndex];
     auto& TextureIndexBufferAllocator = CurrentTextureIndexBuffer.Allocator;
     auto Capacity = TextureIndexBufferAllocator.GetCapacity() - TextureIndexBufferAllocator.GetTotalFreeSpace();
-    auto& TexturesIndexBufferReallocated = PerformanceModeBuffers.TexturesIndexBuffersReallocated[FrameIndex];
+    auto& TexturesIndexBufferReallocated = SceneBuffers.TexturesIndexBuffersReallocated[FrameIndex];
 
     uint32_t MaterialTextureTypeCount = static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE);
     uint32_t Inserted = 0;
