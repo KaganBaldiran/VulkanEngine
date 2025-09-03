@@ -16,6 +16,7 @@ namespace RENDERER_CORE
 		VkDeviceMemory ImageMemory = VK_NULL_HANDLE;
 		VkSampler Sampler = VK_NULL_HANDLE;
 		VkImageView ImageView = VK_NULL_HANDLE;
+		VkImageLayout Layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 		void Destroy(VkDevice& LogicalDevice);
 	};

@@ -155,5 +155,5 @@ void RENDERER_CORE::SwapChain::Create(
 {
     if (swapChain) return;
     VULKAN_ASSERT_RESULT(CreateSwapChain(PhysicalDevice, LogicalDevice, Surface, Window, swapChain, SwapChainImages, SurfaceFormat, PresentMode, Extent));
-    VULKAN_ASSERT_RESULT(CreateSwapChainImageViews(SwapChainImages, SwapChainImagesViews, SurfaceFormat.format, LogicalDevice));
+    VULKAN_ASSERT_RESULT(CreateSwapChainImageViews(SwapChainImages, SwapChainImagesViews,SwapChainImagesLayouts, SurfaceFormat.format, LogicalDevice));
 }

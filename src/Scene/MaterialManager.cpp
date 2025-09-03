@@ -111,13 +111,14 @@ void SCENE::TextureImportManager::SubmitImport()
         if (Iterator == TextureDatas.end()) continue;
         PipelineBarrier.AppendImageMemoryBarrier(
             Iterator->second.Data.Image,
-            VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
             0,
-            VK_ACCESS_SHADER_READ_BIT,
+            VK_ACCESS_2_SHADER_READ_BIT,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         );
+        Iterator->second.Data.Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         for (size_t i = 0; i < this->DescriptorWriteQueue.size(); i++)
         {
             DescriptorWriteQueue[i].push_back(ImageID);
@@ -176,7 +177,7 @@ void SCENE::TextureImportManager::UpdateDescriptors(uint32_t FrameIndex)
             auto& Data = TextureDataIterator->second.Data;
             auto& DescriptorSlots = TextureDataIterator->second.DescriptorSlots;
 
-            auto AllocatedIndex = CurrentTextureDescriptorIndexAllocator.Allocate(1);
+            auto AllocatedIndex = CurrentTextureDescriptorIndexAllocator.Suballocate(1);
             DescriptorSlots[FrameIndex] = AllocatedIndex.Offset;
 
             RENDERER_CORE::DescriptorSetWriteImage NewTextureWrite(

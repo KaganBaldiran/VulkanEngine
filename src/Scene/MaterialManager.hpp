@@ -77,6 +77,6 @@ namespace SCENE
 		std::array<uint32_t, MAX_FRAMES_IN_FLIGHT> TextureDescriptorUpperBounds;
 		std::array<RENDERER_CORE::VirtualArenaAllocator, MAX_FRAMES_IN_FLIGHT> TextureDescriptorIndexAllocators;
 
-		RENDERER_CORE::GraphicsPipeline* CurrentGbufferPassPipeline = nullptr;
+		std::array<RENDERER_CORE::GraphicsPipeline, 2>* CurrentGbufferPassPipeline = nullptr;
 	};
 }

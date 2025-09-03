@@ -123,16 +123,9 @@ int main()
         Shovel1.Transformations.TranslationMatrix = glm::translate(glm::mat4(1.0f), { 30,100,40.0f });
 
         Scene0.LinkModelInstance(Sponza);
-        Scene1.LinkModelInstance(SponzaTextured);
+        Scene0.LinkModelInstance(SponzaTextured);
+       
         Scene0.LinkModelInstance(Shovel);
-        Scene1.LinkModelInstance(Shovel1);
-
-        for (size_t i = 0; i < 100; i++)
-        {
-            Scene0.LinkModelInstance(Shovels[i]);
-        }
-        Scene0.LinkModelInstance(SceneModelInstance);
-
         Scene0.LinkStaticLight(Light0);
         Scene0.LinkStaticLight(Light1);
         Scene0.LinkDynamicLight(Light2);
@@ -141,15 +134,26 @@ int main()
         Scene1.LinkStaticLight(Light1);
         Scene1.LinkDynamicLight(Light2);
 
+        //Scene0.LinkModelInstance(SceneModelInstance);
+        //Scene0.LinkModelInstance(Shovel1);
         Scene0.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
             FRAME_INDEX_ALL_FRAMES
         );
 
-        Scene1.FlushPendingUpdates(
+        Scene0.LinkModelInstance(SceneModelInstance);
+        Scene0.LinkModelInstance(Shovel1);
+        for (size_t i = 0; i < 100; i++)
+        {
+            Scene0.LinkModelInstance(Shovels[i]);
+        }
+
+        Scene0.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
             FRAME_INDEX_ALL_FRAMES
         );
+
+       
 
         Scene0.LinkCubemap(Cubemap0);
         Scene0.LinkCamera(Camera);
@@ -214,7 +218,7 @@ int main()
         PassConfiguration1.Pipeline = &DeferredPipeline;
         PassConfiguration1.Scene = &Scene1;
         PassConfiguration1.EnableDepthTesting = true;
-        Renderer.AddRenderPass(PassConfiguration1);
+        //Renderer.AddRenderPass(PassConfiguration1);
 
         float DeltaTime = 0.0f;
         float LastFrame = 0.0f;

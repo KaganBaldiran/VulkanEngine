@@ -18,6 +18,7 @@
 
 #include "Mesh.hpp"
 #include "Material.hpp"
+#include "PersistentSceneStagingBuffer.hpp"
 
 namespace RENDERER
 {
@@ -42,7 +43,7 @@ namespace SCENE
 		{
 			for (size_t i = 0; i < BufferSetCount; i++)
 			{
-				MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
+				MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE);
 			}
 		}
 
@@ -74,11 +75,11 @@ namespace SCENE
 			EnabledMeshCount.fill(0);
 			for (size_t i = 0; i < BufferSetCount; i++)
 			{
-				IndirectBuffers[i].Create();
-				ModelMatricesBuffers[i].Create();
-				DrawMetaDataBuffer[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
-				TexturesIndexBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
-				CullBuffers.MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_MEGABYTE);
+				IndirectBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10);
+				ModelMatricesBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10);
+				DrawMetaDataBuffer[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10);
+				TexturesIndexBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10);
+				CullBuffers.MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE);
 			}
 		}
 
@@ -101,6 +102,7 @@ namespace SCENE
 	{
 		size_t ResourceID;
 		RENDERER_CORE::MemoryRegion DrawDataMemoryRegion;
+		RENDERER_CORE::MemoryRegion StagingDrawDataMemoryRegion;
 	};
 
 	struct MeshEntry
@@ -109,6 +111,7 @@ namespace SCENE
 		bool IsChanged = false;
 		size_t ResourceID;
 		RENDERER_CORE::MemoryRegion IndirectBufferMemoryRegion;
+		RENDERER_CORE::MemoryRegion StagingIndirectBufferMemoryRegion;
 		DrawInfo Info;
 		BoundingBoxAABB BoundingBox;
 		std::vector<InstanceMeshLink> InstanceLinks;
@@ -119,6 +122,7 @@ namespace SCENE
 		Material Material;
 		std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
 		RENDERER_CORE::MemoryRegion TextureIndexMemoryRegion;
+		RENDERER_CORE::MemoryRegion StagingTextureIndexMemoryRegion;
 	};
 
 	struct InstanceEntry
@@ -140,6 +144,8 @@ namespace SCENE
 		std::vector<ModelInstance*> ModelInstances;
 		uint32_t FrameIndex;
 		std::array<VkDescriptorSet,MAX_FRAMES_IN_FLIGHT> TargetDescriptorSets;
+		PersistentStagingBuffer* StagingBuffer;
+		std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>* CopyInfos;
 	};
 
 	struct MeshTextureUpdateInfo
@@ -147,6 +153,8 @@ namespace SCENE
 		TextureImportManager *TextureImportManagerPtr;
 		uint32_t FrameIndex;
 		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> TargetDescriptorSets;
+		PersistentStagingBuffer* StagingBuffer;
+		std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>* CopyInfos;
 	};
 
 	struct MeshEraseInfo
@@ -163,7 +171,7 @@ namespace SCENE
 		int FirstIndex;
 		int VertexOffset;
 		int FirstInstance;
-		BoundingBoxAABB BoundingBox;
+		//BoundingBoxAABB BoundingBox;
 	};
 
 	struct DrawMetadata {

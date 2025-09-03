@@ -105,6 +105,35 @@ void RENDERER::Renderer::RemoveRenderPass(std::string RenderPassName)
     if (RenderPassIterator != RenderPasses.end()) RenderPasses.erase(RenderPassIterator);
 }
 
+struct MemoryBufferBarrierInfo
+{
+    VkPipelineStageFlags2 SrcStageMask;
+    VkPipelineStageFlags2 DstStageMask;
+    VkAccessFlags2 SrcAccessMask;
+    VkAccessFlags2 DstAccessMask;
+};
+
+constexpr MemoryBufferBarrierInfo SceneBuffersBarrierInfos[] = {
+    {   
+        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+        VK_ACCESS_2_TRANSFER_WRITE_BIT,
+        VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT 
+    },
+    {
+        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+        VK_ACCESS_2_TRANSFER_WRITE_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT
+    },
+    {
+        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_2_TRANSFER_WRITE_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT
+    }
+};
+
 void RENDERER::Renderer::RenderFrame()
 {
     auto RenderTask = [&](VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame) {
@@ -132,28 +161,38 @@ void RENDERER::Renderer::RenderFrame()
         Scissor.extent = rendererContext->SwapChain.Extent;
         vkCmdSetScissor(CommandBuffer, 0, 1, &Scissor);
 
-        PipelineBarrier2.AppendImageMemoryBarrier(
-            rendererContext->SwapChain.SwapChainImages[CurrentImageIndex],
-            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            0,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-        );
-
-        PipelineBarrier2.AppendImageMemoryBarrier(
-            DepthImage.Image,
-            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-            0,
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_IMAGE_ASPECT_DEPTH_BIT
-        );
+        //Transition the current swap chain image into color attachment
+        auto& SwapChainLayout = rendererContext->SwapChain.SwapChainImagesLayouts[CurrentImageIndex];
+        if (SwapChainLayout != VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+        {
+            PipelineBarrier2.AppendImageMemoryBarrier(
+                rendererContext->SwapChain.SwapChainImages[CurrentImageIndex],
+                VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                0,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                SwapChainLayout,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+            );
+            SwapChainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        }
+        //Transition depth image into depth attachment
+        if (DepthImage.Layout != VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+        {
+            PipelineBarrier2.AppendImageMemoryBarrier(
+                DepthImage.Image,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                0,
+                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_IMAGE_ASPECT_DEPTH_BIT
+            );
+            DepthImage.Layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        }
 
         PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
 
@@ -161,6 +200,60 @@ void RENDERER::Renderer::RenderFrame()
         {
             bool IsFirstOne = i == 0;
             RenderPassConfiguration& RenderPass = RenderPasses[i];
+            auto& SceneCopyInfos = RenderPass.Scene->SceneCopyInfos[CurrentFrame];
+
+            for (int CopySlot = 0; CopySlot < static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE); CopySlot++)
+            {
+                if (!SceneCopyInfos[CopySlot].CopyRegions.empty())
+                {
+                    vkCmdCopyBuffer(CommandBuffer, SceneCopyInfos[CopySlot].SourceBuffer, SceneCopyInfos[CopySlot].DestinationBuffer, static_cast<uint32_t>(SceneCopyInfos[CopySlot].CopyRegions.size()), SceneCopyInfos[CopySlot].CopyRegions.data());
+                    PipelineBarrier2.AppendBufferMemoryBarrier(
+                        SceneCopyInfos[CopySlot].DestinationBuffer,
+                        0,
+                        VK_WHOLE_SIZE,
+                        SceneBuffersBarrierInfos[CopySlot].SrcStageMask,
+                        SceneBuffersBarrierInfos[CopySlot].DstStageMask,
+                        SceneBuffersBarrierInfos[CopySlot].SrcAccessMask,
+                        SceneBuffersBarrierInfos[CopySlot].DstAccessMask
+                    );
+                    SceneCopyInfos[CopySlot].CopyRegions.clear();
+                }
+            }
+            /*
+            if (!SceneCopyInfos[0].CopyRegions.empty())
+            {
+                vkCmdCopyBuffer(CommandBuffer, SceneCopyInfos[0].SourceBuffer, SceneCopyInfos[0].DestinationBuffer, static_cast<uint32_t>(SceneCopyInfos[0].CopyRegions.size()), SceneCopyInfos[0].CopyRegions.data());
+                PipelineBarrier2.AppendBufferMemoryBarrier(
+                    SceneCopyInfos[0].DestinationBuffer,
+                    0,
+                    VK_WHOLE_SIZE,
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT
+                );
+                SceneCopyInfos[0].CopyRegions.clear();
+            }
+            if (!SceneCopyInfos[1].CopyRegions.empty())
+            {
+                vkCmdCopyBuffer(CommandBuffer, SceneCopyInfos[1].SourceBuffer, SceneCopyInfos[1].DestinationBuffer, static_cast<uint32_t>(SceneCopyInfos[1].CopyRegions.size()), SceneCopyInfos[1].CopyRegions.data());
+                PipelineBarrier2.AppendBufferMemoryBarrier(
+                    SceneCopyInfos[1].DestinationBuffer,
+                    0,
+                    VK_WHOLE_SIZE,
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_READ_BIT
+                );
+                SceneCopyInfos[1].CopyRegions.clear();
+            }
+            */
+            PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
+
+            auto& SceneStagingBufferAllocator = RenderPass.Scene->StagingBuffers[CurrentFrame].StagingBuffer.Allocator;
+            SceneStagingBufferAllocator.Reset(SceneStagingBufferAllocator.GetCapacity());
+
             RenderPass.Pipeline->RenderScene(
                 *RenderPass.Scene,
                 CommandBuffer,
@@ -174,15 +267,19 @@ void RENDERER::Renderer::RenderFrame()
             );
         }
        
-        PipelineBarrier2.AppendImageMemoryBarrier(
-            rendererContext->SwapChain.SwapChainImages[CurrentImageIndex],
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            0,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-        );
+        if (SwapChainLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        {
+            PipelineBarrier2.AppendImageMemoryBarrier(
+                rendererContext->SwapChain.SwapChainImages[CurrentImageIndex],
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                0,
+                SwapChainLayout,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+            );
+            SwapChainLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        }
 
         PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
 

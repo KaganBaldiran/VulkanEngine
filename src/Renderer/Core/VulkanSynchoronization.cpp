@@ -1,4 +1,5 @@
 #include "VulkanSynchoronization.hpp"
+#include "VulkanImage.hpp"
 
 RENDERER_CORE::PipelineBarrier2::PipelineBarrier2()
 {
@@ -87,4 +88,29 @@ void RENDERER_CORE::PipelineBarrier2::ExecutePipelineBarrier(VkCommandBuffer Com
 	vkCmdPipelineBarrier2(CommandBuffer, &DependencyInfo);
 	ImageMemoryBarriers.clear();
 	BufferMemoryBarriers.clear();
+}
+
+void RENDERER_CORE::SafeImageBarrier(
+	RENDERER_CORE::TextureData& Image,
+	RENDERER_CORE::PipelineBarrier2& Barrier,
+	VkImageLayout DestinationLayout,
+	VkPipelineStageFlagBits2 SrcStage,
+	VkPipelineStageFlagBits2 DstStage,
+	VkAccessFlagBits2 SrcAccesMask, 
+	VkAccessFlagBits2 DstAccesMask
+)
+{
+	if (Image.Layout != DestinationLayout)
+	{
+		Barrier.AppendImageMemoryBarrier(
+			Image.Image,
+			SrcStage,
+			DstStage,
+			SrcAccesMask,
+			DstAccesMask,
+			Image.Layout,
+			DestinationLayout
+		);
+		Image.Layout = DestinationLayout;
+	}
 }

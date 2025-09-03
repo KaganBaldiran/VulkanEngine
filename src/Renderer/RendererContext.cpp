@@ -169,7 +169,8 @@ void RENDERER::RendererContext::Destroy()
     GbufferFragmentShaderModule.Destroy(DeviceContext.logicalDevice);
     for (auto& [ID, Pipeline] : GbufferPassPassPipelines)
     {
-        Pipeline.Destroy(DeviceContext.logicalDevice);
+        Pipeline[0].Destroy(DeviceContext.logicalDevice);
+        Pipeline[1].Destroy(DeviceContext.logicalDevice);
     }
     LightingPassLayout.Destroy(DeviceContext.logicalDevice);
     DeferredLightingPassGraphicsPipeline.Destroy(DeviceContext.logicalDevice);
@@ -265,7 +266,7 @@ void RENDERER::RendererContext::CreateHDRIrenderPassResources()
     HDRIconvolutionFragmentShader.Destroy(DeviceContext.logicalDevice);
 }
 
-RENDERER_CORE::GraphicsPipeline* RENDERER::RendererContext::AppendGbufferPassPipeline(VkDescriptorSetLayout Layout, uint32_t MaxTextureCount)
+std::array<RENDERER_CORE::GraphicsPipeline,2>* RENDERER::RendererContext::AppendGbufferPassPipeline(VkDescriptorSetLayout Layout, uint32_t MaxTextureCount)
 {
     auto& Iterator = GbufferPassPassPipelines.find(MaxTextureCount);
     if (Iterator != GbufferPassPassPipelines.end())
@@ -299,7 +300,12 @@ RENDERER_CORE::GraphicsPipeline* RENDERER::RendererContext::AppendGbufferPassPip
     PipelineCreateInfo.DescriptorSetLayouts = { IndirectDescriptorSetLayout.descriptorSetLayout,Layout,TextureIndicesDescriptorSetLayout.descriptorSetLayout };
     PipelineCreateInfo.PushConstantRanges = { PushConstantRange };
     RENDERER_CORE::GraphicsPipeline GbufferGraphicsPipeline(PipelineCreateInfo, DeviceContext.logicalDevice);
-    GbufferPassPassPipelines[MaxTextureCount] = GbufferGraphicsPipeline;
+
+    PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
+    PipelineCreateInfo.EnableDepthTesting = VK_FALSE;
+    PipelineCreateInfo.EnableDepthWriting = VK_FALSE;
+    RENDERER_CORE::GraphicsPipeline GbufferGraphicsPipelineDepthDisabled(PipelineCreateInfo, DeviceContext.logicalDevice);
+    GbufferPassPassPipelines[MaxTextureCount] = { GbufferGraphicsPipelineDepthDisabled,GbufferGraphicsPipeline };
 
     return &GbufferPassPassPipelines[MaxTextureCount];
 }

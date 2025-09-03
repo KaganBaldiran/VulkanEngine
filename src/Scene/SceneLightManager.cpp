@@ -54,7 +54,7 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 		if (LightIterator == CurrentLightEntries.StaticLightLights.end())
 		{
 			LightEntry NewEntry{};
-			NewEntry.MemoryRegion = StaticLightBufferAllocator.Allocate(SizeOfLightData);
+			NewEntry.MemoryRegion = StaticLightBufferAllocator.Suballocate(SizeOfLightData);
 			auto [NewIterator, Inserted] = CurrentLightEntries.StaticLightLights.insert({ StaticLight,NewEntry });
 			LightIterator = NewIterator;
 		}
@@ -66,7 +66,7 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 		if (LightIterator == CurrentLightEntries.DynamicLights.end())
 		{
 			LightEntry NewEntry{};
-			NewEntry.MemoryRegion = DynamicLightBufferAllocator.Allocate(SizeOfLightData);
+			NewEntry.MemoryRegion = DynamicLightBufferAllocator.Suballocate(SizeOfLightData);
 			auto [NewIterator, Inserted] = CurrentLightEntries.DynamicLights.insert({ DynamicLight,NewEntry });
 			LightIterator = NewIterator;
 		}
@@ -142,7 +142,7 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 		{
 			for (auto& [LightPtr, LightEntry] : CurrentLightEntries.StaticLightLights)
 			{
-				auto& AllocatedRegion = StagingBufferAllocator.Allocate(SizeOfLightData);
+				auto& AllocatedRegion = StagingBufferAllocator.Suballocate(SizeOfLightData);
 				memcpy(StagingBufferPtr + AllocatedRegion.Offset, &LightPtr->Data, AllocatedRegion.Size);
 
 				VkBufferCopy CopyRegion{};
@@ -156,7 +156,7 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 		{
 			for (auto& [LightPtr, AllocatedMemoryRegion] : StaticLightsToUpdate)
 			{
-				auto& AllocatedRegion = StagingBufferAllocator.Allocate(SizeOfLightData);
+				auto& AllocatedRegion = StagingBufferAllocator.Suballocate(SizeOfLightData);
 				memcpy(StagingBufferPtr + AllocatedRegion.Offset, &LightPtr->Data, AllocatedRegion.Size);
 
 				VkBufferCopy CopyRegion{};

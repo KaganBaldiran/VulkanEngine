@@ -1,225 +1,217 @@
 Info: Created window [Hello World].
 Info: Detected a suitable physical device [name(NVIDIA GeForce RTX 3050 Laptop GPU), device type(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)].
-Info: Detected graphics queue [1970307062912].
-Info: Detected present queue [1970310467520].
-Info: Detected compute queue [1970310467520].
-Info: Detected graphics-compute queue [1970307062912].
-Info: Created device [1970267508672].
-Info: Created swap chain [1970347877104].
+Info: Detected graphics queue [1516612288944].
+Info: Detected present queue [1516613888752].
+Info: Detected compute queue [1516613888752].
+Info: Detected graphics-compute queue [1516612288944].
+Info: Created device [1516609211984].
+Info: Created swap chain [1516515673888].
 Info: Created descriptor layout [binding count(3)].
 Info: Created descriptor layout [binding count(3)].
 Info: Created descriptor layout [binding count(1)].
 Info: Created descriptor layout [binding count(4)].
-Info: Buffer[address(1970349647296), size(80), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(1970358356896), size(80), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970358356896)] destroyed!
-Info: Buffer[address(1970358353296), size(432), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-Info: Buffer[address(1970358354096), size(432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970358354096)] destroyed!
-Info: Shader [Shaders\GeometryBufferShader.vert -> Shaders\GeometryBufferShaderVert.spv] compiled.
-Info: Shader module created [1970355825408].
-Info: Shader [Shaders\GeometryBufferShader.frag -> Shaders\GeometryBufferShaderFrag.spv] compiled.
-Info: Shader module created [1970355816704].
-Info: Shader [Shaders\LightingPassShader.vert -> Shaders\LightingPassShaderVert.spv] compiled.
-Info: Shader module created [1970355822960].
-Info: Shader [Shaders\LightingPassShader.frag -> Shaders\LightingPassShaderFrag.spv] compiled.
-Info: Shader module created [1970355826224].
-Info: Created graphics pipeline [1970358481536].
+Info: Buffer[address(1516661970112), size(80), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+Info: Buffer[address(1516661970512), size(80), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1516661970512)] destroyed!
+Info: Buffer[address(1516661965312), size(432), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+Info: Buffer[address(1516661971712), size(432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1516661971712)] destroyed!
+Info: Shader module created [1516659421120].
+Info: Shader module created [1516659405072].
+Info: Shader module created [1516659406704].
+Info: Shader module created [1516659399360].
+Info: Created graphics pipeline [1516662150544].
 Info: Created descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1)].
 Info: Created descriptor layout [binding count(1)].
-Info: Shader [Shaders\HDRIrenderShader.vert -> Shaders\HDRIrenderVertexShader.spv] compiled.
-Info: Shader module created [1970355826224].
-Info: Shader [Shaders\HDRIrenderShader.frag -> Shaders\HDRIrenderFragmentShader.spv] compiled.
-Info: Shader module created [1970355822960].
-Info: Created graphics pipeline [1970358519968].
-Info: Shader [shaders\HDRIconvolutionShader.vert -> shaders\HDRIconvolutionVertexShader.spv] compiled.
-Info: Shader module created [1970355826768].
-Info: Shader [shaders\HDRIconvolutionShader.frag -> shaders\HDRIconvolutionFragmentShader.spv] compiled.
-Info: Shader module created [1970355826224].
-Info: Created graphics pipeline [1970358868640].
+Info: Shader module created [1516659396368].
+Info: Shader module created [1516659410512].
+Info: Created graphics pipeline [1516662392576].
+Info: Shader module created [1516659396096].
+Info: Shader module created [1516659404528].
+Info: Created graphics pipeline [1516662153184].
 Info: Image created [(1000x800),format(VK_FORMAT_D32_SFLOAT)].
-Info: Shader [Shaders\PhysicsDebugShader.vert -> Shaders\PhysicsDebugShaderVert.spv] compiled.
-Info: Shader module created [1970355819696].
-Info: Shader [Shaders\PhysicsDebugShader.frag -> Shaders\PhysicsDebugShaderFrag.spv] compiled.
-Info: Shader module created [1970355822960].
-Info: Created graphics pipeline [1970359015360].
+Info: Shader module created [1516659406704].
+Info: Shader module created [1516659398816].
+Info: Created graphics pipeline [1516662515984].
 Info: Renderer initialized!
 Info: Imported model [resources\sponza.obj].
 Info: Imported model [resources\shovel2.obj].
 Info: Imported model [C:\Users\kbald\Desktop\SunTemple\SunTemple.fbx].
 Info: Image created [(1024x1024),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
 Info: Image created [(32x32),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-Info: Buffer[address(1970358356496), size(33554432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168499616), size(33554432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(4096x2048),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970358356496)] destroyed!
+Info: Buffer[address(1517168499616)] destroyed!
 Info: HDRI imported! [resources\boma_4k.hdr]
 Info: Image created [(1024x1024),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
 Info: Image created [(32x32),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-Info: Buffer[address(1970663406400), size(8388608), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168501616), size(8388608), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(2048x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970663406400)] destroyed!
+Info: Buffer[address(1517168501616)] destroyed!
 Info: HDRI imported! [resources\rustig_koppie_puresky_2k.hdr]
-Info: Models were imported in 1.238566 seconds.
-Info: Buffer[address(1970663400000), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Models were imported in 1.367034 seconds.
+Info: Buffer[address(1517168501616), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(512x512),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970663400000)] destroyed!
-Info: Buffer[address(1970663402400), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970663400000), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168501616)] destroyed!
+Info: Buffer[address(1517168499216), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(1517168499616), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(512x512),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(1517168499216)] destroyed!
+Info: Buffer[address(1517168499616)] destroyed!
+Info: Buffer[address(1517168499216), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970663402400)] destroyed!
-Info: Buffer[address(1970663400000)] destroyed!
-Info: Buffer[address(1970663402400), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970663401200), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970663401600), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970663404000), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970663406000), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970663406800), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168500016), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168500816), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970358358896), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168499216)] destroyed!
+Info: Buffer[address(1517168500016)] destroyed!
+Info: Buffer[address(1517168506016), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168499216), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168506416), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970663401200)] destroyed!
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970663404800), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970358352096), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168505216), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168502016), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970663402400)] destroyed!
-Info: Buffer[address(1970358353696), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970663406000)] destroyed!
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970358356496), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970663401600)] destroyed!
+Info: Buffer[address(1517168502416), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1516661964912), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168499616), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970358352096)] destroyed!
-Info: Buffer[address(1970358355296), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(1517168500816)] destroyed!
+Info: Buffer[address(1516661968112), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1517168506416)] destroyed!
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Info: Buffer[address(1516661964912)] destroyed!
+Info: Buffer[address(1517168502416)] destroyed!
+Info: Buffer[address(1517168499616)] destroyed!
+Info: Buffer[address(1517168499216)] destroyed!
+Info: Buffer[address(1517168506016)] destroyed!
+Info: Buffer[address(1517168505216)] destroyed!
+Info: Buffer[address(1517168502016)] destroyed!
+Info: Buffer[address(1516661968112)] destroyed!
+Info: Buffer[address(1516661968912), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(256x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970663403200), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970663404000)] destroyed!
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970358358896)] destroyed!
-Info: Buffer[address(1970663403200)] destroyed!
-Info: Buffer[address(1970358354096), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Buffer[address(1516661971712), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Info: Image created [(256x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970358355296)] destroyed!
+Info: Buffer[address(1516661968912)] destroyed!
+Info: Buffer[address(1516661971712)] destroyed!
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_0_BaseColor.dds].
-Info: Buffer[address(1970663406800)] destroyed!
-Info: Buffer[address(1970663404800)] destroyed!
-Info: Buffer[address(1970358353696)] destroyed!
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_0_Normal.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\Soul_Tree011M_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_0_BaseColor.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\Soul_Tree011M_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_0_Normal.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneBrickWall_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_12_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneBrickWall_Inst_0_Normal.dds].
-Info: Buffer[address(1970358354096)] destroyed!
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Trim_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Trim_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_12_Normal.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_11_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_10_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneBrickWall_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_12_BaseColor.dds].
+Info: Buffer[address(1516661964512), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_10_BaseColor.dds].
-Info: Buffer[address(1970358356496)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_8_BaseColor.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_8_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_7_BaseColor.dds].
+Info: Buffer[address(1516661964512)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_11_Normal.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_6_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_5_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_5_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_4_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_4_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_3_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_10_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_7_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_6_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_7_Normal.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_3_Normal.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_2_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_2_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_1_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_9_Normal.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_1_Normal.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_0_BaseColor.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_TreeTrunk01_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_12_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_8_BaseColor.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_TreeTrunk01_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_2_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_6_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_1_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_2_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Blue_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Blue_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Inst2_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_REd_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Trim_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_REd_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Railing_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_7_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_11_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_Inst_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_9_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_2_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Railing_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_Glow_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_2_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_Black_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_Black_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Shield_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Shield_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_Red_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_Red_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Pillar_Inst_Colored_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_nofire_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Trim_Inst_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Trim_Inst_Inst_0_Normal.dds].
+Info: Buffer[address(1516661971712), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_Inst_0_BaseColor.dds].
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_3_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_9_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_TreeTrunk01_Inst_0_BaseColor.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_1_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_UTile4_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_nofire_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneCeiling_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneCeiling_Inst_0_Normal.dds].
-Info: Buffer[address(1970358358096), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970358357696), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Buffer[address(1970358358096)] destroyed!
-Info: Buffer[address(1970358356496), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Buffer[address(1970358357696)] destroyed!
-Info: Buffer[address(1970358352896), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_Glow_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Inst2_0_Normal.dds].
-Info: Buffer[address(1970358357696), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_0_Normal.dds].
+Info: Buffer[address(1516661971712)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_4_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_2_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Blue_0_BaseColor.dds].
+Info: Buffer[address(1516661966912), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Blue_0_Normal.dds].
+Info: Buffer[address(1516661971712), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_Inst_0_Normal.dds].
-Info: Buffer[address(1970358356496)] destroyed!
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Statue_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Stairs_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_2_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_REd_0_BaseColor.dds].
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_1_Normal.dds].
 Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Tree_Branches_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_Inst_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_UTile4_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_1_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_0_Normal.dds].
+Info: Buffer[address(1516661964512), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Inst2_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_5_BaseColor.dds].
+Info: Buffer[address(1516661966912)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_4_BaseColor.dds].
+Info: Buffer[address(1516661971712)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_2_0_Normal.dds].
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Pillar_Inst_Colored_0_Normal.dds].
-Info: Buffer[address(1970358354096), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Stairs_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_9_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Statue_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_Red_2_0_Normal.dds].
-Info: Buffer[address(1970358357696)] destroyed!
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Pillar_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_Inst_0_BaseColor.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_Inst_0_Normal.dds].
-Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_Red_2_0_BaseColor.dds].
-Info: Buffer[address(1970358352896)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_Glow_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_Inst2_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_Black_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_Red_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_2_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Railing_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_5_Normal.dds].
+Info: Buffer[address(1516661964512)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_Glow_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles1_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneCeiling_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Shield_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_2_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_0_BaseColor.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Pillar_Inst_0_Normal.dds].
+Info: Buffer[address(1516661967712), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_nofire_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Soul_Rocks2_Inst_2_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_UTile4_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_UTile4_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_Red_2_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Statue_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Statue_Inst_0_Normal.dds].
+Info: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_Red_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Railing_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FirePit_Inst_nofire_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Pillar_Inst_Colored_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Stairs_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Stairs_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_BottomTrim_Inst_Black_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Rocks_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_Inst_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Shield_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_Inst_Inst_0_Normal.dds].
 Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_2_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_StoneCeiling_Inst_0_Normal.dds].
+Info: Buffer[address(1516661967712)] destroyed!
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Dome_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Trim_Inst_Inst_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_Red_2_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Trim_Inst_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Pillar_Inst_0_BaseColor.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_Arch_Inst_2_0_Normal.dds].
+Error: Failed reading texture[C:\Users\kbald\Desktop\SunTemple\Textures\M_FloorTiles2_Inst_REd_0_Normal.dds].

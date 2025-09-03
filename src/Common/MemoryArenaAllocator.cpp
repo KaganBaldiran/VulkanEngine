@@ -16,7 +16,7 @@ void RENDERER_CORE::VirtualArenaAllocator::Create(size_t InitialCapacityInBytes,
     TotalFreeSpace = InitialCapacityInBytes;
 }
 
-RENDERER_CORE::MemoryRegion RENDERER_CORE::VirtualArenaAllocator::Allocate(size_t SizeInBytes)
+RENDERER_CORE::MemoryRegion RENDERER_CORE::VirtualArenaAllocator::Suballocate(size_t SizeInBytes)
 {
     if(SizeInBytes == 0) return { 0,0 };
     while (true)
@@ -41,29 +41,34 @@ RENDERER_CORE::MemoryRegion RENDERER_CORE::VirtualArenaAllocator::Allocate(size_
             }
         }
 
-        size_t AdditionalAllocatedSize = static_cast<size_t>(std::ceil(static_cast<float>(SizeInBytes) / static_cast<float>(ChunkSize))) * ChunkSize;
-        FreeRegions.push_back({ Capacity, AdditionalAllocatedSize });
-        Capacity += AdditionalAllocatedSize;
-        TotalFreeSpace += AdditionalAllocatedSize;
-
-        std::sort(FreeRegions.begin(), FreeRegions.end(), [&](auto& Region0, auto& Region1) {
-            return Region0.Offset < Region1.Offset;
-        });
-        std::vector<MemoryRegion> MergedFreeRegions;
-        for (auto& FreeRegion : FreeRegions)
-        {
-            if (!MergedFreeRegions.empty() && (MergedFreeRegions.back().Offset + MergedFreeRegions.back().Size) == FreeRegion.Offset)
-            {
-                MergedFreeRegions.back().Size += FreeRegion.Size;
-            }
-            else
-            {
-                MergedFreeRegions.push_back(FreeRegion);
-            }
-        }
-        std::swap(FreeRegions, MergedFreeRegions);
+        Allocate(SizeInBytes);
     }
     return {0,0};
+}
+
+void RENDERER_CORE::VirtualArenaAllocator::Allocate(size_t SizeInBytes)
+{
+    size_t AdditionalAllocatedSize = static_cast<size_t>(std::ceil(static_cast<float>(SizeInBytes) / static_cast<float>(ChunkSize))) * ChunkSize;
+    FreeRegions.push_back({ Capacity, AdditionalAllocatedSize });
+    Capacity += AdditionalAllocatedSize;
+    TotalFreeSpace += AdditionalAllocatedSize;
+
+    std::sort(FreeRegions.begin(), FreeRegions.end(), [&](auto& Region0, auto& Region1) {
+        return Region0.Offset < Region1.Offset;
+        });
+    std::vector<MemoryRegion> MergedFreeRegions;
+    for (auto& FreeRegion : FreeRegions)
+    {
+        if (!MergedFreeRegions.empty() && (MergedFreeRegions.back().Offset + MergedFreeRegions.back().Size) == FreeRegion.Offset)
+        {
+            MergedFreeRegions.back().Size += FreeRegion.Size;
+        }
+        else
+        {
+            MergedFreeRegions.push_back(FreeRegion);
+        }
+    }
+    std::swap(FreeRegions, MergedFreeRegions);
 }
 
 void RENDERER_CORE::VirtualArenaAllocator::Free(const MemoryRegion& RegionToFree)

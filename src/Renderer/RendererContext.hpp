@@ -97,7 +97,7 @@ namespace RENDERER
         RENDERER_CORE::VertexInputDescription QuadVertexDescription{};
         RENDERER_CORE::VertexInputDescription CubeVertexDescription{};
 
-        std::unordered_map<uint32_t,RENDERER_CORE::GraphicsPipeline> GbufferPassPassPipelines;
+        std::unordered_map<uint32_t,std::array<RENDERER_CORE::GraphicsPipeline,2>> GbufferPassPassPipelines;
         RENDERER_CORE::ShaderModule GbufferVertexShaderModule;
         RENDERER_CORE::ShaderModule GbufferFragmentShaderModule;
 
@@ -108,7 +108,7 @@ namespace RENDERER
         RENDERER_CORE::Buffer CubeVertexBuffer{};
 	private:
         void CreateHDRIrenderPassResources();
-        RENDERER_CORE::GraphicsPipeline* AppendGbufferPassPipeline(VkDescriptorSetLayout Layout,uint32_t MaxTextureCount);
+        std::array<RENDERER_CORE::GraphicsPipeline,2>* AppendGbufferPassPipeline(VkDescriptorSetLayout Layout,uint32_t MaxTextureCount);
         void CreateDeferredLightingPassPipeline();
 	};
 }

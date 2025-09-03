@@ -61,44 +61,44 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
         return;
     };
 
-    PipelineBarrier2.AppendImageMemoryBarrier(
-        Gbuffers[CurrentFrame].NormalAttachment.Image,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    RENDERER_CORE::SafeImageBarrier(
+        Gbuffers[CurrentFrame].NormalAttachment,
+        PipelineBarrier2,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         0,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     );
 
-    PipelineBarrier2.AppendImageMemoryBarrier(
-        Gbuffers[CurrentFrame].PositionAttachment.Image,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    RENDERER_CORE::SafeImageBarrier(
+        Gbuffers[CurrentFrame].PositionAttachment,
+        PipelineBarrier2,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         0,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     );
 
-    PipelineBarrier2.AppendImageMemoryBarrier(
-        Gbuffers[CurrentFrame].AlbedoAttachment.Image,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    RENDERER_CORE::SafeImageBarrier(
+        Gbuffers[CurrentFrame].AlbedoAttachment,
+        PipelineBarrier2,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         0,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     );
 
-    PipelineBarrier2.AppendImageMemoryBarrier(
-        Gbuffers[CurrentFrame].RoughnessMetallicAttachment.Image,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    RENDERER_CORE::SafeImageBarrier(
+        Gbuffers[CurrentFrame].RoughnessMetallicAttachment,
+        PipelineBarrier2,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         0,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     );
 
     PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
@@ -112,45 +112,46 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
         ClearDepth
     );
 
-    PipelineBarrier2.AppendImageMemoryBarrier(
-        Gbuffers[CurrentFrame].NormalAttachment.Image,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_ACCESS_SHADER_READ_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    RENDERER_CORE::SafeImageBarrier(
+        Gbuffers[CurrentFrame].NormalAttachment,
+        PipelineBarrier2,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT
     );
 
-    PipelineBarrier2.AppendImageMemoryBarrier(
-        Gbuffers[CurrentFrame].PositionAttachment.Image,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_ACCESS_SHADER_READ_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    RENDERER_CORE::SafeImageBarrier(
+        Gbuffers[CurrentFrame].PositionAttachment,
+        PipelineBarrier2,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT
     );
 
-    PipelineBarrier2.AppendImageMemoryBarrier(
-        Gbuffers[CurrentFrame].AlbedoAttachment.Image,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_ACCESS_SHADER_READ_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    RENDERER_CORE::SafeImageBarrier(
+        Gbuffers[CurrentFrame].AlbedoAttachment,
+        PipelineBarrier2,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT
     );
 
-    PipelineBarrier2.AppendImageMemoryBarrier(
-        Gbuffers[CurrentFrame].RoughnessMetallicAttachment.Image,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_ACCESS_SHADER_READ_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    RENDERER_CORE::SafeImageBarrier(
+        Gbuffers[CurrentFrame].RoughnessMetallicAttachment,
+        PipelineBarrier2,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT
     );
+
     PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
 
     RenderLightingPass(
@@ -252,11 +253,11 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
 
     RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)RendererContextPtr->SwapChain.Extent.width, (uint32_t)RendererContextPtr->SwapChain.Extent.height} });
 
-    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Scene.TextureManager->CurrentGbufferPassPipeline->pipeline);
+    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = Scene.TextureManager->CurrentGbufferPassPipeline->at(static_cast<int>(EnableDepthTesting));
+    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.pipeline);
     VkDescriptorSet DescriptorSets[] = { Scene.IndirectDescriptorSets[CurrentFrame],Scene.TextureManager->TexturesDescriptors[CurrentFrame].DescriptorSets[0],
         Scene.TextureIndicesDescriptorSets[CurrentFrame] };
-    vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Scene.TextureManager->CurrentGbufferPassPipeline->Layout, 0, 3, DescriptorSets, 0, nullptr);
-
+    vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Layout, 0, 3, DescriptorSets, 0, nullptr);
 
     VkBuffer VertexBuffers[] = { Scene.MeshManagerPtr->GetCurrentVertexBuffer(CurrentFrame).Buffer.BufferObject };
     VkDeviceSize VertexOffsets[] = { 0 };
@@ -268,7 +269,7 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
 
     vkCmdPushConstants(
         CommandBuffer,
-        Scene.TextureManager->CurrentGbufferPassPipeline->Layout,
+        CurrentPipeline.Layout,
         VK_SHADER_STAGE_VERTEX_BIT,
         0,
         sizeof(glm::mat4) * 2,

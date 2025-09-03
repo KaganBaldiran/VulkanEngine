@@ -71,17 +71,6 @@ namespace SCENE
         glm::vec3 Center, Extends;
     };
 
-    
-    struct Mesh
-    {
-        std::vector<Vertex3D> Vertices;
-        std::vector<uint32_t> Indices;
-        Material MeshMaterial;
-        bool Enabled = true;
-        MeshUpdateMode meshUpdateMode = MESH_UPDATE_MODE_PERFORMANCE;
-        BoundingBoxAABB BoundingBox;
-    };
-
     struct GeometryData
     {
         std::vector<Vertex3D> Vertices;
@@ -107,53 +96,10 @@ namespace SCENE
         glm::mat4 GetModelMatrix() { return TranslationMatrix * RotationMatrix * ScalingMatrix; };
     };
 
-    struct Model3D
-    {
-        std::vector<Mesh> Meshes;
-        /// <summary>
-        /// Sets the update mode for all of the model meshes.
-        /// </summary>
-        void SetModelMeshesUpdateMode(MeshUpdateMode MeshUpdateMode);
-    };
-
     struct ModelHandle : public Resource
     {
         std::vector<MeshHandle> Meshes;
     };
 
-    /*
-    struct ModelImportInfo
-    {
-        SCENE::Model3D* DestinationModel;
-        const char* ModelFilePath;
-    };
-
-    class MeshImporter
-    {
-    public:
-        MeshImporter(TextureImportManager& ImportManager);
-        MeshImporter() = default;
-        void Create(TextureImportManager& ImportManager);
-
-        void AppendImportTask(ModelImportInfo ImportInfo);
-        void SubmitImport();
-        void WaitImportIdle();
-        std::vector<std::future<void>> Futures;
-        std::queue<ModelImportInfo> ImportQueue;
-        double StartingTime;
-    private:
-        TextureImportManager *ImportManager = nullptr;
-    };
-    */
-
-    struct BatchInfo
-    {
-        std::vector<Vertex3D> Vertices;
-        std::vector<uint32_t> Indices;
-    };
-
-    void Import3Dmodel(const char* FilePath, Model3D& DstModel,SCENE::TextureImportManager& ImportManager);
     void Import3DGeometry(const char* FilePath, std::vector<GeometryData>& DstGeometryDatas,SCENE::TextureImportManager& ImportManager);
-    BatchInfo BatchModels(std::vector<SCENE::Model3D>& Models, std::vector<DrawInfo>& DestinationDrawInfos);
-    BatchInfo BatchModels(std::vector<Model3D*> Models, std::vector<DrawInfo>& DestinationDrawInfos);
 }

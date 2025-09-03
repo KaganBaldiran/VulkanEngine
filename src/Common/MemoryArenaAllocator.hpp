@@ -5,8 +5,8 @@
 
 namespace RENDERER_CORE
 {
-	constexpr size_t MEMORY_SIZE_MEGABYTE = 1024;
-	constexpr size_t MEMORY_SIZE_HALF_MEGABYTE = 512;
+	constexpr size_t MEMORY_SIZE_KILOBYTE = 1024;
+	constexpr size_t MEMORY_SIZE_HALF_KILOBYTE = 512;
 
 	struct MemoryRegion
 	{
@@ -17,11 +17,12 @@ namespace RENDERER_CORE
 	class VirtualArenaAllocator
 	{
 	public:
-		VirtualArenaAllocator(size_t InitialCapacityInBytes,size_t AllocationChunkSize = MEMORY_SIZE_MEGABYTE);
+		VirtualArenaAllocator(size_t InitialCapacityInBytes,size_t AllocationChunkSize = MEMORY_SIZE_KILOBYTE);
 		VirtualArenaAllocator() = default;
-		void Create(size_t InitialCapacityInBytes = MEMORY_SIZE_MEGABYTE, size_t AllocationChunkSize = MEMORY_SIZE_MEGABYTE);
+		void Create(size_t InitialCapacityInBytes = MEMORY_SIZE_KILOBYTE, size_t AllocationChunkSize = MEMORY_SIZE_KILOBYTE);
 
-		MemoryRegion Allocate(size_t SizeInBytes);
+		MemoryRegion Suballocate(size_t SizeInBytes);
+		void Allocate(size_t SizeInBytes);
 		void Free(const MemoryRegion& RegionToFree);
 		void Defragment(std::vector<MemoryRegion> &Regions);
 		void Defragment(std::vector<MemoryRegion*> &Regions);
@@ -31,7 +32,7 @@ namespace RENDERER_CORE
 		inline size_t GetCapacity() noexcept { return Capacity; };
 		inline size_t GetTotalFreeSpace() noexcept { return TotalFreeSpace; };
 	private:
-		size_t Capacity = 0,ChunkSize = MEMORY_SIZE_MEGABYTE,TotalFreeSpace = 0;
+		size_t Capacity = 0,ChunkSize = MEMORY_SIZE_KILOBYTE,TotalFreeSpace = 0;
 		std::vector<MemoryRegion> FreeRegions;
 	};
 }

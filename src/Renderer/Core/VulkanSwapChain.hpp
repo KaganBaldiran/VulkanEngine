@@ -45,6 +45,7 @@ namespace RENDERER_CORE
         VkSwapchainKHR swapChain = VK_NULL_HANDLE;
         std::vector<VkImage> SwapChainImages;
         std::vector<VkImageView> SwapChainImagesViews;
+        std::vector<VkImageLayout> SwapChainImagesLayouts;
         VkSurfaceFormatKHR SurfaceFormat;
         VkPresentModeKHR PresentMode;
         VkExtent2D Extent;

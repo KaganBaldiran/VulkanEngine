@@ -50,6 +50,10 @@ void SCENE::Scene::Destroy()
     DestroyMeshBuffers();
     //DestroyLightBuffers();
     LightManager.Destroy(RendererContext->DeviceContext.logicalDevice);
+    for (size_t i = 0; i < StagingBuffers.size(); i++)
+    {
+        StagingBuffers[i].StagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
+    }
     IsDestroyed = true;
 
     std::cout << "Scene destroyed!" << std::endl;
@@ -146,6 +150,8 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
             Info.FrameIndex = i;
             Info.ModelInstances = ModelInstancesAppendList[i];
             Info.TargetDescriptorSets = IndirectDescriptorSets;
+            Info.CopyInfos = &SceneCopyInfos[i];
+            Info.StagingBuffer = &StagingBuffers[i];
             MeshBuffers.AppendModels(Info);
 
             ModelInstancesAppendList[i].clear();
@@ -170,6 +176,8 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
             Info.FrameIndex = i;
             Info.TargetDescriptorSets = TextureIndicesDescriptorSets;
             Info.TextureImportManagerPtr = this->TextureManager;
+            Info.CopyInfos = &SceneCopyInfos[i];
+            Info.StagingBuffer = &StagingBuffers[i];
 
             MeshBuffers.UpdateTextureDescriptors(Info);
         }

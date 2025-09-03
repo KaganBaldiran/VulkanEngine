@@ -5,6 +5,8 @@
 
 namespace RENDERER_CORE
 {
+	struct TextureData;
+
 	class PipelineBarrier2
 	{
 	public:
@@ -42,6 +44,16 @@ namespace RENDERER_CORE
 		std::vector<VkImageMemoryBarrier2> ImageMemoryBarriers;
 		std::vector<VkBufferMemoryBarrier2> BufferMemoryBarriers;
 	};
+
+	void SafeImageBarrier(
+		TextureData& Image,
+		PipelineBarrier2& Barrier,
+		VkImageLayout DestinationLayout,
+		VkPipelineStageFlagBits2 SrcStage,
+		VkPipelineStageFlagBits2 DstStage,
+		VkAccessFlagBits2 SrcAccesMask,
+		VkAccessFlagBits2 DstAccesMask
+	);
 
 	class TimelineSync
 	{

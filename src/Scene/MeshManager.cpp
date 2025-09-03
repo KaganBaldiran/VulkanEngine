@@ -157,8 +157,8 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
             NewGeometryEntry.MeshMaterial = Data.MeshMaterial;
             NewGeometryEntry.BoundingBox = Data.BoundingBox;
 
-            NewGeometryEntry.VertexRegion = VertexBuffer.Allocator.Allocate(VertexSize);
-            NewGeometryEntry.IndexRegion = IndexBuffer.Allocator.Allocate(IndexSize);
+            NewGeometryEntry.VertexRegion = VertexBuffer.Allocator.Suballocate(VertexSize);
+            NewGeometryEntry.IndexRegion = IndexBuffer.Allocator.Suballocate(IndexSize);
             //GeometryEntryList[Handle] = NewGeometryEntry;
             InsertedGeometryEntries[Handle] = NewGeometryEntry;
         }
@@ -204,7 +204,7 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
     {
         GeometryData*& Data = GeometryDataReferences[Handle];
 
-        RENDERER_CORE::MemoryRegion VertexAllocatedRegion = StagingBuffer.Allocator.Allocate(GeoEntry.VertexRegion.Size);
+        RENDERER_CORE::MemoryRegion VertexAllocatedRegion = StagingBuffer.Allocator.Suballocate(GeoEntry.VertexRegion.Size);
         memcpy(StagingBufferPtr + VertexAllocatedRegion.Offset, Data->Vertices.data(), VertexAllocatedRegion.Size);
 
         VkBufferCopy VertexCopyRegion{};
@@ -213,7 +213,7 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
         VertexCopyRegion.srcOffset = VertexAllocatedRegion.Offset;
         CopyInfos[0].CopyRegions.push_back(VertexCopyRegion);
 
-        RENDERER_CORE::MemoryRegion IndexAllocatedRegion = StagingBuffer.Allocator.Allocate(GeoEntry.IndexRegion.Size);
+        RENDERER_CORE::MemoryRegion IndexAllocatedRegion = StagingBuffer.Allocator.Suballocate(GeoEntry.IndexRegion.Size);
         memcpy(StagingBufferPtr + IndexAllocatedRegion.Offset, Data->Indices.data(), IndexAllocatedRegion.Size);
 
         VkBufferCopy IndexCopyRegion{};

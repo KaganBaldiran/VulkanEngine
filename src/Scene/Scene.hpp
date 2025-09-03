@@ -25,6 +25,7 @@
 #include "ModelInstance.hpp"
 #include "MaterialManager.hpp"
 #include "MeshManager.hpp"
+#include "PersistentSceneStagingBuffer.hpp"
 
 namespace RENDERER_CORE
 {
@@ -132,6 +133,8 @@ namespace SCENE
 
 		SCENE::SceneMeshManager MeshBuffers;
 		SCENE::LightManager LightManager;
+		std::array<PersistentStagingBuffer, MAX_FRAMES_IN_FLIGHT> StagingBuffers;
+		std::array<std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>, MAX_FRAMES_IN_FLIGHT> SceneCopyInfos;
 
 		std::array<std::vector<ModelInstance*>, MAX_FRAMES_IN_FLIGHT> ModelInstancesAppendList;
 		std::array<std::vector<ModelInstance*>, MAX_FRAMES_IN_FLIGHT> ModelInstancesEraseList;
