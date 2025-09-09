@@ -1,9 +1,7 @@
 #include "Light.hpp"
 
 SCENE::Light::Light()
-{
-	resourceType = RESOURCE_TYPE_LIGHT;
-}
+{}
 
 void SCENE::Light::SetColor(const glm::vec4& Color)
 {

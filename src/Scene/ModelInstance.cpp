@@ -7,6 +7,5 @@ SCENE::ModelInstance::ModelInstance(ModelHandle& Source)
 
 void SCENE::ModelInstance::Create(ModelHandle& Source)
 {
-	this->resourceType = RESOURCE_TYPE_ENTITY;
 	this->Source = &Source;
 };

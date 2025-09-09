@@ -41,14 +41,15 @@ void RENDERER::GeometryBuffer::Create(VkPhysicalDevice& PhysicalDevice, VkDevice
         Width,
         Height,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_R8G8B8A8_UNORM,
+        //VK_FORMAT_R8G8B8A8_UNORM,
+        VK_FORMAT_R32_SINT,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         AlbedoAttachment.Image,
         AlbedoAttachment.ImageMemory
     );
-    AlbedoAttachment.ImageView = RENDERER_CORE::CreateImageView(AlbedoAttachment.Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, AlbedoAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    AlbedoAttachment.ImageView = RENDERER_CORE::CreateImageView(AlbedoAttachment.Image, VK_FORMAT_R32_SINT, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, AlbedoAttachment.Sampler, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
     RENDERER_CORE::CreateImage(
         PhysicalDevice,
@@ -56,13 +57,14 @@ void RENDERER::GeometryBuffer::Create(VkPhysicalDevice& PhysicalDevice, VkDevice
         Width,
         Height,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_R8G8B8A8_UNORM,
+        VK_FORMAT_R32G32_SFLOAT,
+        //VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         RoughnessMetallicAttachment.Image,
         RoughnessMetallicAttachment.ImageMemory
     );
-    RoughnessMetallicAttachment.ImageView = RENDERER_CORE::CreateImageView(RoughnessMetallicAttachment.Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
+    RoughnessMetallicAttachment.ImageView = RENDERER_CORE::CreateImageView(RoughnessMetallicAttachment.Image, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
     RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, RoughnessMetallicAttachment.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 }
 

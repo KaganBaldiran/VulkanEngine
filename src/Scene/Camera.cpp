@@ -23,7 +23,6 @@ void SCENE::Camera3D::Create(RENDERER_CORE::Window& window,CameraSettingsInfo Se
     FirstTurn = true;
     AllowMove = glm::vec4(1.0f);
 
-    resourceType = RESOURCE_TYPE_CAMERA;
     SetCameraSettings(Settings);
 }
 

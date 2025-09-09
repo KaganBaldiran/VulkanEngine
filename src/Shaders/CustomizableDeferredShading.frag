@@ -185,78 +185,19 @@ vec3 CalculateLighting(in vec3 Normal,in vec3 Position,in vec3 Albedo,in float R
     return Lo + Ambient;
 }
 
-//vec3 ShadePixel(in vec3 Normal,in vec3 Position,in vec3 Albedo,in float Roughness,in float Metallic)
-//{
+/*
+vec3 ShadePixel(in vec3 Normal,in vec3 Position,in vec3 Albedo,in float Roughness,in float Metallic,double Time)
+{
 
-    //CalculateLighting(
-//}
+    return CalculateLighting(Normal,Position,Albedo,Roughness,Metallic);
+}
+*/
+
+//APPENDSPOT
+
+
 
 void main() {
-   /*
-    vec4 Normal = texture(NormalBuffer,OutUVcoords);
-    //outColor = vec4(Normal.xyz,1.0f);
-    float Alpha = Normal.w;
-    if(Alpha <= 0.0f) discard;
-    vec3 Position = texture(PositionBuffer,OutUVcoords).xyz;
-    vec4 RoughnessMetallicVelocity = texture(RoughnessMetallicBuffer,OutUVcoords).xyzw;
-    vec2 RoughnessMetallic = RoughnessMetallicVelocity.xy;
-
-    vec3 N = normalize(Normal.xyz);
-    vec3 V = normalize(CameraPosition.xyz - Position);
-    vec3 Lo = vec3(0.0f);
-
-    vec3 Albedo = texture(AlbedoBuffer,OutUVcoords).xyz;
-    float Roughness = RoughnessMetallic.x;
-    float Metallic = RoughnessMetallic.y;
-
-    Light CurrentLight;
-    for(int i=0;i < StaticLightCount;i++)
-    {
-       CurrentLight = StaticLights[i];
-       Lo += CookTorranceBRDF(
-                N, 
-                V,
-                Position,
-                CurrentLight.PositionOrDirection.xyz,
-                CurrentLight.Color.xyz * CurrentLight.Intensity,
-                CurrentLight.Type,
-                Roughness,
-                Metallic,
-                Albedo,
-                1.5f
-            );
-    }
-    for(int i=0;i < DynamicLightCount;i++)
-    {
-       CurrentLight = DynamicLights[i];
-       Lo += CookTorranceBRDF(
-                N, 
-                V,
-                Position,
-                CurrentLight.PositionOrDirection.xyz,
-                CurrentLight.Color.xyz * CurrentLight.Intensity,
-                CurrentLight.Type,
-                Roughness,
-                Metallic,
-                Albedo,
-                1.5f
-       );   
-    }
-    //vec3 I = normalize(Position.xyz - CameraPosition.xyz);
-    //vec3 R = reflect(I, normalize(Normal.xyz));
-    vec3 F0 = mix(vec3(0.04f), Albedo, Metallic);
-    vec3 FresnelSpecular = fresnelSchlickRoughness(max(dot(N,V),0.0f),F0,Roughness);
-    vec3 FresnelDiffuse = (1.0 - FresnelSpecular) * (1.0 - Metallic);
-    vec3 Irradiance = texture(Cubemap,N).xyz;
-    vec3 Diffuse = Irradiance * Albedo;
-    vec3 Ambient = (FresnelDiffuse * Diffuse);
-
-    float Distance = dot(Position - CameraPosition,Position - CameraPosition);
-    float FogAmount = clamp(exp(-Distance / (CameraFrustumLength * CameraFrustumLength) * FogIntensity),0.0f,1.0f);
-
-    outColor = vec4(mix(vec3(0.6f,0.7f,0.6f),Ambient + Lo,FogAmount),1.0f);
-    */
-
     int MeshIndex = int(texture(AlbedoBuffer,OutUVcoords).x);
     if(MeshIndex < 0) discard;
 
@@ -273,9 +214,9 @@ void main() {
     float Metallic = 0.0f;
     if(Indexes.RoughnessTextureIndex >= 0)  Roughness = texture(Textures[nonuniformEXT(Indexes.RoughnessTextureIndex)],UV).x;
     if(Indexes.MetallicTextureIndex >= 0)  Metallic = texture(Textures[nonuniformEXT(Indexes.MetallicTextureIndex)],UV).x;
-    vec3 ShadedPixel = CalculateLighting(Normal,Position,Albedo,Roughness,Metallic);
+
+    vec3 ShadedPixel = ShadePixel(CameraPosition,CameraDirection,Normal,Position,Albedo,Roughness,Metallic,Time);
    
-    outColor = vec4(ShadedPixel,1.0f);
     float Distance = dot(Position - CameraPosition,Position - CameraPosition);
     float FogAmount = clamp(exp(-Distance / (CameraFrustumLength * CameraFrustumLength) * FogIntensity),0.0f,1.0f);
 

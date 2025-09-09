@@ -182,6 +182,7 @@ void RENDERER_CORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateI
 
 void RENDERER_CORE::GraphicsPipeline::Destroy(VkDevice& LogicalDevice)
 {
+    if (Layout == VK_NULL_HANDLE && pipeline == VK_NULL_HANDLE) return;
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Destroyed graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
     if (Layout != VK_NULL_HANDLE)
     {

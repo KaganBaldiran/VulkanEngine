@@ -14,6 +14,7 @@
 #include "../Renderer/Core/VulkanBuffer.hpp"
 #include "../Common/CommonDefinitions.hpp"
 #include "../Common/MemoryArenaAllocator.hpp"
+#include "../Common/VectorMap.hpp"
 #include "../Renderer/Core/VulkanDescriptorSet.hpp"
 
 #include "Mesh.hpp"
@@ -109,7 +110,7 @@ namespace SCENE
 	{
 		uint32_t Index, ReferenceCount = 0;
 		bool IsChanged = false;
-		size_t ResourceID;
+		size_t ResourceID,FirstInstance = std::numeric_limits<size_t>::max();
 		RENDERER_CORE::MemoryRegion IndirectBufferMemoryRegion;
 		RENDERER_CORE::MemoryRegion StagingIndirectBufferMemoryRegion;
 		DrawInfo Info;
@@ -133,19 +134,10 @@ namespace SCENE
 
 	struct EntryManager
 	{
-		std::map<size_t, InstanceEntry> InstanceEntries;
-		std::map<size_t, MeshEntry> MeshEntries;
+		std::unordered_map<size_t, InstanceEntry> InstanceEntries;
+		COMMON::VectorMap<size_t, MeshEntry> MeshEntries;
 
 		std::vector<ModelInstance*> MaterialUpdateList;
-	};
-
-	struct MeshAppendInfo
-	{
-		std::vector<ModelInstance*> ModelInstances;
-		uint32_t FrameIndex;
-		std::array<VkDescriptorSet,MAX_FRAMES_IN_FLIGHT> TargetDescriptorSets;
-		PersistentStagingBuffer* StagingBuffer;
-		std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>* CopyInfos;
 	};
 
 	struct MeshTextureUpdateInfo
@@ -200,7 +192,14 @@ namespace SCENE
 		
 		void UpdateMeshTransformations(std::vector<ModelInstance*> &UpdateList,uint32_t CurrentFrame);
 
-		void AppendModels(MeshAppendInfo Info);
+		void ResetModels(uint32_t FrameIndex);
+		void AppendModels(
+			std::vector<ModelInstance*> &ModelInstances,
+			const uint32_t &FrameIndex,
+			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> &TargetDescriptorSets,
+			PersistentStagingBuffer &StagingBuffer,
+			std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+		);
 		void EraseModels(MeshEraseInfo Info);
 		void UpdateTextureDescriptors(MeshTextureUpdateInfo Info);
 	private:

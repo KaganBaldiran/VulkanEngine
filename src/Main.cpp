@@ -12,6 +12,7 @@
 #include "Scene/ShadowMapManager.hpp"
 
 #include <random>
+#include <chrono>
 
 int main()
 {
@@ -36,19 +37,19 @@ int main()
 
         std::vector<SCENE::ModelInstance> Shovels;
 
-        std::mt19937 rng(std::random_device{}()); 
-        std::uniform_real_distribution<float> distX(-1000.0f, 1000.0f); 
-        std::uniform_real_distribution<float> distY(10.0f, 30.0f);  
-        std::uniform_real_distribution<float> distZ(-1000.0f, 1000.0f); 
-        std::uniform_real_distribution<float> distRot(0.0f, glm::two_pi<float>()); 
+        std::mt19937 rng(std::random_device{}());
+        std::uniform_real_distribution<float> distX(-1000.0f, 1000.0f);
+        std::uniform_real_distribution<float> distY(10.0f, 30.0f);
+        std::uniform_real_distribution<float> distZ(-1000.0f, 1000.0f);
+        std::uniform_real_distribution<float> distRot(0.0f, glm::two_pi<float>());
 
         SCENE::Texture SomeTexture{};
-       // Shovel.Model.SetModelMeshesUpdateMode(VKSCENE::MESH_UPDATE_MODE_BALANCED);
+        // Shovel.Model.SetModelMeshesUpdateMode(VKSCENE::MESH_UPDATE_MODE_BALANCED);
 
         SCENE::TextureImportManager TextureImportManager(RendererContext);
-        SCENE::MeshManager Importer(TextureImportManager,RendererContext);
-        Importer.AppendImportTask({ &SponzaModel , "resources\\sponza.obj" });
-        Importer.AppendImportTask({ &ShovelModel , "resources\\shovel2.obj" });
+        SCENE::MeshManager Importer(TextureImportManager, RendererContext);
+        Importer.AppendImportTask({ &SponzaModel , "Resources\\sponza.obj" });
+        Importer.AppendImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
         Importer.AppendImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
         Importer.SubmitImport();
 
@@ -58,7 +59,7 @@ int main()
         Shovel.Materials.push_back(SponzaOverride);
         SponzaTextured.Materials.push_back(SponzaOverride);
 
-        for (size_t i = 0; i < 150; i++)
+        for (size_t i = 0; i < 1500; i++)
         {
             SCENE::ModelInstance NewShovel(ShovelModel);
 
@@ -66,13 +67,13 @@ int main()
             float rotationAngle = distRot(rng);
 
             glm::mat4 transform = glm::translate(glm::mat4(1.0f), position);
-            transform = glm::rotate(transform, rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f)); 
+            transform = glm::rotate(transform, rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
 
             NewShovel.Transformations.TranslationMatrix = transform;
-            NewShovel.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f),glm::vec3(4.0f));
+            NewShovel.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
             Shovels.push_back(NewShovel);
         }
-       
+
         Sponza.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
         Sponza.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         Shovel.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
@@ -84,12 +85,12 @@ int main()
         SCENE::CameraSettingsInfo CameraSettings{};
         CameraSettings.Mode = SCENE::CAMERA_MODE_FREE_CAMERA;
         CameraSettings.CameraModeInfo = &ModeInfo;
-        SCENE::Camera3D Camera(RendererContext.Window,CameraSettings);
+        SCENE::Camera3D Camera(RendererContext.Window, CameraSettings);
 
-        SCENE::Cubemap Cubemap0(RendererContext,1024, 1024);
+        SCENE::Cubemap Cubemap0(RendererContext, 1024, 1024);
         SCENE::ImportHDRI("resources\\boma_4k.hdr", Cubemap0, RendererContext);
 
-        SCENE::Cubemap Cubemap1(RendererContext,1024, 1024);
+        SCENE::Cubemap Cubemap1(RendererContext, 1024, 1024);
         SCENE::ImportHDRI("resources\\rustig_koppie_puresky_2k.hdr", Cubemap1, RendererContext);
 
         SCENE::Light Light0;
@@ -115,7 +116,7 @@ int main()
         TextureImportManager.SubmitImport();
 
         SCENE::Scene Scene0;
-        Scene0.Create(RendererContext,TextureImportManager, Importer);
+        Scene0.Create(RendererContext, TextureImportManager, Importer);
 
         SCENE::Scene Scene1;
         Scene1.Create(RendererContext, TextureImportManager, Importer);
@@ -124,11 +125,11 @@ int main()
 
         Scene0.LinkModelInstance(Sponza);
         Scene0.LinkModelInstance(SponzaTextured);
-       
+
         Scene0.LinkModelInstance(Shovel);
         Scene0.LinkStaticLight(Light0);
         Scene0.LinkStaticLight(Light1);
-        Scene0.LinkDynamicLight(Light2);
+        Scene0.LinkDynamicLight(Light2); 
 
         Scene1.LinkStaticLight(Light0);
         Scene1.LinkStaticLight(Light1);
@@ -136,17 +137,7 @@ int main()
 
         //Scene0.LinkModelInstance(SceneModelInstance);
         //Scene0.LinkModelInstance(Shovel1);
-        Scene0.FlushPendingUpdates(
-            SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
-            FRAME_INDEX_ALL_FRAMES
-        );
 
-        Scene0.LinkModelInstance(SceneModelInstance);
-        Scene0.LinkModelInstance(Shovel1);
-        for (size_t i = 0; i < 100; i++)
-        {
-            Scene0.LinkModelInstance(Shovels[i]);
-        }
 
         Scene0.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
@@ -154,6 +145,28 @@ int main()
         );
 
        
+
+        Scene0.FlushPendingUpdates(
+            SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
+            FRAME_INDEX_ALL_FRAMES
+        );
+
+        Scene1.LinkModelInstance(Shovel1);
+        Scene1.FlushPendingUpdates(
+            SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
+            FRAME_INDEX_ALL_FRAMES
+        );
+
+        for (size_t i = 0; i < 10; i++)
+        {
+            Scene1.LinkModelInstance(Shovels[i]);
+        }
+        Scene1.LinkModelInstance(SceneModelInstance);
+
+        Scene1.FlushPendingUpdates(
+            SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
+            FRAME_INDEX_ALL_FRAMES
+        );
 
         Scene0.LinkCubemap(Cubemap0);
         Scene0.LinkCamera(Camera);
@@ -161,13 +174,13 @@ int main()
         Scene1.LinkCubemap(Cubemap0);
         Scene1.LinkCamera(Camera);
 
-       
+
         /*
         VKPHYSICS::PhysicsContext PhyContext;
         PhyContext.DynamicsWorld->setGravity({ 0,-10,0 });
         btAlignedObjectArray<btCollisionShape*> CollisionShapes;
 
-        std::unique_ptr<btTriangleMesh> TriangleMesh = std::make_unique<btTriangleMesh>();        
+        std::unique_ptr<btTriangleMesh> TriangleMesh = std::make_unique<btTriangleMesh>();
         for (auto &Mesh : Sponza.Source->Meshes)
         {
             for (size_t y = 0; y < Mesh.Indices.size(); y += 3)
@@ -176,7 +189,7 @@ int main()
                 auto &Triangle1 = Mesh.Vertices[Mesh.Indices[y + 1]].Position;
                 auto &Triangle2 = Mesh.Vertices[Mesh.Indices[y + 2]].Position;
                 TriangleMesh->addTriangle(
-                    { Triangle0.x,Triangle0.y ,Triangle0.z }, 
+                    { Triangle0.x,Triangle0.y ,Triangle0.z },
                     { Triangle1.x,Triangle1.y ,Triangle1.z },
                     { Triangle2.x,Triangle2.y ,Triangle2.z }
                 );
@@ -196,16 +209,27 @@ int main()
         std::unique_ptr<btRigidBody> GroundRigidBody = std::make_unique<btRigidBody>(GroundRigidBodyCreateInfo);
 
         PhyContext.DynamicsWorld->addRigidBody(GroundRigidBody.get());
-       
+
 
         VKPHYSICS::DebugDrawer PhysicsDebugDrawer;
 
-        
+
         PhysicsDebugDrawer.setDebugMode(btIDebugDraw::DBG_DrawAabb | btIDebugDraw::DBG_DrawWireframe);
         PhyContext.DynamicsWorld->setDebugDrawer(&PhysicsDebugDrawer);
         Scene0.DebugDrawer = &PhysicsDebugDrawer;
          */
+        std::string ShadeFunction = 
+            "vec3 ShadePixel(in vec3 CameraPosition,in vec3 CameraDirection,in vec3 Normal, in vec3 Position, in vec3 Albedo, in float Roughness, in float Metallic, in float Time) \n\
+            {  \n\
+                \n\
+                 return CalculateLighting(Normal,Position,Albedo,Roughness,Metallic);\n\
+            }";
+            
+
         RENDERER::DeferredRenderPipeline DeferredPipeline(RendererContext);
+        DeferredPipeline.CompileCustomPipeline(ShadeFunction,"CustomShader0");
+        RENDERER::DeferredRenderPipeline DeferredPipelineNormal(RendererContext);
+
         RENDERER::RenderPassConfiguration PassConfiguration0{};
         PassConfiguration0.Name = "DeferredPass";
         PassConfiguration0.Pipeline = &DeferredPipeline;
@@ -215,10 +239,10 @@ int main()
 
         RENDERER::RenderPassConfiguration PassConfiguration1{};
         PassConfiguration1.Name = "DeferredPass1";
-        PassConfiguration1.Pipeline = &DeferredPipeline;
+        PassConfiguration1.Pipeline = &DeferredPipelineNormal;
         PassConfiguration1.Scene = &Scene1;
         PassConfiguration1.EnableDepthTesting = true;
-        //Renderer.AddRenderPass(PassConfiguration1);
+        Renderer.AddRenderPass(PassConfiguration1);
 
         float DeltaTime = 0.0f;
         float LastFrame = 0.0f;
@@ -263,7 +287,7 @@ int main()
             Shovel.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), 10 * (float)glm::max(0.0,glm::cos(glfwGetTime())), glm::vec3(0.0, 1.0, 0.0));
             Scene0.MarkResourceChanged(&Shovel, SCENE::MARK_CHANGED_TYPE_MESH_TRANSFORMATION, Renderer.CurrentFrame);
 
-            Scene0.FlushPendingUpdates(SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS, Renderer.CurrentFrame);
+            Scene0.FlushPendingUpdates(SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | SCENE::SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS, Renderer.CurrentFrame);
 
             Camera.Update(
                 RendererContext.Window,
@@ -275,6 +299,7 @@ int main()
             );
             Renderer.RenderFrame();
             glfwPollEvents();
+
             //PhysicsDebugDrawer.ClearDebugBuffers();
         }
 

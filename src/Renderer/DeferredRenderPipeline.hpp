@@ -5,6 +5,7 @@
 #include "GeometryBuffer.hpp"
 
 #include "Core/VulkanSynchoronization.hpp"
+#include <chrono>
 
 namespace RENDERER
 {
@@ -15,6 +16,22 @@ namespace RENDERER
         DeferredRenderPipeline(RendererContext& RendererContext);
 		DeferredRenderPipeline() = default;
 		void Create(RendererContext& RendererContext) override;
+
+        /// Allows creating the pipeline with custom parameters
+        /// <param name="ShadePixelFunction">
+        ///  Custom pixel shading function
+        ///  vec3 ShadePixel(in vec3 CameraPosition,in vec3 CameraDirection,in vec3 Normal, in vec3 Position, in vec3 Albedo, in float Roughness, in float Metallic,in float Time)
+        ///  {
+        /// 
+        ///     return vec3();
+        ///  }
+        ///  In addition to default GLSL functions also the following functions are defined and can be used
+        ///  vec3 CalculateLighting(in vec3 Normal,in vec3 Position,in vec3 Albedo,in float Roughness,in float Metallic) Outputs PBR shading
+        ///  float FresnelSchlick(float cosTheta , float F0)
+        ///  vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+        ///  float DistributionGGX(vec3 N , vec3 H, float roughness)
+        /// </param>
+        void CompileCustomPipeline(std::string ShadePixelFunction, const char* Label);
 	private:
 		void RenderScene(
             SCENE::Scene& Scene, 
@@ -22,7 +39,9 @@ namespace RENDERER
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame,
             VkImageView& DepthImageImageView,
-            VkImageView& DstRenderTargetImageView,
+            VkImageView& DstColorRenderTargetImageViews,
+            GeometryBuffer& FrameGbuffer,
+            VkDescriptorSet& GeometrybufferDescriptorSet,
             bool EnableDepthTesting,
             bool ClearDepth,
             bool ClearColorAttachment
@@ -36,6 +55,7 @@ namespace RENDERER
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame,
             VkImageView& DepthImage,
+            GeometryBuffer& Gbuffers,
             bool EnableDepthTesting,
             bool ClearDepth
         );
@@ -46,18 +66,18 @@ namespace RENDERER
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame,
             VkImageView &DstRenderTargetImageView,
+            VkDescriptorSet& GeometrybufferDescriptorSet,
             bool ClearColorAttachment
         );
+        glm::mat4 PreviousProjViewMatrix;
+        RENDERER_CORE::GraphicsPipeline Pipeline;
+
+        std::chrono::system_clock::time_point StartingTime;
 
         //References
         VkDevice LogicalDevice;
         VkPhysicalDevice PhysicalDevice;
         uint32_t GraphicsQueueIndex;
-
-        std::array<GeometryBuffer, MAX_FRAMES_IN_FLIGHT> Gbuffers;
-
-        RENDERER_CORE::DescriptorPool DescriptorPool;
-        std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> LightingPassDescriptorSets;
 
         RENDERER_CORE::PipelineBarrier2 PipelineBarrier2;
 		RendererContext* RendererContextPtr = nullptr;

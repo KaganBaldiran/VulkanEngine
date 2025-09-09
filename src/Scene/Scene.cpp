@@ -146,13 +146,15 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
     {
         if ((Type & SCENE_UPDATE_TYPE_LINK_MESHES) && !ModelInstancesAppendList[i].empty())
         {
-            MeshAppendInfo Info{};
-            Info.FrameIndex = i;
-            Info.ModelInstances = ModelInstancesAppendList[i];
-            Info.TargetDescriptorSets = IndirectDescriptorSets;
-            Info.CopyInfos = &SceneCopyInfos[i];
-            Info.StagingBuffer = &StagingBuffers[i];
-            MeshBuffers.AppendModels(Info);
+            bool IsModelMatrixBufferReallocated = false;
+
+            MeshBuffers.AppendModels(
+                ModelInstancesAppendList[i],
+                i, 
+                IndirectDescriptorSets, 
+                StagingBuffers[i], 
+                SceneCopyInfos[i]
+            );
 
             ModelInstancesAppendList[i].clear();
         }

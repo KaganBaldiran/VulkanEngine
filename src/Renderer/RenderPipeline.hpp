@@ -10,6 +10,14 @@ namespace SCENE
 namespace RENDERER
 {
 	class Renderer;
+	class GeometryBuffer;
+
+	enum RenderPipelineType
+	{
+		RENDER_PIPELINE_TYPE_UNSPECIFIED = 0,
+		RENDER_PIPELINE_TYPE_DEFERRED_RENDER = 1,
+		RENDER_PIPELINE_TYPE_FORWARD_RENDER = 2
+	};
 
 	class RenderPipeline
 	{
@@ -25,7 +33,9 @@ namespace RENDERER
 			uint32_t CurrentImageIndex,
 			uint32_t CurrentFrame,
 			VkImageView& DepthImageImageView,
-			VkImageView& DstRenderTargetImageView,
+			VkImageView& DstColorRenderTargetImageViews,
+			GeometryBuffer& FrameGbuffer,
+			VkDescriptorSet& GeometrybufferDescriptorSet,
 			bool EnableDepthTesting,
 			bool ClearDepth,
 			bool ClearColorAttachment
@@ -33,6 +43,7 @@ namespace RENDERER
 		virtual void Destroy() = 0;
 		virtual void OnResize(uint32_t Width, uint32_t Height) = 0;
 
+		RenderPipelineType PipelineType = RENDER_PIPELINE_TYPE_UNSPECIFIED;
 		RendererContext* RendererContextPtr = nullptr;
 	};
 

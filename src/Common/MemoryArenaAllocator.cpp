@@ -57,6 +57,7 @@ void RENDERER_CORE::VirtualArenaAllocator::Allocate(size_t SizeInBytes)
         return Region0.Offset < Region1.Offset;
         });
     std::vector<MemoryRegion> MergedFreeRegions;
+    MergedFreeRegions.reserve(FreeRegions.size());
     for (auto& FreeRegion : FreeRegions)
     {
         if (!MergedFreeRegions.empty() && (MergedFreeRegions.back().Offset + MergedFreeRegions.back().Size) == FreeRegion.Offset)

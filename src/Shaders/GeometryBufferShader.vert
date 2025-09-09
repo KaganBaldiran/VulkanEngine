@@ -12,10 +12,11 @@ layout(location = 2) out vec2 OutUVcoords;
 layout(location = 3) flat out int MeshIndex;
 layout(location = 4) out vec3 OutTangent;
 layout(location = 5) out vec3 OutBitangent;
+layout(location = 6) out vec3 OutNDCVelocity;
 
 layout(push_constant) uniform Matrixes{
-    mat4 ViewMatrix;
-    mat4 ProjectionMatrix;
+    mat4 ProjViewMatrix;
+    mat4 PreviousProjViewMatrix;
 };
 
 struct DrawMetadata {
@@ -37,9 +38,14 @@ void main() {
     MeshIndex = DrawData.MeshID;
 
     vec3 GlobalPosition = vec3(ModelMatrix * vec4(InPosition.xyz, 1.0));
-    vec4 Pos = ProjectionMatrix * ViewMatrix * vec4(GlobalPosition.xyz, 1.0);
+    vec4 PreviousPos = PreviousProjViewMatrix * vec4(GlobalPosition.xyz, 1.0);
+    vec4 CurrentPos = ProjViewMatrix * vec4(GlobalPosition.xyz, 1.0);
+    //CurrentPos /= CurrentPos.w; 
+    //PreviousPos /= PreviousPos.w;
+    OutNDCVelocity = CurrentPos.xyz - PreviousPos.xyz;
+
     OutPosition = GlobalPosition;
-    gl_Position = Pos;
+    gl_Position = CurrentPos;
     OutUVcoords = UVcoords;
 
     mat3 NormalMatrix = transpose(inverse(mat3(ModelMatrix)));

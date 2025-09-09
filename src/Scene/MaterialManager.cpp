@@ -129,13 +129,14 @@ void SCENE::TextureImportManager::SubmitImport()
         PipelineBarrier.ExecutePipelineBarrier(CommandBuffer);
     };
 
+    /*
     RENDERER_CORE::ExecuteSingleTimeCommand(
         RendererContext->DeviceContext.logicalDevice,
         TransitionImages,
         RendererContext->CommandPool.commandPool,
         RendererContext->DeviceContext.GraphicsQueue
     );
-
+    */
     double DeltaTime = glfwGetTime() - StartingTime;
     std::cout << "Textures were imported in: " << DeltaTime << " seconds" << std::endl;
 }
@@ -256,8 +257,7 @@ bool SCENE::TextureImportManager::CreateMeshTextureDescriptors(
             CurrentTexturesDescriptor.Layout.descriptorSetLayout,
             CurrentTexturesDescriptor.DescriptorSets.data()
         );
-
-        CurrentGbufferPassPipeline = RendererContext->AppendGbufferPassPipeline(CurrentTexturesDescriptor.Layout.descriptorSetLayout, CurrentTextureDescriptorUpperBound);
+        TextureDescriptorsPipelines = RendererContext->CreateTextureDescriptorPipelines(CurrentTexturesDescriptor.Layout.descriptorSetLayout, CurrentTextureDescriptorUpperBound);
         return ShouldRewrite;
     }
     return ShouldRewrite;

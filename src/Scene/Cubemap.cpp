@@ -18,7 +18,6 @@ void SCENE::Cubemap::Create(RENDERER::RendererContext& RendererContext, uint32_t
 	CreateCubemapTexture(RendererContext);
 	CreateConvolutionTexture(RendererContext);
 
-	resourceType = RESOURCE_TYPE_CUBEMAP;
 	this->RendererContext = &RendererContext;
 	this->IsDestroyed = false;
 	this->DestructionPriority = 2;

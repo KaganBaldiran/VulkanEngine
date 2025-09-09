@@ -24,6 +24,7 @@
 #include "../Common/DestructionQueue.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
+#include "../Common/StableVector.hpp"
 namespace SCENE
 {
     class Scene;
@@ -40,6 +41,7 @@ namespace RENDERER
         float CameraFrustumLength;
         int StaticLightCount;
         int DynamicLightCount;
+        float Time;
     };
 
 	class RendererContext : COMMON::Destructible
@@ -97,18 +99,26 @@ namespace RENDERER
         RENDERER_CORE::VertexInputDescription QuadVertexDescription{};
         RENDERER_CORE::VertexInputDescription CubeVertexDescription{};
 
-        std::unordered_map<uint32_t,std::array<RENDERER_CORE::GraphicsPipeline,2>> GbufferPassPassPipelines;
+        //COMMON::StableVector<RENDERER_CORE::GraphicsPipeline> GraphicsPipelines;
+        //COMMON::StableVector<RENDERER_CORE::ShaderModule> ShaderModules;
+
+        //First two are g-buffer pass and the third one is shading pass pipeline
         RENDERER_CORE::ShaderModule GbufferVertexShaderModule;
         RENDERER_CORE::ShaderModule GbufferFragmentShaderModule;
 
-        RENDERER_CORE::GraphicsPipeline DeferredLightingPassGraphicsPipeline;
+        RENDERER_CORE::ShaderModule LightingVertexShaderModule;
+        RENDERER_CORE::ShaderModule LightingFragmentShaderModule;
+        RENDERER_CORE::GraphicsPipelineCreateInfo LatestShadingPassPipelineCreateInfo;
+
+        std::unordered_map<uint32_t,std::array<RENDERER_CORE::GraphicsPipeline,3>> TextureDescriptorPipelines;
+        //RENDERER_CORE::GraphicsPipeline DeferredLightingPassGraphicsPipeline;
         RENDERER_CORE::DescriptorSetLayout LightingPassLayout;
 
         RENDERER_CORE::Buffer QuadVertexBuffer{};
         RENDERER_CORE::Buffer CubeVertexBuffer{};
 	private:
         void CreateHDRIrenderPassResources();
-        std::array<RENDERER_CORE::GraphicsPipeline,2>* AppendGbufferPassPipeline(VkDescriptorSetLayout Layout,uint32_t MaxTextureCount);
-        void CreateDeferredLightingPassPipeline();
+        std::array<RENDERER_CORE::GraphicsPipeline,3>* CreateTextureDescriptorPipelines(VkDescriptorSetLayout Layout,uint32_t MaxTextureCount);
+        //void CreateDeferredLightingPassPipeline();
 	};
 }

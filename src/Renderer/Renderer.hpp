@@ -83,6 +83,11 @@ namespace RENDERER
         VkDeviceSize PhysicsDebugLineVertexBuffersize;
 
         RENDERER_CORE::TextureData DepthImage{};
+        RENDERER_CORE::TextureData ColorRenderAttachmentImage{};
+        std::array<GeometryBuffer, MAX_FRAMES_IN_FLIGHT> Gbuffers;
+
+        RENDERER_CORE::DescriptorPool DescriptorPool;
+        std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> LightingPassDescriptorSets;
 
         RENDERER_CORE::GraphicsPipeline PhysicsDebugGraphicsPipeline;
         RENDERER_CORE::PipelineBarrier2 PipelineBarrier2;
