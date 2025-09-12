@@ -207,3 +207,50 @@ void RENDERER_CORE::DynamicRenderingPass::EndRendering(const VkCommandBuffer& Co
 {
     vkCmdEndRendering(CommandBuffer);
 }
+
+RENDERER_CORE::Semaphore::Semaphore(VkDevice LogicalDevice)
+{
+    Create(LogicalDevice);
+}
+
+RENDERER_CORE::Fence::Fence(VkDevice LogicalDevice, VkFenceCreateFlags Flags)
+{
+    Create(LogicalDevice, Flags);
+}
+
+void RENDERER_CORE::Fence::Create(VkDevice LogicalDevice,VkFenceCreateFlags Flags)
+{
+    VkFenceCreateInfo FenceCreateInfo{};
+    FenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    FenceCreateInfo.flags = Flags;
+
+    if (vkCreateFence(LogicalDevice, &FenceCreateInfo, nullptr, &Handle) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create the semaphores and the fence!");
+    }
+}
+
+void RENDERER_CORE::Semaphore::Create(VkDevice LogicalDevice)
+{
+    VkSemaphoreCreateInfo SemaphoreCreateInfo{};
+    SemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    if (vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &Handle) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create the semaphores and the fence!");
+    }
+}
+
+void RENDERER_CORE::Semaphore::Destroy(VkDevice LogicalDevice)
+{
+    if (!Handle) return;
+    vkDestroySemaphore(LogicalDevice, Handle, nullptr);
+    Handle = VK_NULL_HANDLE;
+}
+
+void RENDERER_CORE::Fence::Destroy(VkDevice LogicalDevice)
+{
+    if (!Handle) return;
+    vkDestroyFence(LogicalDevice, Handle, nullptr);
+    Handle = VK_NULL_HANDLE;
+}

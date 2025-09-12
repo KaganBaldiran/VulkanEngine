@@ -29,10 +29,11 @@ namespace COMMON
 			auto Iterator = KeyIndexMap.find(Key);
 			if (Iterator == KeyIndexMap.end()) return;
 
+			auto& Index = Iterator->second;
 			if (Iterator->second != (Data.size() - 1))
 			{
-				std::swap(Data[Iterator->second], Data.back());
-				KeyIndexMap[Data[Iterator->second].first] = Iterator->second;
+				std::swap(Data[Index], Data.back());
+				KeyIndexMap[Data[Index].first] = Index;
 			}
 
 			Data.pop_back();

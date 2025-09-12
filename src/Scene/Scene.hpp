@@ -49,7 +49,31 @@ namespace SCENE
 	class Cubemap;
 	class Resource;
 
-	enum SceneUpdateType
+	enum SceneDynamicUploadMode
+	{
+		SCENE_DYNAMIC_UPLOAD_MODE_AUTO = 0,
+		SCENE_DYNAMIC_UPLOAD_MODE_HOST_VISIBLE = 1,
+		SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL = 2
+	};
+
+	struct SceneOptions
+	{
+		//States the upload mode for buffers that are expected to be changed dynamically like model transformations. 
+		//Host visible mode keeps the buffers visible to the host(the CPU) which grants faster writes in return of slower reads.
+		//Might be preferable in case where scene has few instances linked. 
+		//Device local mode keeps the buffers device(chosen graphics device, discrete GPU if available) visible only which grants slower writes (not necessarily) in return of higher reading speeds.
+		//Especially preferable in cases where scene updates are few or linked instance count is high.
+		//By default AUTO mode enforces device visible if a discrete device is available.
+		SceneDynamicUploadMode UploadMode = SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL;
+		//Setting stating whether scene should preallocate the first initial notch as much as buffer allocation step. 
+		//In case of disabling this feature, scene will allocate the first step during the initial update flush.
+		bool PreallocateInitialBufferStep = false;
+		//Allocation step used for buffer growth. 
+		//An overly large step may cause memory waste whereas a small step might cause unwanted frequent reallocations. 
+		size_t BufferAllocationStep = RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10;
+	};
+
+	enum SceneUpdateType : uint32_t
 	{
 		SCENE_UPDATE_TYPE_NONE = 0,
 		SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS = 1 << 1,
@@ -59,12 +83,14 @@ namespace SCENE
 		SCENE_UPDATE_TYPE_UNLINK_MESHES = 1 << 5,
 		SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS = 1 << 6,
 
-		SCENE_UPDATE_TYPE_ALL_PENDING = SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS |
+		SCENE_UPDATE_TYPE_ALL = SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS |
 										SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS |
 										SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS |
 										SCENE_UPDATE_TYPE_LINK_MESHES |
 										SCENE_UPDATE_TYPE_UNLINK_MESHES |
-										SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS
+										SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS,
+
+		SCENE_UPDATE_TYPE_ALL_PENDING = std::numeric_limits<uint32_t>::max()
 	};
 
 	enum MarkChangedType
@@ -82,11 +108,10 @@ namespace SCENE
 		return static_cast<SceneUpdateType>(static_cast<int>(a) | static_cast<int>(b));
 	}
 
-	using SceneCommandCallback = bool;
-
-	/// <summary>
-	/// Represents a 3D scene containing entities and lights, and manages related GPU resources for rendering.
-	/// </summary>
+	//Represents a 3D scene containing entities and lights, and manages related GPU resources for rendering.
+	// Scene doesn't hold the actual geometry(mesh) data, it merely holds the data that is required to use the existing geometries.
+	// The data includes indirect draw commands, meta data (material and model matrix indexes),texture descriptor indexes and model matrixes
+	// The linked resources don't actually know about the scene 
 	class Scene : COMMON::Destructible
 	{
 		friend class RENDERER::Renderer;
@@ -94,9 +119,9 @@ namespace SCENE
 		friend class MeshManager;
 		friend class RENDERER::DeferredRenderPipeline;
 	public:
-		Scene(RENDERER::RendererContext& RendererContext,TextureImportManager& Manager, MeshManager& MeshManager);
+		Scene(RENDERER::RendererContext& RendererContext,TextureManager& Manager, MeshManager& MeshManager, SceneOptions Options = SceneOptions());
 		Scene() = default;
-		void Create(RENDERER::RendererContext& RendererContext, TextureImportManager& Manager, MeshManager& MeshManager);
+		void Create(RENDERER::RendererContext& RendererContext, TextureManager& Manager, MeshManager& MeshManager, SceneOptions Options = SceneOptions());
 		void Destroy() override;
 
 		void LinkModelInstance(ModelInstance &Instance);
@@ -111,16 +136,11 @@ namespace SCENE
 		void LinkStaticLight(std::vector<Light*>& StaticLights);
 
 		VKPHYSICS::DebugDrawer* DebugDrawer = nullptr;
-
 		Cubemap* SceneCubeMap;
 		Camera3D* Camera;
 
 		void LinkCubemap(Cubemap& DestinationCubeMap);
 		void LinkCamera(Camera3D &Camera);
-
-		//void CreateMeshTextureDescriptors(uint32_t MaxTextures = 1000);
-		//uint32_t GetMaxTextureCount() { return ActualTextureUpperBound; };
-		//void DestroyMeshTextureDescriptors();
 
 		void DestroyMeshBuffers();
 
@@ -129,38 +149,39 @@ namespace SCENE
 
 		bool DrawCubeMap;
 	private:
-		//void CreateMeshTextureDescriptors(uint32_t DescriptorCount);
+		struct UpdateLists
+		{
+			std::vector<ModelInstance*> ModelInstancesAppendList;
+			std::vector<ModelInstance*> ModelInstancesEraseList;
+			std::vector<ModelInstance*> ModelInstancesTransformationUpdateList;
+			std::vector<ModelInstance*> MaterialUpdateList;
+
+			std::vector<Light*> DynamicLightAppendUpdateList;
+			std::vector<Light*> StaticLightAppendUpdateList;
+			std::vector<Light*> DynamicLightEraseList;
+			std::vector<Light*> StaticLightEraseList;
+		};
 
 		SCENE::SceneMeshManager MeshBuffers;
 		SCENE::LightManager LightManager;
 		std::array<PersistentStagingBuffer, MAX_FRAMES_IN_FLIGHT> StagingBuffers;
 		std::array<std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>, MAX_FRAMES_IN_FLIGHT> SceneCopyInfos;
+		SceneOptions Options;
 
-		std::array<std::vector<ModelInstance*>, MAX_FRAMES_IN_FLIGHT> ModelInstancesAppendList;
-		std::array<std::vector<ModelInstance*>, MAX_FRAMES_IN_FLIGHT> ModelInstancesEraseList;
-		std::array<std::vector<ModelInstance*>, MAX_FRAMES_IN_FLIGHT> ModelInstancesTransformationUpdateList;
-
-		std::array<std::vector<Light*>, MAX_FRAMES_IN_FLIGHT> DynamicLightAppendUpdateList;
-		std::array<std::vector<Light*>, MAX_FRAMES_IN_FLIGHT> StaticLightAppendUpdateList;
-		std::array<std::vector<Light*>, MAX_FRAMES_IN_FLIGHT> DynamicLightEraseList;
-		std::array<std::vector<Light*>, MAX_FRAMES_IN_FLIGHT> StaticLightEraseList;
-
-		std::array<uint32_t, MAX_FRAMES_IN_FLIGHT> PendingUpdateBits;
+		std::array<UpdateLists, MAX_FRAMES_IN_FLIGHT> UpdateLists;
+		std::array<SceneUpdateType, MAX_FRAMES_IN_FLIGHT> PendingUpdateBits;
 
 		RENDERER_CORE::DescriptorPool SceneDescriptorPool;
 		std::array<VkDescriptorSet,MAX_FRAMES_IN_FLIGHT> SceneDescriptorSets;
 	
 		// 0: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Texture index buffers accessed from G-buffer pass fragment shader
-		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> TextureIndicesDescriptorSets;
-
-		//RENDERER_CORE::GraphicsPipeline* CurrentGbufferPassPipeline = nullptr;
-		//uint32_t ActualTextureUpperBound;
-		
+		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> TextureIndicesDescriptorSets;		
 		std::array<VkDescriptorSet,MAX_FRAMES_IN_FLIGHT> IndirectDescriptorSets;
 
+		//Links to the managers
 		RENDERER::RendererContext* RendererContext = nullptr;
 		SCENE::ResourceDependencyManager* DependencyManager = nullptr;
-		TextureImportManager* TextureManager = nullptr;
+		TextureManager* TextureManager = nullptr;
 		MeshManager* MeshManagerPtr = nullptr;
 	};
 }

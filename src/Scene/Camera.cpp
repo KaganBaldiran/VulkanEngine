@@ -58,7 +58,40 @@ void SCENE::Camera3D::SetCameraSettings(CameraSettingsInfo Settings)
     }
 }
 
-void SCENE::Camera3D::Update(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime, glm::vec2 Extent, float Near, float Far)
+void SCENE::Camera3D::Update(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime, glm::vec2 Extent, float Near, float Far, float FOV)
+{
+    this->FarPlane = Far;
+    this->NearPlane = Near;
+    this->FOV = FOV;
+
+    switch (this->Mode)
+    {
+    case CAMERA_MODE_UNSPECIFIED:
+    {
+        throw std::runtime_error("Unset camera settings! Unable to update camera!");
+        exit(-1);
+        break;
+    }
+    case CAMERA_MODE_FREE_CAMERA:
+    {
+        UpdateFreeCameraMode(window, Sensitivity, DeltaTime);
+        break;
+    }
+    case CAMERA_MODE_SCRIPTED_CAMERA:
+    {
+        Script(CameraPosition, CameraDirection, DeltaTime, Sensitivity, window);
+        break;
+    }
+    default:
+        break;
+    }
+
+    ViewMatrix = glm::lookAt(CameraPosition, CameraPosition + CameraDirection, Up);
+    ProjectionMatrix = glm::perspective(glm::radians((float)FOV), (float)Extent.x / (float)Extent.y, Near, Far);
+    ProjectionMatrix[1][1] *= -1;
+}
+
+void SCENE::Camera3D::Update(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime,float Zoom,glm::vec2 Extent, float Near, float Far)
 {
     this->FarPlane = Far;
     this->NearPlane = Near;
@@ -85,8 +118,9 @@ void SCENE::Camera3D::Update(RENDERER_CORE::Window& window, float Sensitivity, f
         break;
     }
 
+    float Ratio = (float)Extent.x / (float)Extent.y;
     ViewMatrix = glm::lookAt(CameraPosition, CameraPosition + CameraDirection, Up);
-    ProjectionMatrix = glm::perspective(glm::radians((float)FOV), (float)Extent.x / (float)Extent.y, Near, Far);
+    ProjectionMatrix = glm::ortho(-Zoom * Ratio, Zoom * Ratio,-Zoom,Zoom,Near,Far);
     ProjectionMatrix[1][1] *= -1;
 }
 

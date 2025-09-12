@@ -55,7 +55,7 @@ const float PI = 3.14159265359;
 const float Inv_PI = 1.0f / PI;
 
 float DistributionGGX(vec3 N , vec3 H, float roughness)
-  {
+{
     float a = clamp(roughness * roughness, 0.03f, 1.0f);         
     float a2 = a * a;
     float NdotH = max(dot(N, H), 0.0f);       

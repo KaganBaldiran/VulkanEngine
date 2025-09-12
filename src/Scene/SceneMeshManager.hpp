@@ -30,124 +30,160 @@ namespace SCENE
 {
 	//Forward Declarations;
 	class ModelInstance;
-	class TextureImportManager;
+	class TextureManager;
 	class MeshManager;
+	enum SceneDynamicUploadMode;
+	struct SceneOptions;
 
-	template<uint32_t BufferSetCount>
-	struct MeshFrustumCullBuffers
+	namespace INTERNAL
 	{
-		std::array<RENDERER_CORE::Buffer, BufferSetCount> CulledIndirectBuffers;
-		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> MeshVisibilityCountBuffers;
-		std::array<RENDERER_CORE::Buffer, BufferSetCount> CulledDrawMetaDataBuffer;
-
-		inline void Create()
+		struct TextureIndexData
 		{
-			for (size_t i = 0; i < BufferSetCount; i++)
-			{
-				MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE);
-			}
-		}
+			int AlbedoTextureIndex;
+			int RoughnessTextureIndex;
+			int NormalMapTextureIndex;
+			int MetallicTextureIndex;
+			int OpacityTextureIndex;
+		};
 
-		inline void Destroy(VkDevice& LogicalDevice)
+		struct MaterialParameterData
 		{
-			for (size_t i = 0; i < BufferSetCount; i++)
-			{
-				MeshVisibilityCountBuffers[i].Buffer.Destroy(LogicalDevice);
-				CulledIndirectBuffers[i].Buffer.Destroy(LogicalDevice);
-				CulledDrawMetaDataBuffer[i].Buffer.Destroy(LogicalDevice);
-			}
-		}
-	};
+			glm::vec3 Albedo;
+			float Metallic;
+			float Roughness;
+		};
 
-	template<uint32_t BufferSetCount>
-	struct MeshDrawArenaBufferGroup
-	{
-		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> IndirectBuffers;
-		MeshFrustumCullBuffers<BufferSetCount> CullBuffers;
-		std::array<RENDERER_CORE::PersistentBufferAllocator, BufferSetCount> ModelMatricesBuffers;
-		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> DrawMetaDataBuffer;
-		std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> TexturesIndexBuffers;
-
-		std::array<size_t, BufferSetCount> EnabledMeshCount;
-		std::array<bool, BufferSetCount> TexturesIndexBuffersReallocated;
-
-		inline void Create()
+		struct MaterialSamplingData
 		{
-			EnabledMeshCount.fill(0);
-			for (size_t i = 0; i < BufferSetCount; i++)
-			{
-				IndirectBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10);
-				ModelMatricesBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10);
-				DrawMetaDataBuffer[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10);
-				TexturesIndexBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10);
-				CullBuffers.MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE);
-			}
-		}
+			glm::vec3 Albedo;
+			float Metallic;
+			float Roughness;
+		};
 
-		inline void Destroy(VkDevice& LogicalDevice)
+		struct MaterialData
 		{
-			for (size_t i = 0; i < BufferSetCount; i++)
+			TextureIndexData IndexData;
+		};
+
+		template<uint32_t BufferSetCount>
+		struct MeshFrustumCullBuffers
+		{
+			std::array<RENDERER_CORE::Buffer, BufferSetCount> CulledIndirectBuffers;
+			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> MeshVisibilityCountBuffers;
+			std::array<RENDERER_CORE::Buffer, BufferSetCount> CulledDrawMetaDataBuffer;
+
+			inline void Create()
 			{
-				IndirectBuffers[i].Buffer.Destroy(LogicalDevice);
-				ModelMatricesBuffers[i].Buffer.Destroy(LogicalDevice);
-				DrawMetaDataBuffer[i].Buffer.Destroy(LogicalDevice);
-				TexturesIndexBuffers[i].Buffer.Destroy(LogicalDevice);
-				CullBuffers.MeshVisibilityCountBuffers[i].Buffer.Destroy(LogicalDevice);
-				CullBuffers.CulledIndirectBuffers[i].Destroy(LogicalDevice);
-				CullBuffers.CulledDrawMetaDataBuffer[i].Destroy(LogicalDevice);
+				for (size_t i = 0; i < BufferSetCount; i++)
+				{
+					MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE);
+				}
 			}
-		}
-	};
 
-	struct InstanceMeshLink
-	{
-		size_t ResourceID;
-		RENDERER_CORE::MemoryRegion DrawDataMemoryRegion;
-		RENDERER_CORE::MemoryRegion StagingDrawDataMemoryRegion;
-	};
+			inline void Destroy(VkDevice& LogicalDevice)
+			{
+				for (size_t i = 0; i < BufferSetCount; i++)
+				{
+					MeshVisibilityCountBuffers[i].Buffer.Destroy(LogicalDevice);
+					CulledIndirectBuffers[i].Buffer.Destroy(LogicalDevice);
+					CulledDrawMetaDataBuffer[i].Buffer.Destroy(LogicalDevice);
+				}
+			}
+		};
 
-	struct MeshEntry
-	{
-		uint32_t Index, ReferenceCount = 0;
-		bool IsChanged = false;
-		size_t ResourceID,FirstInstance = std::numeric_limits<size_t>::max();
-		RENDERER_CORE::MemoryRegion IndirectBufferMemoryRegion;
-		RENDERER_CORE::MemoryRegion StagingIndirectBufferMemoryRegion;
-		DrawInfo Info;
-		BoundingBoxAABB BoundingBox;
-		std::vector<InstanceMeshLink> InstanceLinks;
-	};
+		template<uint32_t BufferSetCount>
+		struct MeshDrawArenaBufferGroup
+		{
+			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> IndirectBuffers;
+			//MeshFrustumCullBuffers<BufferSetCount> CullBuffers;
+			std::array<RENDERER_CORE::PersistentBufferAllocator, BufferSetCount> ModelMatricesBuffers;
+			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> DrawMetaDataBuffer;
+			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> TexturesIndexBuffers;
 
-	struct MaterialMetaData
-	{
-		Material Material;
-		std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
-		RENDERER_CORE::MemoryRegion TextureIndexMemoryRegion;
-		RENDERER_CORE::MemoryRegion StagingTextureIndexMemoryRegion;
-	};
+			std::array<size_t, BufferSetCount> EnabledMeshCount;
+			std::array<bool, BufferSetCount> TexturesIndexBuffersReallocated;
 
-	struct InstanceEntry
-	{
-		std::unordered_map<size_t,MaterialMetaData> Materials;
-		RENDERER_CORE::MemoryRegion TransformationMatrixMemoryRegion;
-	};
+			inline void Create(size_t BufferAllocationStep)
+			{
+				EnabledMeshCount.fill(0);
+				for (size_t i = 0; i < BufferSetCount; i++)
+				{
+					IndirectBuffers[i].Allocator.Create(0, BufferAllocationStep);
+					ModelMatricesBuffers[i].Allocator.Create(0, BufferAllocationStep);
+					DrawMetaDataBuffer[i].Allocator.Create(0, BufferAllocationStep);
+					TexturesIndexBuffers[i].Allocator.Create(0, BufferAllocationStep);
+					//CullBuffers.MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE);
+				}
+			}
 
-	struct EntryManager
-	{
-		std::unordered_map<size_t, InstanceEntry> InstanceEntries;
-		COMMON::VectorMap<size_t, MeshEntry> MeshEntries;
+			inline void Destroy(VkDevice& LogicalDevice)
+			{
+				for (size_t i = 0; i < BufferSetCount; i++)
+				{
+					IndirectBuffers[i].Buffer.Destroy(LogicalDevice);
+					ModelMatricesBuffers[i].Buffer.Destroy(LogicalDevice);
+					DrawMetaDataBuffer[i].Buffer.Destroy(LogicalDevice);
+					TexturesIndexBuffers[i].Buffer.Destroy(LogicalDevice);
+					//CullBuffers.MeshVisibilityCountBuffers[i].Buffer.Destroy(LogicalDevice);
+					//CullBuffers.CulledIndirectBuffers[i].Destroy(LogicalDevice);
+					//CullBuffers.CulledDrawMetaDataBuffer[i].Destroy(LogicalDevice);
+				}
+			}
+		};
 
-		std::vector<ModelInstance*> MaterialUpdateList;
-	};
+	
+		struct InstanceMeshLink
+		{
+			size_t ResourceID;
+			RENDERER_CORE::MemoryRegion DrawDataMemoryRegion;
+			RENDERER_CORE::MemoryRegion StagingDrawDataMemoryRegion;
+		};
 
-	struct MeshTextureUpdateInfo
-	{
-		TextureImportManager *TextureImportManagerPtr;
-		uint32_t FrameIndex;
-		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> TargetDescriptorSets;
-		PersistentStagingBuffer* StagingBuffer;
-		std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>* CopyInfos;
-	};
+		struct MeshEntry
+		{
+			uint32_t Index, ReferenceCount = 0;
+			bool IsChanged = false;
+			size_t ResourceID, FirstInstance = std::numeric_limits<size_t>::max();
+			RENDERER_CORE::MemoryRegion IndirectBufferMemoryRegion;
+			RENDERER_CORE::MemoryRegion StagingIndirectBufferMemoryRegion;
+			DrawInfo Info;
+			BoundingBoxAABB BoundingBox;
+			std::vector<InstanceMeshLink> InstanceLinks;
+		};
+
+		struct MaterialMetaData
+		{
+			MaterialData Material;
+			std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
+			RENDERER_CORE::MemoryRegion TextureIndexMemoryRegion;
+			RENDERER_CORE::MemoryRegion StagingTextureIndexMemoryRegion;
+		};
+
+		//Data related to instance entry
+		struct InstanceEntry
+		{
+			std::unordered_map<size_t, MaterialMetaData> Materials;
+			RENDERER_CORE::MemoryRegion TransformationMatrixMemoryRegion;
+			RENDERER_CORE::MemoryRegion StagingTransformationMatrixMemoryRegion;
+			glm::mat4 ModelMatrix;
+		};
+
+		//General layer of the entries. Unique for each frame in flight
+		struct EntryManager
+		{
+			std::unordered_map<size_t, InstanceEntry> InstanceEntries;
+			COMMON::VectorMap<size_t, MeshEntry> MeshEntries;
+
+			std::vector<ModelInstance*> MaterialUpdateList;
+			//A flag to matrix buffer updating function to let it know when to recopy everything inside.
+			bool TransformationMatrixReallocated = false;
+		};
+
+		struct DrawMetadata {
+			int MeshID;
+			int ModelMatrixIndex;
+		};
+	}
 
 	struct MeshEraseInfo
 	{
@@ -166,31 +202,31 @@ namespace SCENE
 		//BoundingBoxAABB BoundingBox;
 	};
 
-	struct DrawMetadata {
-		int MeshID;       
-		int ModelMatrixIndex;
-	};
 	
-	/// <summary>
-	/// Centralized class to manage buffers needed for indirect rendering.
-	/// It packs the meshes tightly into centralized classes to reduce state changes.
-	/// It's meant for internal usage in the scene class but can easily be adapted for special use cases.
-	/// </summary>
+	// Centralized class to manage buffers needed for indirect rendering.
+	// It packs the meshes tightly into centralized classes to reduce state changes.
+	// It's meant for internal usage in the scene class but can easily be adapted for special use cases.
 	class SceneMeshManager
 	{
 		friend class Scene;
 	public:
-		SceneMeshManager(MeshManager& MeshManager,RENDERER::RendererContext& RendererContext);
+		SceneMeshManager(MeshManager& MeshManager,RENDERER::RendererContext& RendererContext,size_t BufferAllocationStep);
 		SceneMeshManager() = default;
-		void Create(MeshManager& MeshManager,RENDERER::RendererContext& RendererContext);
+		void Create(MeshManager& MeshManager,RENDERER::RendererContext& RendererContext, size_t BufferAllocationStep);
 		void Destroy(VkDevice& LogicalDevice);
 
-		MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> SceneBuffers;
+		INTERNAL::MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> SceneBuffers;
 
 		uint32_t CurrentBalancedBuffer = 0;
-		std::array<EntryManager,MAX_FRAMES_IN_FLIGHT> Entries;
+		std::array<INTERNAL::EntryManager,MAX_FRAMES_IN_FLIGHT> Entries;
 		
-		void UpdateMeshTransformations(std::vector<ModelInstance*> &UpdateList,uint32_t CurrentFrame);
+		void UpdateMeshTransformationsHostVisible(std::vector<ModelInstance*> &UpdateList,uint32_t CurrentFrame);
+		void UpdateMeshTransformationsDeviceLocal(
+			std::vector<ModelInstance*>& UpdateList,
+			uint32_t CurrentFrame,
+			std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE)>& CurrentCopyInfos,
+			SCENE::PersistentStagingBuffer& StagingBuffer
+		);
 
 		void ResetModels(uint32_t FrameIndex);
 		void AppendModels(
@@ -198,10 +234,18 @@ namespace SCENE
 			const uint32_t &FrameIndex,
 			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> &TargetDescriptorSets,
 			PersistentStagingBuffer &StagingBuffer,
+			SceneOptions SceneOptions,
 			std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 		);
 		void EraseModels(MeshEraseInfo Info);
-		void UpdateTextureDescriptors(MeshTextureUpdateInfo Info);
+		void UpdateMaterials(
+			std::vector<SCENE::ModelInstance*>& SceneMaterialUpdateList,
+			TextureManager* TextureImportManagerPtr,
+			uint32_t FrameIndex,
+			VkDescriptorSet& TargetDescriptorSet,
+			PersistentStagingBuffer& StagingBuffer,
+			std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+		);
 	private:
 		MeshManager* MeshManagerPtr = nullptr;
 		RENDERER::RendererContext* RendererContext = nullptr;

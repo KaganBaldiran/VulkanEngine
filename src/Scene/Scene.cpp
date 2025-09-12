@@ -9,17 +9,20 @@
 
 #include "MaterialManager.hpp"
 
-SCENE::Scene::Scene(RENDERER::RendererContext& RendererContext,TextureImportManager &Manager, MeshManager& MeshManager)
+SCENE::Scene::Scene(RENDERER::RendererContext& RendererContext,SCENE::TextureManager &Manager, MeshManager& MeshManager, SceneOptions Options)
 {
     Create(RendererContext, Manager, MeshManager);
 }
 
-void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,TextureImportManager& Manager, MeshManager& MeshManager)
+void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext, SCENE::TextureManager& Manager, MeshManager& MeshManager, SceneOptions Options)
 {
-    this->MeshBuffers.Create(MeshManager,RendererContext);
+    this->Options = Options;
+    this->MeshBuffers.Create(MeshManager,RendererContext, Options.BufferAllocationStep);
     this->LightManager.Create(RendererContext);
     TextureManager = &Manager;
     this->MeshManagerPtr = &MeshManager;
+
+    PendingUpdateBits.fill(SCENE_UPDATE_TYPE_NONE);
    
     //SceneDescriptorSetLayout + IndirectDescriptorSetLayout + TextureIndicesDescriptorSetLayout
     SceneDescriptorPool.Create(
@@ -28,12 +31,15 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,TextureImpo
             {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5 * MAX_FRAMES_IN_FLIGHT}
         },
         10 * MAX_FRAMES_IN_FLIGHT, 
-        RendererContext.DeviceContext.logicalDevice
+        RendererContext.DeviceContext.LogicalDevice
     );
     
-    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.SceneDescriptorSetLayout.descriptorSetLayout, SceneDescriptorSets.data());
-    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.IndirectDescriptorSetLayout.descriptorSetLayout, IndirectDescriptorSets.data());
-    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.logicalDevice, MAX_FRAMES_IN_FLIGHT, SceneDescriptorPool.descriptorPool, RendererContext.TextureIndicesDescriptorSetLayout.descriptorSetLayout, TextureIndicesDescriptorSets.data());
+    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.LogicalDevice, MAX_FRAMES_IN_FLIGHT, 
+        SceneDescriptorPool.Handle, RendererContext.SceneDescriptorSetLayout.Handle, SceneDescriptorSets.data());
+    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.LogicalDevice, MAX_FRAMES_IN_FLIGHT,
+        SceneDescriptorPool.Handle, RendererContext.IndirectDescriptorSetLayout.Handle, IndirectDescriptorSets.data());
+    RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.LogicalDevice, MAX_FRAMES_IN_FLIGHT,
+        SceneDescriptorPool.Handle, RendererContext.TextureIndicesDescriptorSetLayout.Handle, TextureIndicesDescriptorSets.data());
 
     this->RendererContext = &RendererContext;
     DrawCubeMap = true;
@@ -46,13 +52,13 @@ void SCENE::Scene::Destroy()
 {
     if(IsDestroyed) return;
 
-    SceneDescriptorPool.Destroy(RendererContext->DeviceContext.logicalDevice);
+    SceneDescriptorPool.Destroy(RendererContext->DeviceContext.LogicalDevice);
     DestroyMeshBuffers();
     //DestroyLightBuffers();
-    LightManager.Destroy(RendererContext->DeviceContext.logicalDevice);
+    LightManager.Destroy(RendererContext->DeviceContext.LogicalDevice);
     for (size_t i = 0; i < StagingBuffers.size(); i++)
     {
-        StagingBuffers[i].StagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
+        StagingBuffers[i].StagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
     }
     IsDestroyed = true;
 
@@ -63,8 +69,10 @@ void SCENE::Scene::LinkModelInstance(ModelInstance& Instance)
 {
     for (uint16_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        ModelInstancesAppendList[i].push_back(&Instance);
-        ModelInstancesTransformationUpdateList[i].push_back(&Instance);
+        UpdateLists[i].ModelInstancesAppendList.push_back(&Instance);
+        UpdateLists[i].ModelInstancesTransformationUpdateList.push_back(&Instance);
+        this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | 
+            SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS | SCENE_UPDATE_TYPE_LINK_MESHES;
     }
 }
 
@@ -72,7 +80,10 @@ void SCENE::Scene::LinkModelInstance(std::vector<ModelInstance*>& Instances)
 {
     for (uint16_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        ModelInstancesAppendList[i].insert(ModelInstancesAppendList[i].end(), Instances.begin(), Instances.end());
+        UpdateLists[i].ModelInstancesAppendList.insert(UpdateLists[i].ModelInstancesAppendList.end(), Instances.begin(), Instances.end());
+        UpdateLists[i].ModelInstancesTransformationUpdateList.insert(UpdateLists[i].ModelInstancesTransformationUpdateList.end(), Instances.begin(), Instances.end());
+        this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | 
+            SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS | SCENE_UPDATE_TYPE_LINK_MESHES;
     }
 }
 
@@ -80,7 +91,7 @@ void SCENE::Scene::UnlinkModelInstance(ModelInstance& Instance)
 {
     for (uint16_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        ModelInstancesEraseList[i].push_back(&Instance);
+        UpdateLists[i].ModelInstancesEraseList.push_back(&Instance);
     }
 }
 
@@ -88,7 +99,7 @@ void SCENE::Scene::UnlinkModelInstance(std::vector<ModelInstance*>& Instances)
 {
     for (uint16_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        ModelInstancesEraseList[i].insert(ModelInstancesEraseList[i].end(), Instances.begin(), Instances.end());
+        UpdateLists[i].ModelInstancesEraseList.insert(UpdateLists[i].ModelInstancesEraseList.end(), Instances.begin(), Instances.end());
     }
 }
 
@@ -97,8 +108,9 @@ void SCENE::Scene::LinkCubemap(Cubemap& DestinationCubeMap)
     SceneCubeMap = &DestinationCubeMap;
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        RENDERER_CORE::DescriptorSetWriteImage CubemapTextureWrite(SceneCubeMap->ConvolutionSampleImageView, SceneCubeMap->ConvolutionSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, SceneDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, {}, { CubemapTextureWrite });
+        RENDERER_CORE::DescriptorSetWriteImage CubemapTextureWrite(SceneCubeMap->ConvolutionSampleImageView, SceneCubeMap->ConvolutionSampler, 
+                                                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, SceneDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.LogicalDevice, {}, { CubemapTextureWrite });
     }
 }
 
@@ -109,7 +121,7 @@ void SCENE::Scene::LinkCamera(Camera3D& Camera)
 
 void SCENE::Scene::DestroyMeshBuffers()
 {
-    MeshBuffers.Destroy(RendererContext->DeviceContext.logicalDevice);
+    MeshBuffers.Destroy(RendererContext->DeviceContext.LogicalDevice);
 }
 
 void SCENE::Scene::MarkResourceChanged(Resource* Resource, MarkChangedType Type, uint32_t FrameIndex)
@@ -121,15 +133,18 @@ void SCENE::Scene::MarkResourceChanged(Resource* Resource, MarkChangedType Type,
     {
         if (Type & MARK_CHANGED_TYPE_MESH_TRANSFORMATION)
         {
-            ModelInstancesTransformationUpdateList[i].push_back(reinterpret_cast<ModelInstance*>(Resource));
+            UpdateLists[i].ModelInstancesTransformationUpdateList.push_back(reinterpret_cast<ModelInstance*>(Resource));
+            this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS;
         }
         if (Type & MARK_CHANGED_TYPE_DYNAMIC_LIGHT)
         {
-            DynamicLightAppendUpdateList[i].push_back(reinterpret_cast<Light*>(Resource));
+            UpdateLists[i].DynamicLightAppendUpdateList.push_back(reinterpret_cast<Light*>(Resource));
+            this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS;
         }
         if (Type & MARK_CHANGED_TYPE_STATIC_LIGHT)
         {
-            StaticLightAppendUpdateList[i].push_back(reinterpret_cast<Light*>(Resource));
+            UpdateLists[i].StaticLightAppendUpdateList.push_back(reinterpret_cast<Light*>(Resource));
+            this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS;
         }
     }
 }
@@ -141,96 +156,125 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
     bool IsAllFrames = FrameIndex == std::numeric_limits<uint32_t>::max();
     if (!IsAllFrames && FrameIndex >= MAX_FRAMES_IN_FLIGHT) throw std::runtime_error("Given Frame Index is larger than the maximum frames in flight count!");
 
+    bool IsPendingOnly = (Type == SCENE_UPDATE_TYPE_ALL_PENDING);
     //Update all the frames if IsAllFrames
     for (uint32_t i = (IsAllFrames ? 0 : FrameIndex); i < (IsAllFrames ? MAX_FRAMES_IN_FLIGHT : (FrameIndex + 1)); i++)
     {
-        if ((Type & SCENE_UPDATE_TYPE_LINK_MESHES) && !ModelInstancesAppendList[i].empty())
+        auto& UpdateList = UpdateLists[i];
+        const SceneUpdateType &Bit = IsPendingOnly ? this->PendingUpdateBits[i] : Type;
+        if ((IsPendingOnly && (this->PendingUpdateBits[i] == SCENE_UPDATE_TYPE_NONE))) continue;
+        if ((Bit & SCENE_UPDATE_TYPE_LINK_MESHES) && !UpdateList.ModelInstancesAppendList.empty())
         {
             bool IsModelMatrixBufferReallocated = false;
 
             MeshBuffers.AppendModels(
-                ModelInstancesAppendList[i],
+                UpdateList.ModelInstancesAppendList,
                 i, 
                 IndirectDescriptorSets, 
-                StagingBuffers[i], 
+                StagingBuffers[i],
+                this->Options,
                 SceneCopyInfos[i]
             );
 
-            ModelInstancesAppendList[i].clear();
+            UpdateList.ModelInstancesAppendList.clear();
         }
-        if ((Type & SCENE_UPDATE_TYPE_UNLINK_MESHES) && !ModelInstancesEraseList[i].empty())
+        if ((Bit & SCENE_UPDATE_TYPE_UNLINK_MESHES) && !UpdateList.ModelInstancesEraseList.empty())
         {
             MeshEraseInfo Info{};
             Info.FrameIndex = i;
-            Info.ModelInstances = ModelInstancesEraseList[i];
+            Info.ModelInstances = UpdateList.ModelInstancesEraseList;
             Info.TargetDescriptorSets = IndirectDescriptorSets;
             MeshBuffers.EraseModels(Info);
 
-            ModelInstancesEraseList[i].clear();
+            UpdateList.ModelInstancesEraseList.clear();
         }
-        if (Type & SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS)
+        if (Bit & SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS)
         {
             UpdateMeshTransformations(i);
         }
-        if (Type & SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS)
+        if (Bit & SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS)
         {
-            MeshTextureUpdateInfo Info{};
-            Info.FrameIndex = i;
-            Info.TargetDescriptorSets = TextureIndicesDescriptorSets;
-            Info.TextureImportManagerPtr = this->TextureManager;
-            Info.CopyInfos = &SceneCopyInfos[i];
-            Info.StagingBuffer = &StagingBuffers[i];
-
-            MeshBuffers.UpdateTextureDescriptors(Info);
+            MeshBuffers.UpdateMaterials(
+                UpdateList.MaterialUpdateList,
+                this->TextureManager,
+                i, 
+                TextureIndicesDescriptorSets[i], 
+                StagingBuffers[i], 
+                SceneCopyInfos[i]
+            );
         }
-        if ((Type & SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS) || (Type & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS))
+        if ((Bit & SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS) || (Bit & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS))
         {
             std::vector<Light*> EmptyLightList;
             LightAppendOrUpdateInfo Info{};
             Info.FrameIndex = i;
-            Info.DynamicLights = (Type & SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS) ? DynamicLightAppendUpdateList[i] : EmptyLightList;
-            Info.StaticLights = (Type & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS) ? StaticLightAppendUpdateList[i] : EmptyLightList;
+            Info.DynamicLights = (Bit & SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS) ? UpdateList.DynamicLightAppendUpdateList : EmptyLightList;
+            Info.StaticLights = (Bit & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS) ? UpdateList.StaticLightAppendUpdateList : EmptyLightList;
             Info.TargetDescriptorSets = SceneDescriptorSets;
             LightManager.AppendOrUpdateLights(Info);
         }
+        this->PendingUpdateBits[i] = SCENE_UPDATE_TYPE_NONE;
     }
 }
 
 void SCENE::Scene::UpdateMeshTransformations(uint32_t CurrentFrame)
 {
-    this->MeshBuffers.UpdateMeshTransformations(ModelInstancesTransformationUpdateList[CurrentFrame], CurrentFrame);
-    ModelInstancesTransformationUpdateList[CurrentFrame].clear();
+    switch (Options.UploadMode)
+    {
+    case SCENE_DYNAMIC_UPLOAD_MODE_HOST_VISIBLE:
+    {
+        this->MeshBuffers.UpdateMeshTransformationsHostVisible(UpdateLists[CurrentFrame].ModelInstancesTransformationUpdateList, CurrentFrame);
+        break;
+    }
+    case SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL:
+    {
+        this->MeshBuffers.UpdateMeshTransformationsDeviceLocal(
+            UpdateLists[CurrentFrame].ModelInstancesTransformationUpdateList,
+            CurrentFrame,
+            SceneCopyInfos[CurrentFrame],
+            StagingBuffers[CurrentFrame]
+        );
+        break;
+    }
+    default:
+        break;
+    }
+    UpdateLists[CurrentFrame].ModelInstancesTransformationUpdateList.clear();
 }
 
 void SCENE::Scene::LinkDynamicLight(Light& DynamicLight)
 {
-    for (size_t i = 0; i < DynamicLightAppendUpdateList.size(); i++)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        DynamicLightAppendUpdateList[i].push_back(&DynamicLight);
+        UpdateLists[i].DynamicLightAppendUpdateList.push_back(&DynamicLight);
+        this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS;
     }
 }
 
 void SCENE::Scene::LinkStaticLight(Light& StaticLight)
 {
-    for (size_t i = 0; i < StaticLightAppendUpdateList.size(); i++)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        StaticLightAppendUpdateList[i].push_back(&StaticLight);
+        UpdateLists[i].StaticLightAppendUpdateList.push_back(&StaticLight);
+        this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS;
     }
 }
 
 void SCENE::Scene::LinkDynamicLight(std::vector<Light*>& DynamicLights)
 {
-    for (size_t i = 0; i < DynamicLightAppendUpdateList.size(); i++)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        DynamicLightAppendUpdateList[i].insert(DynamicLightAppendUpdateList[i].begin(), DynamicLightAppendUpdateList[i].end(), DynamicLights.begin());
+        UpdateLists[i].DynamicLightAppendUpdateList.insert(UpdateLists[i].DynamicLightAppendUpdateList.begin(), UpdateLists[i].DynamicLightAppendUpdateList.end(), DynamicLights.begin());
+        this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS;
     }
 }
 
 void SCENE::Scene::LinkStaticLight(std::vector<Light*>& StaticLights)
 {
-    for (size_t i = 0; i < StaticLightAppendUpdateList.size(); i++)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        StaticLightAppendUpdateList[i].insert(StaticLightAppendUpdateList[i].begin(), StaticLightAppendUpdateList[i].end(), StaticLights.begin());
+        UpdateLists[i].StaticLightAppendUpdateList.insert(UpdateLists[i].StaticLightAppendUpdateList.begin(), UpdateLists[i].StaticLightAppendUpdateList.end(), StaticLights.begin());
+        this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS;
     }
 }
 

@@ -6,12 +6,12 @@
 
 #include "../Renderer/RendererContext.hpp"
 
-SCENE::MeshManager::MeshManager(TextureImportManager& ImportManager, RENDERER::RendererContext& RendererContext)
+SCENE::MeshManager::MeshManager(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext)
 {
     Create(ImportManager, RendererContext);
 }
 
-void SCENE::MeshManager::Create(TextureImportManager& ImportManager, RENDERER::RendererContext& RendererContext)
+void SCENE::MeshManager::Create(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext)
 {
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -38,8 +38,8 @@ void SCENE::MeshManager::Destroy()
     }
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT * 2; i++)
     {
-        VertexBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
-        IndexBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
+        VertexBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+        IndexBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
     }
 
     ImportTargets.clear();
@@ -229,12 +229,12 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
 
     RENDERER_CORE::CopyBuffer(
         CopyInfos,
-        RendererContext->DeviceContext.logicalDevice,
+        RendererContext->DeviceContext.LogicalDevice,
         RendererContext->CommandPool.commandPool,
         RendererContext->DeviceContext.GraphicsQueue
     );
 
-    StagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
+    StagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
 
     for (auto& [handle, entry] : InsertedGeometryEntries)
         GeometryEntryList[handle] = std::move(entry);
@@ -321,12 +321,12 @@ void SCENE::MeshManager::CreateGeometryBuffers(
     }
 
     RENDERER_CORE::CreateStagingBuffer(
-        RendererContext->DeviceContext.physicalDevice,
-        RendererContext->DeviceContext.logicalDevice,
+        RendererContext->DeviceContext.PhysicalDevice,
+        RendererContext->DeviceContext.LogicalDevice,
         StagingBuffer.Allocator.GetCapacity(),
         StagingBuffer.Buffer.Buffer
     );
-    StagingBuffer.Buffer.Map(RendererContext->DeviceContext.logicalDevice, 0, StagingBuffer.Allocator.GetCapacity(), 0);
+    StagingBuffer.Buffer.Map(RendererContext->DeviceContext.LogicalDevice, 0, StagingBuffer.Allocator.GetCapacity(), 0);
 }
 
 void SCENE::MeshManager::HandleGeometryBufferReallocationCopy(
@@ -373,7 +373,7 @@ void SCENE::MeshManager::HandleGeometryBufferReallocationCopy(
 
         RENDERER_CORE::CopyBuffer(
             CopyInfos,
-            RendererContext->DeviceContext.logicalDevice,
+            RendererContext->DeviceContext.LogicalDevice,
             RendererContext->CommandPool.commandPool,
             RendererContext->DeviceContext.GraphicsQueue
         );
@@ -381,12 +381,12 @@ void SCENE::MeshManager::HandleGeometryBufferReallocationCopy(
         //Clean up the old buffers
         if (VertexBufferReallocated && VertexCapacity)
         {
-            VertexBuffers[!VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
+            VertexBuffers[!VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
             VertexBuffers[!VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator.Reset();
         }
         if (IndexBufferReallocated && IndexCapacity)
         {
-            IndexBuffers[!IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
+            IndexBuffers[!IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
             IndexBuffers[!IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator.Reset();
         }
 
@@ -403,10 +403,10 @@ void SCENE::RecreateBuffer(
     RENDERER_CORE::Buffer& Buffer
 )
 {
-    Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
+    Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
     CreateBuffer(
-        RendererContext->DeviceContext.physicalDevice,
-        RendererContext->DeviceContext.logicalDevice,
+        RendererContext->DeviceContext.PhysicalDevice,
+        RendererContext->DeviceContext.LogicalDevice,
         NewCapacity,
         Usage,
         Properties,

@@ -18,9 +18,28 @@ namespace RENDERER_CORE
 		VkFence Fence;
 		VkFenceCreateFlags FenceCreateFlag;
 	};
-
 	void AllocateFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameSyncObjects>& DestinationObjects);
 	void DestroyFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameSyncObjects>& DestinationObjects);
+
+	class Semaphore
+	{
+	public:
+		Semaphore(VkDevice LogicalDevice);
+		Semaphore() = default;
+		void Create(VkDevice LogicalDevice);
+		void Destroy(VkDevice LogicalDevice);
+		VkSemaphore Handle = VK_NULL_HANDLE;
+	};
+
+	class Fence
+	{
+	public:
+		Fence(VkDevice LogicalDevice, VkFenceCreateFlags Flags);
+		Fence() = default;
+		void Create(VkDevice LogicalDevice, VkFenceCreateFlags Flags);
+		void Destroy(VkDevice LogicalDevice);
+		VkFence Handle = VK_NULL_HANDLE;
+	};
 
 	void SubmitQueue(
 		VkQueue& Queue,

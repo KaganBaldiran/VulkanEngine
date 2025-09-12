@@ -8,17 +8,17 @@
 #include "../Common/Log.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
-void SCENE::TextureImportManager::AppendImportTask(TextureImportInfo ImportInfo)
+void SCENE::TextureManager::AppendImportTask(TextureImportInfo ImportInfo)
 {
 	this->ImportQueue.push(ImportInfo);
 }
 
-SCENE::TextureImportManager::TextureImportManager(RENDERER::RendererContext& RendererContext)
+SCENE::TextureManager::TextureManager(RENDERER::RendererContext& RendererContext)
 {
     Create(RendererContext);
 }
 
-void SCENE::TextureImportManager::Create(RENDERER::RendererContext& RendererContext)
+void SCENE::TextureManager::Create(RENDERER::RendererContext& RendererContext)
 {
     this->RendererContext = &RendererContext;
     IsDestroyed = false;
@@ -32,24 +32,24 @@ void SCENE::TextureImportManager::Create(RENDERER::RendererContext& RendererCont
     }
 }
 
-void SCENE::TextureImportManager::Destroy()
+void SCENE::TextureManager::Destroy()
 {
     if (IsDestroyed) return;
 
     for (size_t i = 0; i < TexturesDescriptors.size(); i++)
     {
-        TexturesDescriptors[i].Destroy(this->RendererContext->DeviceContext.logicalDevice);
+        TexturesDescriptors[i].Destroy(this->RendererContext->DeviceContext.LogicalDevice);
     }
     for (auto &[id,TextureDataEntry]:TextureDatas)
     {
-        TextureDataEntry.Data.Destroy(this->RendererContext->DeviceContext.logicalDevice);
+        TextureDataEntry.Data.Destroy(this->RendererContext->DeviceContext.LogicalDevice);
     }
     IsDestroyed = true;
 
     std::cout << "Texture import manager destroyed!" << std::endl;
 }
 
-void SCENE::TextureImportManager::SubmitImport()
+void SCENE::TextureManager::SubmitImport()
 {
     std::mutex Mutex;
     std::vector<uint64_t> ImagesToTransition;
@@ -74,21 +74,21 @@ void SCENE::TextureImportManager::SubmitImport()
 
             RENDERER_CORE::CommandPool TempCommandPool(
                 RendererContext->QueueFamilyIndices.GraphicsFamily.value(),
-                RendererContext->DeviceContext.logicalDevice,
+                RendererContext->DeviceContext.LogicalDevice,
                 VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
             );
 
             RENDERER_CORE::CreateTextureImageAsync(
                 NewRawImageData,
-                RendererContext->DeviceContext.physicalDevice,
-                RendererContext->DeviceContext.logicalDevice,
+                RendererContext->DeviceContext.PhysicalDevice,
+                RendererContext->DeviceContext.LogicalDevice,
                 TempCommandPool.commandPool,
                 RendererContext->DeviceContext.GraphicsQueue,
                 DestinationTextureData.Data,
                 Mutex
             );
 
-            TempCommandPool.Destroy(RendererContext->DeviceContext.logicalDevice);
+            TempCommandPool.Destroy(RendererContext->DeviceContext.LogicalDevice);
             return true;
         }) });
 
@@ -141,7 +141,7 @@ void SCENE::TextureImportManager::SubmitImport()
     std::cout << "Textures were imported in: " << DeltaTime << " seconds" << std::endl;
 }
 
-void SCENE::TextureImportManager::UpdateDescriptors(uint32_t FrameIndex)
+void SCENE::TextureManager::UpdateDescriptors(uint32_t FrameIndex)
 {
     auto& CurrentTextureDescriptorUpperBound = TextureDescriptorUpperBounds[FrameIndex];
     auto& CurrentDescriptorWriteList = this->DescriptorWriteQueue[FrameIndex];
@@ -196,14 +196,14 @@ void SCENE::TextureImportManager::UpdateDescriptors(uint32_t FrameIndex)
     }
 
     RENDERER_CORE::WriteDescriptorSets(
-        RendererContext->DeviceContext.logicalDevice,
+        RendererContext->DeviceContext.LogicalDevice,
         {},
         ImageWrites
     );
     CurrentDescriptorWriteList.clear();
 }
 
-bool SCENE::TextureImportManager::CreateMeshTextureDescriptors(
+bool SCENE::TextureManager::CreateMeshTextureDescriptors(
     uint32_t DescriptorCount,
     uint32_t FrameIndex
 )
@@ -215,7 +215,7 @@ bool SCENE::TextureImportManager::CreateMeshTextureDescriptors(
     {
         if (CurrentTextureDescriptorUpperBound)
         {
-            CurrentTexturesDescriptor.Destroy(RendererContext->DeviceContext.logicalDevice);
+            CurrentTexturesDescriptor.Destroy(RendererContext->DeviceContext.LogicalDevice);
             ShouldRewrite = true;
         }
 
@@ -225,7 +225,7 @@ bool SCENE::TextureImportManager::CreateMeshTextureDescriptors(
         CurrentTexturesDescriptor.DescriptorPool.Create(
             { {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,CurrentTextureDescriptorUpperBound} },
             1,
-            RendererContext->DeviceContext.logicalDevice,
+            RendererContext->DeviceContext.LogicalDevice,
             VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
         );
 
@@ -245,29 +245,29 @@ bool SCENE::TextureImportManager::CreateMeshTextureDescriptors(
         );
 
         CurrentTexturesDescriptor.Layout.CreateLayout(
-            RendererContext->DeviceContext.logicalDevice,
+            RendererContext->DeviceContext.LogicalDevice,
             VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
             &BindingFlags
         );
 
         RENDERER_CORE::AllocateDescriptorSets(
-            RendererContext->DeviceContext.logicalDevice,
+            RendererContext->DeviceContext.LogicalDevice,
             CurrentTexturesDescriptor.DescriptorSets.size(),
-            CurrentTexturesDescriptor.DescriptorPool.descriptorPool,
-            CurrentTexturesDescriptor.Layout.descriptorSetLayout,
+            CurrentTexturesDescriptor.DescriptorPool.Handle,
+            CurrentTexturesDescriptor.Layout.Handle,
             CurrentTexturesDescriptor.DescriptorSets.data()
         );
-        TextureDescriptorsPipelines = RendererContext->CreateTextureDescriptorPipelines(CurrentTexturesDescriptor.Layout.descriptorSetLayout, CurrentTextureDescriptorUpperBound);
+        TextureDescriptorsPipelines = RendererContext->CreateTextureDescriptorPipelines(CurrentTexturesDescriptor.Layout.Handle, CurrentTextureDescriptorUpperBound);
         return ShouldRewrite;
     }
     return ShouldRewrite;
 }
 
-void SCENE::TextureImportManager::DestroyMeshTextureDescriptors()
+void SCENE::TextureManager::DestroyMeshTextureDescriptors()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        TexturesDescriptors[i].Destroy(RendererContext->DeviceContext.logicalDevice);
+        TexturesDescriptors[i].Destroy(RendererContext->DeviceContext.LogicalDevice);
     }
 }
 

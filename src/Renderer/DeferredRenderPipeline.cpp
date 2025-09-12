@@ -6,6 +6,9 @@
 #include "../Scene/MaterialManager.hpp"
 #include "../Scene/Camera.hpp"
 
+#include "../Common/Log.hpp"
+#include "../Common/CommonDefinitions.hpp"
+
 #include <algorithm>
 
 RENDERER::DeferredRenderPipeline::DeferredRenderPipeline(RendererContext& RendererContext)
@@ -17,8 +20,8 @@ void RENDERER::DeferredRenderPipeline::Create(RendererContext& RendererContext)
 {
     this->RendererContextPtr = &RendererContext;
 
-    LogicalDevice = RendererContext.DeviceContext.logicalDevice;
-    PhysicalDevice = RendererContext.DeviceContext.physicalDevice;
+    LogicalDevice = RendererContext.DeviceContext.LogicalDevice;
+    PhysicalDevice = RendererContext.DeviceContext.PhysicalDevice;
     GraphicsQueueIndex = RendererContext.QueueFamilyIndices.GraphicsFamily.value();
 
     this->StartingTime = std::chrono::system_clock::now();
@@ -56,7 +59,8 @@ void RENDERER::DeferredRenderPipeline::CompileCustomPipeline(std::string ShadePi
     PipelineCreateInfo.ShaderModules[1] = { &FragmentShader , VK_SHADER_STAGE_FRAGMENT_BIT };
     Pipeline.Destroy(LogicalDevice);
     Pipeline.Create(PipelineCreateInfo, LogicalDevice);
-    FragmentShader.Destroy(RendererContextPtr->DeviceContext.logicalDevice);
+    FragmentShader.Destroy(RendererContextPtr->DeviceContext.LogicalDevice);
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created custom deferred pipeline (" + std::string(Label) + ")."));
 }
 
 void RENDERER::DeferredRenderPipeline::RenderScene(

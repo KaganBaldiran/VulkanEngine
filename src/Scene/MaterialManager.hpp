@@ -44,14 +44,14 @@ namespace SCENE
 		std::array<size_t,MAX_FRAMES_IN_FLIGHT> DescriptorSlots;
 	};
 
-	class TextureImportManager : COMMON::Destructible
+	class TextureManager : COMMON::Destructible
 	{
 		friend class SceneMeshManager;
 		friend class RENDERER::Renderer;
 		friend class RENDERER::DeferredRenderPipeline;
 	public:
-		TextureImportManager(RENDERER::RendererContext& RendererContext);
-		TextureImportManager() = default;
+		TextureManager(RENDERER::RendererContext& RendererContext);
+		TextureManager() = default;
 		void Create(RENDERER::RendererContext& RendererContext);
 		void Destroy() override;
 

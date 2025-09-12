@@ -44,9 +44,8 @@ int main()
         std::uniform_real_distribution<float> distRot(0.0f, glm::two_pi<float>());
 
         SCENE::Texture SomeTexture{};
-        // Shovel.Model.SetModelMeshesUpdateMode(VKSCENE::MESH_UPDATE_MODE_BALANCED);
 
-        SCENE::TextureImportManager TextureImportManager(RendererContext);
+        SCENE::TextureManager TextureImportManager(RendererContext);
         SCENE::MeshManager Importer(TextureImportManager, RendererContext);
         Importer.AppendImportTask({ &SponzaModel , "Resources\\sponza.obj" });
         Importer.AppendImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
@@ -157,7 +156,7 @@ int main()
             FRAME_INDEX_ALL_FRAMES
         );
 
-        for (size_t i = 0; i < 10; i++)
+        for (size_t i = 0; i < 100; i++)
         {
             Scene1.LinkModelInstance(Shovels[i]);
         }
@@ -289,14 +288,17 @@ int main()
 
             Scene0.FlushPendingUpdates(SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | SCENE::SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS, Renderer.CurrentFrame);
 
-            Camera.Update(
+           Camera.Update(
                 RendererContext.Window,
                 50.0f,
                 DeltaTime,
                 { RendererContext.SwapChain.Extent.width,RendererContext.SwapChain.Extent.height }, 
                 0.1f,
-                2000.0f
+                2000.0f,
+                45.0f
             );
+
+      
             Renderer.RenderFrame();
             glfwPollEvents();
 

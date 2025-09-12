@@ -12,25 +12,25 @@
 
 #include <chrono>
 
-SCENE::SceneMeshManager::SceneMeshManager(MeshManager& MeshManager, RENDERER::RendererContext &RendererContext)
+SCENE::SceneMeshManager::SceneMeshManager(MeshManager& MeshManager, RENDERER::RendererContext &RendererContext,size_t BufferAllocationStep)
 {
-    Create(MeshManager,RendererContext);
+    Create(MeshManager,RendererContext, BufferAllocationStep);
 }
 
-void SCENE::SceneMeshManager::Create(MeshManager& MeshManager, RENDERER::RendererContext& RendererContext)
+void SCENE::SceneMeshManager::Create(MeshManager& MeshManager, RENDERER::RendererContext& RendererContext, size_t BufferAllocationStep)
 {
     this->RendererContext = &RendererContext;
     this->MeshManagerPtr = &MeshManager;
-    SceneBuffers.Create();
+    SceneBuffers.Create(BufferAllocationStep);
 }
 
 void SCENE::SceneMeshManager::Destroy(VkDevice& LogicalDevice)
 {
-    SceneBuffers.Destroy(RendererContext->DeviceContext.logicalDevice);
+    SceneBuffers.Destroy(RendererContext->DeviceContext.LogicalDevice);
 }
 
-//Update mesh transformation buffers based on the update list
-void SCENE::SceneMeshManager::UpdateMeshTransformations(std::vector<ModelInstance*>& UpdateList, uint32_t CurrentFrame)
+//Model matrix buffer update function for host visible case
+void SCENE::SceneMeshManager::UpdateMeshTransformationsHostVisible(std::vector<ModelInstance*>& UpdateList, uint32_t CurrentFrame)
 {
     if (UpdateList.empty()) return;
 
@@ -60,13 +60,101 @@ void SCENE::SceneMeshManager::UpdateMeshTransformations(std::vector<ModelInstanc
         MemoryRanges.push_back(std::move(MemoryRange));
     }
 
-    vkFlushMappedMemoryRanges(RendererContext->DeviceContext.logicalDevice, static_cast<uint32_t>(MemoryRanges.size()), MemoryRanges.data());
+    vkFlushMappedMemoryRanges(RendererContext->DeviceContext.LogicalDevice, static_cast<uint32_t>(MemoryRanges.size()), MemoryRanges.data());
+}
+
+//Model matrix buffer update function for device local case
+void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
+    std::vector<ModelInstance*>& UpdateList, 
+    uint32_t CurrentFrame,
+    std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE)>& CurrentCopyInfos,
+    SCENE::PersistentStagingBuffer& StagingBuffer
+)
+{
+    auto& CurrentFrameEntries = Entries[CurrentFrame];
+    if (UpdateList.empty() && !CurrentFrameEntries.TransformationMatrixReallocated) return;
+
+    auto& ModelMatrixBuffer = SceneBuffers.ModelMatricesBuffers[CurrentFrame].Buffer;
+    auto& CurrentFrameInstanceEntries = CurrentFrameEntries.InstanceEntries;
+
+    size_t SizeOfMat4 = sizeof(glm::mat4);
+
+    size_t MatrixBufferSize = CurrentFrameEntries.TransformationMatrixReallocated ? (CurrentFrameInstanceEntries.size() * SizeOfMat4) : (UpdateList.size() * SizeOfMat4);
+    StagingBuffer.AllocateSceneStagingBuffer(CurrentCopyInfos, MatrixBufferSize, RendererContext);
+    uint8_t* Destination = reinterpret_cast<uint8_t*>(StagingBuffer.StagingBuffer.Buffer.MappedMemory);
+
+    bool IsThereCopyInfo = !CurrentCopyInfos[TRANSFORMATION_MATRIX_COPY].CopyRegions.empty();
+    if (CurrentFrameEntries.TransformationMatrixReallocated)
+    {
+        for (auto& ModelInstance : UpdateList)
+        {
+            auto& ModelInstanceEntryIterator = CurrentFrameInstanceEntries.find(ModelInstance->ResourceID);
+            if (ModelInstanceEntryIterator == CurrentFrameInstanceEntries.end()) continue;
+            ModelInstanceEntryIterator->second.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+        }
+
+        CurrentCopyInfos[TRANSFORMATION_MATRIX_COPY].CopyRegions.clear();
+        CurrentCopyInfos[TRANSFORMATION_MATRIX_COPY].CopyRegions.reserve(CurrentFrameInstanceEntries.size());
+        for (auto& [Handle,InstanceEntry] : CurrentFrameInstanceEntries)
+        {
+            auto& AllocatedMemoryRegion = InstanceEntry.TransformationMatrixMemoryRegion;
+            auto& StagingAllocatedMemoryRegion = InstanceEntry.StagingTransformationMatrixMemoryRegion;
+            if (!StagingAllocatedMemoryRegion.Size || !IsThereCopyInfo)
+            {
+                InstanceEntry.StagingTransformationMatrixMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMat4);
+            }
+
+            glm::mat4 ModelMatrix = InstanceEntry.ModelMatrix;
+            memcpy(Destination + StagingAllocatedMemoryRegion.Offset,
+                &ModelMatrix,
+                StagingAllocatedMemoryRegion.Size
+            );
+
+            VkBufferCopy CopyRegion{};
+            CopyRegion.dstOffset = AllocatedMemoryRegion.Offset;
+            CopyRegion.size = StagingAllocatedMemoryRegion.Size;
+            CopyRegion.srcOffset = StagingAllocatedMemoryRegion.Offset;
+            CurrentCopyInfos[TRANSFORMATION_MATRIX_COPY].CopyRegions.push_back(CopyRegion);
+        }
+        CurrentFrameEntries.TransformationMatrixReallocated = false;
+
+    }
+    else
+    {
+        CurrentCopyInfos[TRANSFORMATION_MATRIX_COPY].CopyRegions.reserve(UpdateList.size());
+        for (auto& ModelInstance : UpdateList)
+        {
+            auto& ModelInstanceEntryIterator = CurrentFrameInstanceEntries.find(ModelInstance->ResourceID);
+            if (ModelInstanceEntryIterator == CurrentFrameInstanceEntries.end()) continue;
+
+            auto& AllocatedMemoryRegion = ModelInstanceEntryIterator->second.TransformationMatrixMemoryRegion;
+            auto& StagingAllocatedMemoryRegion = ModelInstanceEntryIterator->second.StagingTransformationMatrixMemoryRegion;
+            if (!StagingAllocatedMemoryRegion.Size || !IsThereCopyInfo)
+            {
+                StagingAllocatedMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMat4);
+            }
+
+            glm::mat4 ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+            memcpy(Destination + StagingAllocatedMemoryRegion.Offset,
+                &ModelMatrix,
+                StagingAllocatedMemoryRegion.Size
+            );
+
+            VkBufferCopy CopyRegion{};
+            CopyRegion.dstOffset = AllocatedMemoryRegion.Offset;
+            CopyRegion.size = StagingAllocatedMemoryRegion.Size;
+            CopyRegion.srcOffset = StagingAllocatedMemoryRegion.Offset;
+            CurrentCopyInfos[TRANSFORMATION_MATRIX_COPY].CopyRegions.push_back(CopyRegion);
+
+            ModelInstanceEntryIterator->second.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+        }
+    }
 }
 
 //Processes the input model instances and produces mesh and instance entries  
 void ProcessAppendList(
     std::vector<SCENE::ModelInstance*> &AppendList,
-    SCENE::EntryManager &CurrentFrameEntries,
+    SCENE::INTERNAL::EntryManager &CurrentFrameEntries,
     std::unordered_map<size_t, SCENE::GeometryEntry> &CurrentFrameGeometryEntries,
     RENDERER_CORE::VirtualArenaAllocator &ModelMatricesBufferAllocator,
     RENDERER_CORE::VirtualArenaAllocator &TexturesIndexBufferAllocator,
@@ -79,7 +167,8 @@ void ProcessAppendList(
     size_t SizeOfVertex = sizeof(SCENE::Vertex3D),
         SizeOfUint32 = sizeof(uint32_t),
         SizeOfMat4 = sizeof(glm::mat4),
-        SizeOfDrawMetaData = sizeof(SCENE::DrawMetadata),
+        SizeOfDrawMetaData = sizeof(SCENE::INTERNAL::DrawMetadata),
+        SizeOfMaterialData = sizeof(SCENE::INTERNAL::MaterialData),
         SizeOfIndirectCommand = sizeof(SCENE::ExtendedIndirectCommand);
 
     CurrentFrameEntries.MeshEntries.Reserve(CurrentFrameEntries.MeshEntries.Size() + (AppendList.size() * 5));
@@ -99,30 +188,13 @@ void ProcessAppendList(
         auto InstanceIterator = CurrentFrameEntries.InstanceEntries.find(ModelInstance->ResourceID);
         if (InstanceIterator != CurrentFrameEntries.InstanceEntries.end())
         {
-            for (size_t i = 0; i < ModelInstance->Source->Meshes.size(); i++)
-            {
-                size_t MeshGeometryID = ModelInstance->Source->Meshes[i].GeometryID;
-                if (ModelInstance->Materials.size() > i)
-                {
-                    InstanceIterator->second.Materials[MeshGeometryID].Material = ModelInstance->Materials[i];
-                }
-                else
-                {
-                    auto& GeometryEntryIterator = CurrentFrameGeometryEntries.find(ModelInstance->Source->Meshes[i].GeometryID);
-                    if (GeometryEntryIterator == CurrentFrameGeometryEntries.end())
-                    {
-                        throw std::runtime_error("Attempt on linking non-existent mesh instance!");
-                    }
-                    InstanceIterator->second.Materials[MeshGeometryID].Material = GeometryEntryIterator->second.MeshMaterial;
-                }
-            }
+            InstanceIterator->second.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
             continue;
         }
-
         //Couldn't find an existing instance entry with the provided ID so a new entry is introduced 
-        SCENE::InstanceEntry NewInstanceEntry{};
+        SCENE::INTERNAL::InstanceEntry NewInstanceEntry{};
         NewInstanceEntry.TransformationMatrixMemoryRegion = ModelMatricesBufferAllocator.Suballocate(SizeOfMat4);
-      
+        NewInstanceEntry.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
         NewInstanceEntry.Materials.reserve(ModelInstance->Source->Meshes.size());
         //Process and allocate the individual meshes 
         for (uint32_t i = 0; i < ModelInstance->Source->Meshes.size(); i++)
@@ -135,18 +207,10 @@ void ProcessAppendList(
                 throw std::runtime_error("Attempt on linking non-existent mesh instance!");
             }
 
-            SCENE::MaterialMetaData NewMaterialMetaData{};
-            if (ModelInstance->Materials.size() > i)
-            {
-                NewMaterialMetaData.Material = ModelInstance->Materials[i];
-            }
-            else
-            {
-                NewMaterialMetaData.Material = GeometryEntryIterator->second.MeshMaterial;
-            }
-
+            //Select the correct material
+            SCENE::INTERNAL::MaterialMetaData NewMaterialMetaData{};
             NewMaterialMetaData.TextureIndexMemoryRegion =
-                TexturesIndexBufferAllocator.Suballocate(static_cast<uint32_t>(SCENE::MATERIAL_TEXTURE_TYPE_META_DATA_SIZE) * sizeof(int));
+                TexturesIndexBufferAllocator.Suballocate(SizeOfMaterialData);
             NewInstanceEntry.Materials[Mesh.GeometryID] = std::move(NewMaterialMetaData);
 
             auto MeshEntryIterator = CurrentFrameEntries.MeshEntries.Find(Mesh.GeometryID);
@@ -160,7 +224,7 @@ void ProcessAppendList(
             }
             
             //Fill data in the new mesh entry
-            SCENE::MeshEntry NewMeshEntry{};
+            SCENE::INTERNAL::MeshEntry NewMeshEntry{};
             NewMeshEntry.BoundingBox = GeometryEntryIterator->second.BoundingBox;
             NewMeshEntry.ReferenceCount++;
             NewMeshEntry.IsChanged = true;
@@ -193,6 +257,7 @@ void AllocateSceneBuffers(
     RENDERER_CORE::BufferAllocator &IndirectBuffer,
     RENDERER_CORE::BufferAllocator &DrawMetaDataBuffer,
     RENDERER_CORE::PersistentBufferAllocator &ModelMatricesBuffer,
+    SCENE::SceneOptions SceneOptions,
     VkDescriptorSet TargetDescriptorSet,
     bool IsIndirectBufferReallocated,
     bool IsModelMatrixesBufferReallocated,
@@ -228,32 +293,60 @@ void AllocateSceneBuffers(
             CurrentCopyInfos[SCENE::INDIRECT_COPY].DestinationBuffer = IndirectBuffer.Buffer.BufferObject;
         }
         //Case where the draw model matrix buffer needs to be reallocated or allocated
+        //TO-DO could be moved into the actual matrix update function however effects are not quite certain. 
+        //It might undermine the performance.
         if (IsModelMatrixesBufferReallocated)
         {
-            //In case there is existing data we gotta restore them back to the new buffer
-            uint8_t* TempSpace = nullptr;
-            if (InitialModelMatrixBufferCapacity)
+            //Allocate discrete types of memory depending on the given upload mode
+            switch (SceneOptions.UploadMode)
             {
-                TempSpace = new uint8_t[InitialModelMatrixBufferCapacity];
-                memcpy(TempSpace,ModelMatricesBuffer.Buffer.MappedMemory, InitialModelMatrixBufferCapacity);
+            //Host visible buffer mode, in case the buffer is already occupied with data. 
+            //Copy them back into the new buffer using a heap allocated temporary buffer
+            case SCENE::SCENE_DYNAMIC_UPLOAD_MODE_HOST_VISIBLE:
+            {
+                //In case there is existing data we gotta restore them back to the new buffer
+                uint8_t* TempSpace = nullptr;
+                if (InitialModelMatrixBufferCapacity)
+                {
+                    TempSpace = new uint8_t[InitialModelMatrixBufferCapacity];
+                    memcpy(TempSpace, ModelMatricesBuffer.Buffer.MappedMemory, InitialModelMatrixBufferCapacity);
+                }
+
+                //Recreate the buffer
+                SCENE::RecreateBuffer(
+                    RendererContext,
+                    ModelMatricesBuffer.Allocator.GetCapacity(),
+                    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                    ModelMatricesBuffer.Buffer.Buffer
+                );
+                //Map it since it's a persistent buffer
+                ModelMatricesBuffer.Buffer.Map(RendererContext->DeviceContext.LogicalDevice, 0, ModelMatricesBuffer.Allocator.GetCapacity(), 0);
+
+                //Copy the existing data into the new buffer from temp buffer
+                if (TempSpace)
+                {
+                    memcpy(ModelMatricesBuffer.Buffer.MappedMemory, TempSpace, InitialModelMatrixBufferCapacity);
+                    delete[] TempSpace;
+                }
+                break;
             }
-
-            //Recreate the buffer
-            SCENE::RecreateBuffer(
-                RendererContext,
-                ModelMatricesBuffer.Allocator.GetCapacity(),
-                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                ModelMatricesBuffer.Buffer.Buffer
-            );
-            //Map it since it's a persistent buffer
-            ModelMatricesBuffer.Buffer.Map(RendererContext->DeviceContext.logicalDevice, 0, ModelMatricesBuffer.Allocator.GetCapacity(), 0);
-
-            //Copy the existing data into the new buffer from temp buffer
-            if (TempSpace)
+            //Device local case
+            //Instead of copying the previous data here, we flag the recreation to the actual matrix update function
+            case SCENE::SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL:
             {
-                memcpy(ModelMatricesBuffer.Buffer.MappedMemory,TempSpace, InitialModelMatrixBufferCapacity);
-                delete[] TempSpace;
+                SCENE::RecreateBuffer(
+                    RendererContext,
+                    ModelMatricesBuffer.Allocator.GetCapacity(),
+                    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                    ModelMatricesBuffer.Buffer.Buffer
+                );
+                CurrentCopyInfos[SCENE::TRANSFORMATION_MATRIX_COPY].DestinationBuffer = ModelMatricesBuffer.Buffer.Buffer.BufferObject;
+                break;
+            }
+            default:
+                break;
             }
             //Update the descriptor
             RENDERER_CORE::DescriptorSetWriteBuffer ModelMatrixBufferWrite(
@@ -287,13 +380,13 @@ void AllocateSceneBuffers(
             WriteInfos.push_back(std::move(DrawMetaDataBufferWrite));
             CurrentCopyInfos[SCENE::DRAWMETA_COPY].DestinationBuffer = DrawMetaDataBuffer.Buffer.BufferObject;
         }
-        RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.logicalDevice, WriteInfos, {});
+        RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.LogicalDevice, WriteInfos, {});
     }
 }
 
 void CreateAppendCopyInfos(
     std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE)>& CurrentCopyInfos,
-    SCENE::EntryManager &CurrentFrameEntries,
+    SCENE::INTERNAL::EntryManager &CurrentFrameEntries,
     RENDERER_CORE::BufferAllocator& IndirectBuffer,
     RENDERER_CORE::BufferAllocator& DrawMetaDataBuffer,
     RENDERER_CORE::PersistentBufferAllocator& StagingBuffer,
@@ -305,7 +398,7 @@ void CreateAppendCopyInfos(
 
     size_t SizeOfUint32 = sizeof(uint32_t),
         SizeOfMat4 = sizeof(glm::mat4),
-        SizeOfDrawMetaData = sizeof(SCENE::DrawMetadata),
+        SizeOfDrawMetaData = sizeof(SCENE::INTERNAL::DrawMetadata),
         SizeOfIndirectCommand = sizeof(SCENE::ExtendedIndirectCommand);
 
     uint8_t* StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.Buffer.MappedMemory);
@@ -328,15 +421,15 @@ void CreateAppendCopyInfos(
         //Redistribute draw meta datas
         for (size_t i = 0; i < MeshEntry.InstanceLinks.size(); i++)
         {
-            SCENE::InstanceMeshLink& InstanceLink = MeshEntry.InstanceLinks[i];
+            SCENE::INTERNAL::InstanceMeshLink& InstanceLink = MeshEntry.InstanceLinks[i];
 
             auto& InstanceIterator = CurrentFrameEntries.InstanceEntries.find(InstanceLink.ResourceID);
             if (InstanceIterator == CurrentFrameEntries.InstanceEntries.end()) continue;
 
             auto& MaterialDataIterator = InstanceIterator->second.Materials.find(Handle);
 
-            SCENE::DrawMetadata NewDrawMetaData{};
-            NewDrawMetaData.MeshID = MaterialDataIterator->second.TextureIndexMemoryRegion.Offset / (static_cast<uint32_t>(SCENE::MATERIAL_TEXTURE_TYPE_META_DATA_SIZE) * sizeof(int));
+            SCENE::INTERNAL::DrawMetadata NewDrawMetaData{};
+            NewDrawMetaData.MeshID = MaterialDataIterator->second.TextureIndexMemoryRegion.Offset / sizeof(SCENE::INTERNAL::MaterialData);
             NewDrawMetaData.ModelMatrixIndex = InstanceIterator->second.TransformationMatrixMemoryRegion.Offset / SizeOfMat4;
 
             InstanceLink.DrawDataMemoryRegion = DrawMetaDataBuffer.Allocator.Suballocate(SizeOfDrawMetaData);
@@ -396,6 +489,7 @@ void SCENE::SceneMeshManager::AppendModels(
     const uint32_t& FrameIndex,
     std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>& TargetDescriptorSets,
     PersistentStagingBuffer& StagingBuffer,
+    SCENE::SceneOptions SceneOptions,
     std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 )
 {
@@ -406,30 +500,23 @@ void SCENE::SceneMeshManager::AppendModels(
 
     auto& IndirectBuffer = SceneBuffers.IndirectBuffers[FrameIndex];
     auto& TexturesIndexBuffer = SceneBuffers.TexturesIndexBuffers[FrameIndex];
-
-    auto& CullBuffers = SceneBuffers.CullBuffers;
-    auto& CulledMetaDataBuffer = CullBuffers.CulledDrawMetaDataBuffer[FrameIndex];
-    auto& CulledIndirectBuffer = CullBuffers.CulledIndirectBuffers[FrameIndex];
-    auto& MeshVisibilityCountBuffer = CullBuffers.MeshVisibilityCountBuffers[FrameIndex];
-
     auto& DrawMetaDataBuffer = SceneBuffers.DrawMetaDataBuffer[FrameIndex];
     auto& ModelMatricesBuffer = SceneBuffers.ModelMatricesBuffers[FrameIndex];
 
     auto& IndirectBufferAllocator = IndirectBuffer.Allocator;
     auto& ModelMatricesBufferAllocator = ModelMatricesBuffer.Allocator;
     auto& DrawMetaDataBufferAllocator = DrawMetaDataBuffer.Allocator;
-    auto& MeshVisibilityCountBufferAllocator = MeshVisibilityCountBuffer.Allocator;
     auto& TexturesIndexBufferAllocator = TexturesIndexBuffer.Allocator;
 
     auto& TexturesIndexBufferReallocated = SceneBuffers.TexturesIndexBuffersReallocated[FrameIndex];
 
     size_t IndirectBufferSize = 0;
-    size_t SizeOfDrawMetaData = sizeof(DrawMetadata);
+    size_t SizeOfDrawMetaData = sizeof(INTERNAL::DrawMetadata);
 
     //Initial buffer capacities 
     size_t  IndirectBufferCapacity = IndirectBufferAllocator.GetCapacity(),
             ModelMatricesBufferCapacity = ModelMatricesBufferAllocator.GetCapacity(),
-            MeshVisibilityCountBufferCapacity = MeshVisibilityCountBufferAllocator.GetCapacity(),
+            //MeshVisibilityCountBufferCapacity = MeshVisibilityCountBufferAllocator.GetCapacity(),
             TexturesIndexBufferCapacity = TexturesIndexBufferAllocator.GetCapacity(),
             DrawMetaDataBufferCapacity = DrawMetaDataBufferAllocator.GetCapacity();
 
@@ -458,10 +545,12 @@ void SCENE::SceneMeshManager::AppendModels(
     //Check whether the allocator allocated extra virtual memory
     bool IsIndirectBufferReallocated = IndirectBufferCapacity < IndirectBufferAllocator.GetCapacity();
     bool IsModelMatrixesBufferReallocated = ModelMatricesBufferCapacity < ModelMatricesBufferAllocator.GetCapacity();
-    bool IsMeshVisibilityCountBufferReallocated = MeshVisibilityCountBufferCapacity < MeshVisibilityCountBufferAllocator.GetCapacity();
+    //bool IsMeshVisibilityCountBufferReallocated = MeshVisibilityCountBufferCapacity < MeshVisibilityCountBufferAllocator.GetCapacity();
     bool IsDrawMetaDataBufferReallocated = DrawMetaDataBufferCapacity < DrawMetaDataBufferAllocator.GetCapacity();
 
+    //Flag the other update functions 
     TexturesIndexBufferReallocated = TexturesIndexBufferCapacity < TexturesIndexBufferAllocator.GetCapacity();
+    CurrentFrameEntries.TransformationMatrixReallocated = IsModelMatrixesBufferReallocated;
 
     //No more work to do. Return
     if (!InsertedMeshInstanceCount && !IsIndirectBufferReallocated && 
@@ -478,6 +567,7 @@ void SCENE::SceneMeshManager::AppendModels(
         IndirectBuffer,
         DrawMetaDataBuffer, 
         ModelMatricesBuffer,
+        SceneOptions,
         TargetDescriptorSets[FrameIndex],
         IsIndirectBufferReallocated, 
         IsModelMatrixesBufferReallocated, 
@@ -485,10 +575,12 @@ void SCENE::SceneMeshManager::AppendModels(
         IsDrawMetaDataBufferReallocated, 
         TexturesIndexBufferReallocated
     );
-         
+      
+    //Calculate the needed staging buffer size
     size_t IndirectStagingBufferSize = IsIndirectBufferReallocated ? IndirectBufferAllocator.GetCapacity() : IndirectBufferSize;
     size_t DrawMetaDataBufferSize = IsThereDrawMetaCopyInfos ? (InsertedMeshInstanceCount * SizeOfDrawMetaData) : DrawMetaDataBufferAllocator.GetCapacity();
     size_t TotalStagingBufferSize = IndirectStagingBufferSize + DrawMetaDataBufferSize;
+
     //Nothing else to do. Return
     if (!TotalStagingBufferSize)
     {
@@ -776,25 +868,36 @@ void SCENE::SceneMeshManager::EraseModels(MeshEraseInfo Info)
 }
 
 //Updating texture index buffer which links materials with the actual texture descriptor slots 
-void SCENE::SceneMeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Info)
+void SCENE::SceneMeshManager::UpdateMaterials(
+    std::vector<SCENE::ModelInstance*> &SceneMaterialUpdateList,
+    TextureManager* TextureImportManagerPtr,
+    uint32_t FrameIndex,
+    VkDescriptorSet& TargetDescriptorSet,
+    PersistentStagingBuffer& StagingBuffer,
+    std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+)
 {
-    auto FrameIndex = Info.FrameIndex;
-    auto& TextureImportManager = *Info.TextureImportManagerPtr;
-    auto& DescriptorSets = Info.TargetDescriptorSets;
-
-    auto& CurrentDescriptorSet = DescriptorSets[FrameIndex];
-
-    TextureImportManager.UpdateDescriptors(FrameIndex);
+    TextureImportManagerPtr->UpdateDescriptors(FrameIndex);
     auto& CurrentFrameEntries = Entries[FrameIndex];
+    if (SceneMaterialUpdateList.empty() && CurrentFrameEntries.MaterialUpdateList.empty()) return;
 
-    if (CurrentFrameEntries.MaterialUpdateList.empty()) return;
+    //Combine internal and external update lists
+    std::vector<ModelInstance*> InputModelInstances;
+    InputModelInstances.insert(InputModelInstances.begin(), SceneMaterialUpdateList.begin(), SceneMaterialUpdateList.end());
+    InputModelInstances.insert(InputModelInstances.begin(), CurrentFrameEntries.MaterialUpdateList.begin(), CurrentFrameEntries.MaterialUpdateList.end());
+    if (!SceneMaterialUpdateList.empty() && CurrentFrameEntries.MaterialUpdateList.empty())
+    {
+        std::sort(InputModelInstances.begin(), InputModelInstances.end());
+        std::vector<ModelInstance*>::iterator UniqueIterator = std::unique(InputModelInstances.begin(), InputModelInstances.end());
+        InputModelInstances.resize(std::distance(InputModelInstances.begin(), UniqueIterator));
+    }
+
+    auto& CurrentFrameGeometryEntries = this->MeshManagerPtr->GeometryEntries[FrameIndex];
 
     auto& CurrentTextureIndexBuffer = SceneBuffers.TexturesIndexBuffers[FrameIndex];
     auto& TextureIndexBufferAllocator = CurrentTextureIndexBuffer.Allocator;
     auto Capacity = TextureIndexBufferAllocator.GetCapacity() - TextureIndexBufferAllocator.GetTotalFreeSpace();
     auto& TexturesIndexBufferReallocated = SceneBuffers.TexturesIndexBuffersReallocated[FrameIndex];
-    auto& StagingBuffer = *Info.StagingBuffer;
-    auto& CopyInfos = *Info.CopyInfos;
 
     bool IsThereTextureIndexCopyInfos = !CopyInfos[TEXTUREINDEX_COPY].CopyRegions.empty();
 
@@ -802,25 +905,46 @@ void SCENE::SceneMeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Inf
     uint32_t Inserted = 0;
     size_t SizeOfTextureIndices = MaterialTextureTypeCount * sizeof(int);
     
+    //Handle material update lists and extract materials
     RENDERER_CORE::BufferCopyInfo CopyInfo{};
-    for (auto& ModelInstancePtr : CurrentFrameEntries.MaterialUpdateList)
+    for (auto& ModelInstancePtr : InputModelInstances)
     {
         auto& InstanceEntryIterator = CurrentFrameEntries.InstanceEntries.find(ModelInstancePtr->ResourceID);
-        for (auto& [MeshGeometryHandle,MetaData] : InstanceEntryIterator->second.Materials)
+        if (InstanceEntryIterator == CurrentFrameEntries.InstanceEntries.end()) continue;
+
+        for (size_t i = 0; i < ModelInstancePtr->Source->Meshes.size(); i++)
         {
-            //std::cout << "MetaData.TextureIndexMemoryRegion.Offset: " << MetaData.TextureIndexMemoryRegion.Offset << std::endl;
+            //Pick the right material
+            Material* MaterialPtr = nullptr;
+            size_t MeshGeometryID = ModelInstancePtr->Source->Meshes[i].GeometryID;
+            if (ModelInstancePtr->Materials.size() > i)
+            {
+                MaterialPtr = &ModelInstancePtr->Materials[i];
+            }
+            else
+            {
+                auto& GeometryEntryIterator = CurrentFrameGeometryEntries.find(MeshGeometryID);
+                if (GeometryEntryIterator == CurrentFrameGeometryEntries.end())
+                {
+                    throw std::runtime_error("Attempt on linking non-existent mesh instance!");
+                }
+                MaterialPtr = &GeometryEntryIterator->second.MeshMaterial;
+            }
+
+            //Extract the material data
+            auto& MetaData = InstanceEntryIterator->second.Materials[MeshGeometryID];
             for (uint32_t i = 0; i < MaterialTextureTypeCount; i++)
             {
-                auto TextureIndex = MetaData.Material.GetTexture(static_cast<MaterialTextureType>(i));
+                auto TextureIndex = MaterialPtr->GetTexture(static_cast<MaterialTextureType>(i));
                 if (TextureIndex)
                 {
-                    auto Iterator = TextureImportManager.TextureDatas.find(TextureIndex);
-                    if (Iterator == TextureImportManager.TextureDatas.end())
+                    auto Iterator = TextureImportManagerPtr->TextureDatas.find(TextureIndex);
+                    if (Iterator == TextureImportManagerPtr->TextureDatas.end())
                     {
                         MetaData.TextureIndexes[i] = -1;
                         continue;
                     }
-                    auto& TextureDataEntry = TextureImportManager.TextureDatas[TextureIndex];
+                    auto& TextureDataEntry = TextureImportManagerPtr->TextureDatas[TextureIndex];
 
                     MetaData.TextureIndexes[i] = TextureDataEntry.DescriptorSlots[FrameIndex];
                 }
@@ -828,13 +952,14 @@ void SCENE::SceneMeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Inf
             }
         }
     }
-     
+    
+    //In case the material buffer reallocated provide buffer growth
     if (TexturesIndexBufferReallocated)
     {
-        CurrentTextureIndexBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
+        CurrentTextureIndexBuffer.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
         RENDERER_CORE::CreateBuffer(
-            RendererContext->DeviceContext.physicalDevice,
-            RendererContext->DeviceContext.logicalDevice,
+            RendererContext->DeviceContext.PhysicalDevice,
+            RendererContext->DeviceContext.LogicalDevice,
             TextureIndexBufferAllocator.GetCapacity(),
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -845,12 +970,12 @@ void SCENE::SceneMeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Inf
             CurrentTextureIndexBuffer.Buffer,
             TextureIndexBufferAllocator.GetCapacity(),
             0,
-            CurrentDescriptorSet,
+            TargetDescriptorSet,
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
         );
 
         RENDERER_CORE::WriteDescriptorSets(
-            RendererContext->DeviceContext.logicalDevice,
+            RendererContext->DeviceContext.LogicalDevice,
             { DrawMetaDataBufferWrite },
             {}
         );
@@ -865,6 +990,8 @@ void SCENE::SceneMeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Inf
     uint8_t* StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.StagingBuffer.Buffer.MappedMemory);
     if (!StagingBufferPtr) return;
 
+    //Create the actual copy infos
+    //In case the buffer was reallocated, all existing data must be copied inside again.
     CopyInfos[TEXTUREINDEX_COPY].CopyRegions.reserve(CurrentFrameEntries.InstanceEntries.size() * 10);
     if (TexturesIndexBufferReallocated)
     {
@@ -873,7 +1000,6 @@ void SCENE::SceneMeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Inf
         {
             for (auto& [MeshGeometryHandle, MetaData] : InstanceEntry.Materials)
             {
-                //auto Region = StagingBufferAllocator.Suballocate(SizeOfTextureIndices);
                 if (!IsThereTextureIndexCopyInfos || !MetaData.StagingTextureIndexMemoryRegion.Size)
                 {
                     MetaData.StagingTextureIndexMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfTextureIndices);
@@ -890,12 +1016,12 @@ void SCENE::SceneMeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Inf
     }
     else
     {
-        for (auto& ModelInstancePtr : CurrentFrameEntries.MaterialUpdateList)
+        //Copy only the related ones.
+        for (auto& ModelInstancePtr : InputModelInstances)
         {
             auto& InstanceEntryIterator = CurrentFrameEntries.InstanceEntries.find(ModelInstancePtr->ResourceID);
             for (auto& [MeshGeometryHandle, MetaData] : InstanceEntryIterator->second.Materials)
             {
-                //auto Region = StagingBufferAllocator.Suballocate(SizeOfTextureIndices);
                 if (!IsThereTextureIndexCopyInfos || !MetaData.StagingTextureIndexMemoryRegion.Size)
                 {
                     MetaData.StagingTextureIndexMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfTextureIndices);
@@ -911,6 +1037,7 @@ void SCENE::SceneMeshManager::UpdateTextureDescriptors(MeshTextureUpdateInfo Inf
         }
     }
    
+    //Clean slate.
     TexturesIndexBufferReallocated = false;
     CurrentFrameEntries.MaterialUpdateList.clear();
 }

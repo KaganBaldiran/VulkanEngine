@@ -29,8 +29,8 @@ void RENDERER::Renderer::Create(RendererContext& DestinationRendererContext, boo
     this->EnablePhysicsDebugDrawing = EnablePhysicsDebugDrawing;
     this->rendererContext = &DestinationRendererContext;
 
-    LogicalDevice = DestinationRendererContext.DeviceContext.logicalDevice;
-    PhysicalDevice = DestinationRendererContext.DeviceContext.physicalDevice;
+    LogicalDevice = DestinationRendererContext.DeviceContext.LogicalDevice;
+    PhysicalDevice = DestinationRendererContext.DeviceContext.PhysicalDevice;
 
     GraphicsQueueIndex = DestinationRendererContext.QueueFamilyIndices.GraphicsFamily.value();
 
@@ -75,7 +75,7 @@ void RENDERER::Renderer::Create(RendererContext& DestinationRendererContext, boo
         MAX_FRAMES_IN_FLIGHT, LogicalDevice
     );
 
-    RENDERER_CORE::AllocateDescriptorSets(LogicalDevice, MAX_FRAMES_IN_FLIGHT, DescriptorPool.descriptorPool, DestinationRendererContext.LightingPassLayout.descriptorSetLayout, LightingPassDescriptorSets.data());
+    RENDERER_CORE::AllocateDescriptorSets(LogicalDevice, MAX_FRAMES_IN_FLIGHT, DescriptorPool.Handle, DestinationRendererContext.LightingPassLayout.Handle, LightingPassDescriptorSets.data());
 
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -176,7 +176,13 @@ constexpr MemoryBufferBarrierInfo SceneBuffersBarrierInfos[] = {
         VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
         VK_ACCESS_2_TRANSFER_WRITE_BIT,
         VK_ACCESS_2_SHADER_READ_BIT
-    }
+    },
+    {
+        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+        VK_ACCESS_2_TRANSFER_WRITE_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT
+    },
 };
 
 void RENDERER::Renderer::RenderFrame()
@@ -426,7 +432,7 @@ void RENDERER::Renderer::InitializePipelines()
     PipelineCreateInfo.EnableDepthTesting = VK_FALSE;
     PipelineCreateInfo.EnableDepthWriting = VK_FALSE;
     PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    PipelineCreateInfo.DescriptorSetLayouts = { rendererContext->LightingPassLayout.descriptorSetLayout,rendererContext->SceneDescriptorSetLayout.descriptorSetLayout };
+    PipelineCreateInfo.DescriptorSetLayouts = { rendererContext->LightingPassLayout.Handle,rendererContext->SceneDescriptorSetLayout.Handle };
     PipelineCreateInfo.PushConstantRanges = { LightingPassPushConstantRange };
 //    LightingPassGraphicsPipeline.Create(PipelineCreateInfo, LogicalDevice);
 
@@ -469,7 +475,7 @@ void RENDERER::Renderer::OnRecreateSwapChain() {
     rendererContext->SwapChain.Destroy(LogicalDevice);
     DepthImage.Destroy(LogicalDevice);
 
-    rendererContext->SwapChain.Create(PhysicalDevice, LogicalDevice, rendererContext->Surface.surface, rendererContext->Window.window);
+    rendererContext->SwapChain.Create(PhysicalDevice, LogicalDevice, rendererContext->Surface.Handle, rendererContext->Window.window);
 
     RENDERER_CORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, rendererContext->DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage.Image, DepthImage.ImageMemory);

@@ -31,24 +31,24 @@ void SCENE::Cubemap::Destroy()
 	for (auto &ImageView : CubemapRenderImageViews)
 	{
 		if (ImageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(RendererContext->DeviceContext.logicalDevice, ImageView, nullptr);
+			vkDestroyImageView(RendererContext->DeviceContext.LogicalDevice, ImageView, nullptr);
 			ImageView = VK_NULL_HANDLE;
 		}
 	}
 	if (CubemapSampleImageView != VK_NULL_HANDLE) {
-		vkDestroyImageView(RendererContext->DeviceContext.logicalDevice, CubemapSampleImageView, nullptr);
+		vkDestroyImageView(RendererContext->DeviceContext.LogicalDevice, CubemapSampleImageView, nullptr);
 		CubemapSampleImageView = VK_NULL_HANDLE;
 	}
 	if (CubemapSampler != VK_NULL_HANDLE) {
-		vkDestroySampler(RendererContext->DeviceContext.logicalDevice, CubemapSampler, nullptr);
+		vkDestroySampler(RendererContext->DeviceContext.LogicalDevice, CubemapSampler, nullptr);
 		CubemapSampler = VK_NULL_HANDLE;
 	}
 	if (CubemapImage != VK_NULL_HANDLE) {
-		vkDestroyImage(RendererContext->DeviceContext.logicalDevice, CubemapImage, nullptr);
+		vkDestroyImage(RendererContext->DeviceContext.LogicalDevice, CubemapImage, nullptr);
 		CubemapImage = VK_NULL_HANDLE;
 	}
 	if (CubemapImageMemory != VK_NULL_HANDLE) {
-		vkFreeMemory(RendererContext->DeviceContext.logicalDevice, CubemapImageMemory, nullptr);
+		vkFreeMemory(RendererContext->DeviceContext.LogicalDevice, CubemapImageMemory, nullptr);
 		CubemapImageMemory = VK_NULL_HANDLE;
 	}
 	IsDestroyed = true;
@@ -59,8 +59,8 @@ void SCENE::Cubemap::Destroy()
 void SCENE::Cubemap::CreateCubemapTexture(RENDERER::RendererContext& RendererContext)
 {
 	RENDERER_CORE::CreateImage(
-		RendererContext.DeviceContext.physicalDevice,
-		RendererContext.DeviceContext.logicalDevice,
+		RendererContext.DeviceContext.PhysicalDevice,
+		RendererContext.DeviceContext.LogicalDevice,
 		Size.x,
 		Size.y,
 		VK_IMAGE_TILING_OPTIMAL,
@@ -80,7 +80,7 @@ void SCENE::Cubemap::CreateCubemapTexture(RENDERER::RendererContext& RendererCon
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_VIEW_TYPE_2D,
 			VK_IMAGE_ASPECT_COLOR_BIT,
-			RendererContext.DeviceContext.logicalDevice,
+			RendererContext.DeviceContext.LogicalDevice,
 			1,
 			i
 		);
@@ -91,14 +91,14 @@ void SCENE::Cubemap::CreateCubemapTexture(RENDERER::RendererContext& RendererCon
 		VK_FORMAT_R16G16B16A16_SFLOAT,
 		VK_IMAGE_VIEW_TYPE_CUBE,
 		VK_IMAGE_ASPECT_COLOR_BIT,
-		RendererContext.DeviceContext.logicalDevice,
+		RendererContext.DeviceContext.LogicalDevice,
 		6,
 		0
 	);
 
 	RENDERER_CORE::CreateTextureSampler(
-		RendererContext.DeviceContext.physicalDevice,
-		RendererContext.DeviceContext.logicalDevice,
+		RendererContext.DeviceContext.PhysicalDevice,
+		RendererContext.DeviceContext.LogicalDevice,
 		CubemapSampler,
 		VK_FILTER_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
@@ -108,8 +108,8 @@ void SCENE::Cubemap::CreateCubemapTexture(RENDERER::RendererContext& RendererCon
 void SCENE::Cubemap::CreateConvolutionTexture(RENDERER::RendererContext& RendererContext)
 {
 	RENDERER_CORE::CreateImage(
-		RendererContext.DeviceContext.physicalDevice,
-		RendererContext.DeviceContext.logicalDevice,
+		RendererContext.DeviceContext.PhysicalDevice,
+		RendererContext.DeviceContext.LogicalDevice,
 		32,
 		32,
 		VK_IMAGE_TILING_OPTIMAL,
@@ -129,7 +129,7 @@ void SCENE::Cubemap::CreateConvolutionTexture(RENDERER::RendererContext& Rendere
 			VK_FORMAT_R16G16B16A16_SFLOAT,
 			VK_IMAGE_VIEW_TYPE_2D,
 			VK_IMAGE_ASPECT_COLOR_BIT,
-			RendererContext.DeviceContext.logicalDevice,
+			RendererContext.DeviceContext.LogicalDevice,
 			1,
 			i
 		);
@@ -140,14 +140,14 @@ void SCENE::Cubemap::CreateConvolutionTexture(RENDERER::RendererContext& Rendere
 		VK_FORMAT_R16G16B16A16_SFLOAT,
 		VK_IMAGE_VIEW_TYPE_CUBE,
 		VK_IMAGE_ASPECT_COLOR_BIT,
-		RendererContext.DeviceContext.logicalDevice,
+		RendererContext.DeviceContext.LogicalDevice,
 		6,
 		0
 	);
 
 	RENDERER_CORE::CreateTextureSampler(
-		RendererContext.DeviceContext.physicalDevice,
-		RendererContext.DeviceContext.logicalDevice,
+		RendererContext.DeviceContext.PhysicalDevice,
+		RendererContext.DeviceContext.LogicalDevice,
 		ConvolutionSampler,
 		VK_FILTER_LINEAR,
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
@@ -159,15 +159,15 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 	RENDERER_CORE::TextureData HdriTextureData;
 	RENDERER_CORE::CreateTextureImage(
 		HDRIfilePath,
-		RendererContext.DeviceContext.physicalDevice,
-		RendererContext.DeviceContext.logicalDevice,
+		RendererContext.DeviceContext.PhysicalDevice,
+		RendererContext.DeviceContext.LogicalDevice,
 		RendererContext.CommandPool.commandPool,
 		RendererContext.DeviceContext.GraphicsQueue,
 		HdriTextureData
 	);
 
 	RENDERER_CORE::DescriptorSetWriteImage HDRITextureWrite(HdriTextureData.ImageView, HdriTextureData.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, RendererContext.HDRIrenderPassDescriptorSets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	RENDERER_CORE::WriteDescriptorSets(RendererContext.DeviceContext.logicalDevice, {}, {HDRITextureWrite});
+	RENDERER_CORE::WriteDescriptorSets(RendererContext.DeviceContext.LogicalDevice, {}, {HDRITextureWrite});
 	
 	glm::mat4 FboViews[] =
 	{
@@ -254,7 +254,7 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 
 		//Convolution Pass
 		RENDERER_CORE::DescriptorSetWriteImage CubemapTextureWrite(DestinationCubeMap.CubemapSampleImageView, DestinationCubeMap.CubemapSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, RendererContext.HDRIrenderPassDescriptorSets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		RENDERER_CORE::WriteDescriptorSets(RendererContext.DeviceContext.logicalDevice, {}, { CubemapTextureWrite });
+		RENDERER_CORE::WriteDescriptorSets(RendererContext.DeviceContext.LogicalDevice, {}, { CubemapTextureWrite });
 
 		vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RendererContext.HDRIconvoluteGraphicsPipeline.pipeline);
 		vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RendererContext.HDRIconvoluteGraphicsPipeline.Layout, 0, 1, &RendererContext.HDRIrenderPassDescriptorSets[0], 0, nullptr);
@@ -306,12 +306,12 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 	};
 
 	RENDERER_CORE::ExecuteSingleTimeCommand(
-		RendererContext.DeviceContext.logicalDevice,
+		RendererContext.DeviceContext.LogicalDevice,
 		RenderTask,
 		RendererContext.CommandPool.commandPool,
 		RendererContext.DeviceContext.GraphicsQueue
 	);
 
-	HdriTextureData.Destroy(RendererContext.DeviceContext.logicalDevice);
+	HdriTextureData.Destroy(RendererContext.DeviceContext.LogicalDevice);
 	LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("HDRI imported! [" + std::string(HDRIfilePath) + "]"));
 }

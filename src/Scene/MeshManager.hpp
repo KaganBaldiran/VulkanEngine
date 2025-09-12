@@ -14,7 +14,7 @@ namespace RENDERER
 
 namespace SCENE
 {
-    class TextureImportManager;
+    class TextureManager;
     class SceneMeshManager;
 
     //Info used during model importing
@@ -48,9 +48,9 @@ namespace SCENE
         friend class RENDERER::Renderer;
         friend class RENDERER::DeferredRenderPipeline;
     public:
-        MeshManager(TextureImportManager& ImportManager, RENDERER::RendererContext& RendererContext);
+        MeshManager(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext);
         MeshManager() = default;
-        void Create(TextureImportManager& ImportManager, RENDERER::RendererContext& RendererContext);
+        void Create(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext);
 
         void Destroy() override;
 
@@ -105,7 +105,7 @@ namespace SCENE
         //Main storage unit for geometry allocation information
         std::array<std::unordered_map<size_t, GeometryEntry>,MAX_FRAMES_IN_FLIGHT> GeometryEntries;
 
-        TextureImportManager* ImportManager = nullptr;
+        TextureManager* ImportManager = nullptr;
         RENDERER::RendererContext* RendererContext = nullptr;
     };
 

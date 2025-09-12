@@ -67,7 +67,7 @@ namespace RENDERER_CORE
         void Create(VkInstance& Instance, GLFWwindow* Window);
         void Destroy(VkInstance &Instance);
 
-        VkSurfaceKHR surface;
+        VkSurfaceKHR Handle;
     private:
     };
 
@@ -82,8 +82,8 @@ namespace RENDERER_CORE
         VkPhysicalDeviceFeatures DeviceFeatures;
         VkPhysicalDeviceProperties DeviceProperties;
 
-        VkDevice logicalDevice;
-        VkPhysicalDevice physicalDevice;
+        VkDevice LogicalDevice;
+        VkPhysicalDevice PhysicalDevice;
 
         VkQueue PresentQueue = VK_NULL_HANDLE;
         VkQueue GraphicsQueue = VK_NULL_HANDLE;

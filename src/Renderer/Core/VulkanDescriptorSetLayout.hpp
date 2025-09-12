@@ -18,7 +18,7 @@ namespace RENDERER_CORE
 		void AppendLayoutBinding(VkDescriptorType DescriptorType, uint32_t DescriptorCount, uint32_t Binding, VkShaderStageFlags ShaderStage);
 		void CreateLayout(VkDevice& LogicalDevice, VkDescriptorSetLayoutCreateFlags Flags = 0, void* Next = nullptr);
 		void Destroy(VkDevice& LogicalDevice);
-		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+		VkDescriptorSetLayout Handle = VK_NULL_HANDLE;
 	private:
 		std::vector<VkDescriptorSetLayoutBinding> Bindings;
 	};

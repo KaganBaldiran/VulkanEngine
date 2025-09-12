@@ -66,6 +66,8 @@ namespace SCENE
 		CameraModeInfo* CameraModeInfo = nullptr;
 	};
 
+	
+
 	class Camera3D : public Resource
 	{
 	public:
@@ -73,7 +75,8 @@ namespace SCENE
 		Camera3D() = default;
 		void Create(RENDERER_CORE::Window& window,CameraSettingsInfo Settings);
 		void SetCameraSettings(CameraSettingsInfo Settings);
-		void Update(RENDERER_CORE::Window &window,float Sensitivity,float DeltaTime, glm::vec2 Extent, float Near, float Far);
+		void Update(RENDERER_CORE::Window &window,float Sensitivity,float DeltaTime, glm::vec2 Extent, float Near, float Far,float FOV = 45.0F);
+		void Update(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime, float Zoom, glm::vec2 Extent, float Near, float Far);
 		glm::vec3 CameraPosition;
 		glm::vec3 CameraDirection;
 		glm::vec3 Up;

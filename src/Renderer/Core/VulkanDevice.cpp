@@ -271,12 +271,12 @@ RENDERER_CORE::Surface::Surface(VkInstance &Instance,GLFWwindow *Window)
 
 void RENDERER_CORE::Surface::Create(VkInstance& Instance, GLFWwindow* Window)
 {
-    CreateSurface(Instance, Window, surface);
+    CreateSurface(Instance, Window, Handle);
 }
 
 void RENDERER_CORE::Surface::Destroy(VkInstance &Instance)
 {
-    vkDestroySurfaceKHR(Instance, surface, nullptr);
+    vkDestroySurfaceKHR(Instance, Handle, nullptr);
 }
 
 RENDERER_CORE::DeviceContext::DeviceContext(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
@@ -286,10 +286,10 @@ RENDERER_CORE::DeviceContext::DeviceContext(VulkanDeviceCreateInfo& CreateInfo, 
 
 void RENDERER_CORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance)
 {
-    VULKAN_ASSERT_RESULT(PickPhysicalDevice(CreateInfo, Instance, physicalDevice, Surface));
+    VULKAN_ASSERT_RESULT(PickPhysicalDevice(CreateInfo, Instance, PhysicalDevice, Surface));
 
-    vkGetPhysicalDeviceProperties(physicalDevice, &DeviceProperties);
-    vkGetPhysicalDeviceFeatures(physicalDevice, &DeviceFeatures);
+    vkGetPhysicalDeviceProperties(PhysicalDevice, &DeviceProperties);
+    vkGetPhysicalDeviceFeatures(PhysicalDevice, &DeviceFeatures);
 
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Detected a suitable physical device [name(" + std::string(DeviceProperties.deviceName) +
         "), device type(" + string_VkPhysicalDeviceType(DeviceProperties.deviceType) + ")].");
@@ -303,9 +303,9 @@ void RENDERER_CORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, Vk
     
     VULKAN_ASSERT_RESULT(CreateLogicalDevice(
         CreateInfo,
-        physicalDevice, 
+        PhysicalDevice, 
         Surface, 
-        logicalDevice, 
+        LogicalDevice, 
         GraphicsQueue, 
         PresentQueue,
         ComputeQueue,
@@ -315,5 +315,5 @@ void RENDERER_CORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, Vk
 
 void RENDERER_CORE::DeviceContext::Destroy()
 {
-    vkDestroyDevice(logicalDevice, nullptr);
+    vkDestroyDevice(LogicalDevice, nullptr);
 }

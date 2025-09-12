@@ -9,7 +9,7 @@
 #include "../Common/Log.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
-void ProcessMeshMaterial(std::string MeshDirectory,SCENE::TextureImportManager& ImportManager, aiMaterial* SourceMaterial, SCENE::Material& DestinationMaterial);
+void ProcessMeshMaterial(std::string MeshDirectory,SCENE::TextureManager& ImportManager, aiMaterial* SourceMaterial, SCENE::Material& DestinationMaterial);
 
 VkVertexInputBindingDescription SCENE::Vertex2D::GetBindingDescription()
 {
@@ -82,7 +82,7 @@ std::vector<VkVertexInputAttributeDescription> SCENE::Vertex3D::GetAttributeDesc
     return AttributeDescriptions;
 }
 
-void SCENE::Import3DGeometry(const char* FilePath, std::vector<GeometryData>& DstGeometryDatas, SCENE::TextureImportManager& ImportManager)
+void SCENE::Import3DGeometry(const char* FilePath, std::vector<GeometryData>& DstGeometryDatas, SCENE::TextureManager& ImportManager)
 {
     Assimp::Importer Importer;
     const aiScene* scene = Importer.ReadFile(FilePath,
@@ -183,7 +183,7 @@ void SCENE::Import3DGeometry(const char* FilePath, std::vector<GeometryData>& Ds
 }
 
 
-void LoadMaterialTextures(std::string MeshDirectory,SCENE::TextureImportManager& ImportManager, aiMaterial* SourceMaterial, aiTextureType Type, uint64_t& MaterialTextureReferenceIndex)
+void LoadMaterialTextures(std::string MeshDirectory,SCENE::TextureManager& ImportManager, aiMaterial* SourceMaterial, aiTextureType Type, uint64_t& MaterialTextureReferenceIndex)
 {
     auto& ImportRegistries = ImportManager.ImportRegistries;
     auto& ImportQueue = ImportManager.ImportQueue;
@@ -208,7 +208,7 @@ void LoadMaterialTextures(std::string MeshDirectory,SCENE::TextureImportManager&
     }
 }
 
-void ProcessMeshMaterial(std::string MeshDirectory, SCENE::TextureImportManager& ImportManager,aiMaterial* SourceMaterial,SCENE::Material &DestinationMaterial)
+void ProcessMeshMaterial(std::string MeshDirectory, SCENE::TextureManager& ImportManager,aiMaterial* SourceMaterial,SCENE::Material &DestinationMaterial)
 {
     aiColor4D color;
     float value;

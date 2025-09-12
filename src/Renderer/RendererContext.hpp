@@ -3,6 +3,7 @@
 #include <glfw3.h>
 #include "Core/VulkanUtils.hpp" 
 #include <vector>
+#include <array>
 
 #include "Core/VulkanCommandPool.hpp"
 #include "Core/VulkanCommandBuffer.hpp"
@@ -28,7 +29,7 @@
 namespace SCENE
 {
     class Scene;
-    class TextureImportManager;
+    class TextureManager;
 }
 
 namespace RENDERER
@@ -47,7 +48,7 @@ namespace RENDERER
 	class RendererContext : COMMON::Destructible
 	{
         friend class SCENE::Scene;
-        friend class SCENE::TextureImportManager;
+        friend class SCENE::TextureManager;
 	public:
         RendererContext(bool EnableValidationLayers);
         RendererContext() = default;
@@ -116,6 +117,9 @@ namespace RENDERER
 
         RENDERER_CORE::Buffer QuadVertexBuffer{};
         RENDERER_CORE::Buffer CubeVertexBuffer{};
+
+        std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> SingleTimeCommandBuffers;
+        RENDERER_CORE::Fence SingleTimeCommandFence;
 	private:
         void CreateHDRIrenderPassResources();
         std::array<RENDERER_CORE::GraphicsPipeline,3>* CreateTextureDescriptorPipelines(VkDescriptorSetLayout Layout,uint32_t MaxTextureCount);

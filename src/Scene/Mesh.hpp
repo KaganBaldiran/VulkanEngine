@@ -15,7 +15,7 @@
 
 namespace SCENE
 {
-    class TextureImportManager;
+    class TextureManager;
 
     struct Vertex2D {
         glm::vec2 Position;
@@ -101,5 +101,5 @@ namespace SCENE
         std::vector<MeshHandle> Meshes;
     };
 
-    void Import3DGeometry(const char* FilePath, std::vector<GeometryData>& DstGeometryDatas,SCENE::TextureImportManager& ImportManager);
+    void Import3DGeometry(const char* FilePath, std::vector<GeometryData>& DstGeometryDatas,SCENE::TextureManager& ImportManager);
 }

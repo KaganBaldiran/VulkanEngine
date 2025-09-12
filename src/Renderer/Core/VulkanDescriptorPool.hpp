@@ -13,7 +13,7 @@ namespace RENDERER_CORE
 		DescriptorPool() = default;
 		void Create(const std::vector<std::pair<VkDescriptorType, uint32_t>>& PoolSizes, uint32_t MaxSets, VkDevice& LogicalDevice, VkDescriptorPoolCreateFlags Flags = 0);
 		void Destroy(VkDevice& LogicalDevice);
-		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+		VkDescriptorPool Handle = VK_NULL_HANDLE;
 	private:
 		std::string Log;
 	};
