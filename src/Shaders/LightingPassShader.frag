@@ -37,18 +37,27 @@ layout(std430 ,set = 1,binding = 1) readonly buffer DynamicLightBuffers{
 
 layout(set = 1,binding = 2) uniform samplerCube Cubemap;
 
-struct MaterialTextureIndexes
+struct Material
 {
     int AlbedoTextureIndex;
     int RoughnessTextureIndex;
     int NormalMapTextureIndex;
     int MetallicTextureIndex;
     int OpacityTextureIndex;
+
+    //Parameters
+	float Metallic;
+	float Roughness;
+    float Padding;
+    vec4 Albedo;
+
+    vec2 TextureSamplePosition;
+    vec2 TextureSampleSize;
 };
 
 layout(set = 3,binding = 0) uniform sampler2D Textures[];
 layout(std430,set = 2,binding = 0) readonly buffer TextureIndexBuffer{
-    MaterialTextureIndexes TextureIndexes[];
+    Material Materials[];
 };
 
 const float PI = 3.14159265359;
@@ -56,14 +65,14 @@ const float Inv_PI = 1.0f / PI;
 
 float DistributionGGX(vec3 N , vec3 H, float roughness)
 {
-    float a = clamp(roughness * roughness, 0.03f, 1.0f);         
+    float a = clamp(roughness*roughness,1e-4,1.0f);
     float a2 = a * a;
     float NdotH = max(dot(N, H), 0.0f);       
     float NdotH2 = NdotH * NdotH;
 
     float num = a2;
     float denom = (NdotH2 * (a2 - 1.0f) + 1.0f);
-    denom = max(PI * denom * denom, 0.0001f); 
+    denom = PI * denom * denom; 
 
     return num / denom;
   }
@@ -120,8 +129,9 @@ vec3 CookTorranceBRDF(vec3 Normal, vec3 ViewDirection,vec3 Position,vec3 LightDi
     if (NdotL <= 0.0)
         return vec3(0.0);
 
-    float R0 = pow((1.0 - IOR) / (1.0 + IOR), 2.0);
-    vec3 F0 = mix(vec3(R0), Albedo, Metallic);
+    //float R0 = pow((1.0 - IOR) / (1.0 + IOR), 2.0);
+    //vec3 F0 = mix(vec3(R0), Albedo, Metallic);
+    vec3 F0 = mix(vec3(0.04f), Albedo, Metallic);
     vec3 H = normalize(ViewDirection + L);
 
     vec3 F = fresnelSchlickRoughness(max(dot(Normal, H), 0.0), F0, Roughness);
@@ -264,18 +274,17 @@ void main() {
     vec3 Normal = texture(NormalBuffer,OutUVcoords).xyz;
     vec3 Position = texture(PositionBuffer,OutUVcoords).xyz;
 
-    MaterialTextureIndexes Indexes = TextureIndexes[MeshIndex];
+    Material MaterialData = Materials[MeshIndex];
 
-    vec3 Albedo = vec3(1.0f);
-    if(Indexes.AlbedoTextureIndex >= 0) Albedo = texture(Textures[nonuniformEXT(Indexes.AlbedoTextureIndex)],UV).xyz;
+    vec3 Albedo = MaterialData.Albedo.xyz;
+    if(MaterialData.AlbedoTextureIndex >= 0) Albedo = texture(Textures[nonuniformEXT(MaterialData.AlbedoTextureIndex)],UV).xyz;
 
-    float Roughness = 0.5f;
-    float Metallic = 0.0f;
-    if(Indexes.RoughnessTextureIndex >= 0)  Roughness = texture(Textures[nonuniformEXT(Indexes.RoughnessTextureIndex)],UV).x;
-    if(Indexes.MetallicTextureIndex >= 0)  Metallic = texture(Textures[nonuniformEXT(Indexes.MetallicTextureIndex)],UV).x;
+    float Roughness = MaterialData.Roughness;
+    float Metallic = MaterialData.Metallic;
+    if(MaterialData.RoughnessTextureIndex >= 0)  Roughness = texture(Textures[nonuniformEXT(MaterialData.RoughnessTextureIndex)],UV).x;
+    if(MaterialData.MetallicTextureIndex >= 0)  Metallic = texture(Textures[nonuniformEXT(MaterialData.MetallicTextureIndex)],UV).x;
     vec3 ShadedPixel = CalculateLighting(Normal,Position,Albedo,Roughness,Metallic);
    
-    outColor = vec4(ShadedPixel,1.0f);
     float Distance = dot(Position - CameraPosition,Position - CameraPosition);
     float FogAmount = clamp(exp(-Distance / (CameraFrustumLength * CameraFrustumLength) * FogIntensity),0.0f,1.0f);
 

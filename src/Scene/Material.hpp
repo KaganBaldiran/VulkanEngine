@@ -25,10 +25,13 @@ namespace SCENE
 	public:
 		Material();
 		
-		glm::vec4 Albedo;
-		float Roughness;
-		float Metallic;
-		float Opacity;
+		glm::vec4 Albedo = glm::vec4(1.0f);
+		float Roughness = 0.5f;
+		float Metallic = 0.0f;
+		float Opacity = 1.0f;
+
+		glm::vec2 TextureSamplePosition = glm::vec2(0.0f);
+		glm::vec2 TextureSampleSize = glm::vec2(1.0f);
 
 		std::array<uint64_t, 5> ReferencedTextures;
 		inline void ReferenceTexture(const uint64_t& TextureID, MaterialTextureType TextureTypeSlot) { ReferencedTextures[static_cast<size_t>(TextureTypeSlot)] = TextureID; };

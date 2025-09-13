@@ -14,6 +14,29 @@
 #include <random>
 #include <chrono>
 
+void DoSpriteAnimation(
+    glm::vec2 &DestinationSize, 
+    glm::vec2& DestinationPosition,
+    float &CurrentFrame,
+    float DeltaTime,
+    float Speed,
+    uint32_t RowCount,
+    uint32_t ColumnCount
+)
+{
+    uint32_t TotalFrameCount = RowCount * ColumnCount;
+    CurrentFrame = (CurrentFrame + Speed * DeltaTime);
+    if (CurrentFrame >= TotalFrameCount)
+    {
+        CurrentFrame = 0.0f;
+    }
+    uint32_t Xposition = (uint32_t)CurrentFrame % ColumnCount;
+    uint32_t Yposition = (uint32_t)CurrentFrame / ColumnCount;
+
+    DestinationSize = glm::vec2(1.0f / ColumnCount, 1.0f / RowCount);
+    DestinationPosition = DestinationSize * glm::vec2(Xposition, Yposition);
+}
+
 int main()
 {
     try
@@ -29,11 +52,13 @@ int main()
         SCENE::ModelHandle SponzaModel;
         SCENE::ModelHandle ShovelModel;
         SCENE::ModelHandle SceneModel;
+        SCENE::ModelHandle Quad;
 
         SCENE::ModelInstance Sponza(SponzaModel);
         SCENE::ModelInstance Shovel(ShovelModel);
         SCENE::ModelInstance Shovel1(ShovelModel);
         SCENE::ModelInstance SceneModelInstance(SceneModel);
+        SCENE::ModelInstance QuadInstance0(Quad);
 
         std::vector<SCENE::ModelInstance> Shovels;
 
@@ -44,23 +69,44 @@ int main()
         std::uniform_real_distribution<float> distRot(0.0f, glm::two_pi<float>());
 
         SCENE::Texture SomeTexture{};
+        SCENE::Texture AnimationSprite{};
 
         SCENE::TextureManager TextureImportManager(RendererContext);
         SCENE::MeshManager Importer(TextureImportManager, RendererContext);
         Importer.AppendImportTask({ &SponzaModel , "Resources\\sponza.obj" });
         Importer.AppendImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
         Importer.AppendImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
+        Importer.AppendImportTask({ &Quad , "Resources\\Quad.fbx" });
         Importer.SubmitImport();
+        Importer.WaitImportIdle();
+        
+        TextureImportManager.AppendImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.ResourceID });
+        TextureImportManager.AppendImportTask({ "Resources\\SpriteAnimation3.jpg",AnimationSprite.ResourceID });
+        TextureImportManager.SubmitImport();
 
         SCENE::ModelInstance SponzaTextured(SponzaModel);
         SCENE::Material SponzaOverride{};
+
+        SponzaOverride.TextureSampleSize = glm::vec2(20);
         SponzaOverride.ReferenceTexture(SomeTexture.ResourceID, SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
         Shovel.Materials.push_back(SponzaOverride);
+
+        SponzaOverride.TextureSampleSize = glm::vec2(1);
+        SponzaOverride.ReferenceTexture(AnimationSprite.ResourceID, SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
+        QuadInstance0.Materials.push_back(SponzaOverride);
+        QuadInstance0.Transformations.TranslationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,300.0f,0.0f));
+        QuadInstance0.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
         SponzaTextured.Materials.push_back(SponzaOverride);
 
+        SCENE::Material NewMaterial{};
+        NewMaterial.Metallic = 0.7f;
+        NewMaterial.Roughness = 0.5f;
+        NewMaterial.Albedo = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
         for (size_t i = 0; i < 1500; i++)
         {
             SCENE::ModelInstance NewShovel(ShovelModel);
+            NewShovel.Materials.push_back(NewMaterial);
 
             glm::vec3 position(distX(rng), distY(rng), distZ(rng));
             float rotationAngle = distRot(rng);
@@ -110,9 +156,7 @@ int main()
         Light2.SetDirection(glm::vec4(0.8f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
         Light2.SetType(SCENE::DIRECTIONAL_LIGHT);
 
-        Importer.WaitImportIdle();
-        TextureImportManager.AppendImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.ResourceID });
-        TextureImportManager.SubmitImport();
+      
 
         SCENE::Scene Scene0;
         Scene0.Create(RendererContext, TextureImportManager, Importer);
@@ -124,6 +168,7 @@ int main()
 
         Scene0.LinkModelInstance(Sponza);
         Scene0.LinkModelInstance(SponzaTextured);
+        Scene0.LinkModelInstance(QuadInstance0);
 
         Scene0.LinkModelInstance(Shovel);
         Scene0.LinkStaticLight(Light0);
@@ -238,13 +283,15 @@ int main()
 
         RENDERER::RenderPassConfiguration PassConfiguration1{};
         PassConfiguration1.Name = "DeferredPass1";
-        PassConfiguration1.Pipeline = &DeferredPipelineNormal;
+        PassConfiguration1.Pipeline = &DeferredPipeline;
         PassConfiguration1.Scene = &Scene1;
         PassConfiguration1.EnableDepthTesting = true;
         Renderer.AddRenderPass(PassConfiguration1);
 
         float DeltaTime = 0.0f;
         float LastFrame = 0.0f;
+
+        float CurrentSpriteFrame = 0.0f;
         while (!glfwWindowShouldClose(RendererContext.Window.window))
         {
             float CurrentTime = glfwGetTime();
@@ -284,9 +331,21 @@ int main()
             //Scene0.UpdateDynamicFrameLightBuffers(Renderer.CurrentFrame);
           
             Shovel.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), 10 * (float)glm::max(0.0,glm::cos(glfwGetTime())), glm::vec3(0.0, 1.0, 0.0));
-            Scene0.MarkResourceChanged(&Shovel, SCENE::MARK_CHANGED_TYPE_MESH_TRANSFORMATION, Renderer.CurrentFrame);
+            Shovel.Materials[0].TextureSamplePosition = glm::vec2(glm::cos(CurrentTime), glm::sin(CurrentTime));
+            QuadInstance0.Materials[0].TextureSamplePosition = glm::vec2(glm::cos(CurrentTime), glm::sin(CurrentTime));
 
-            Scene0.FlushPendingUpdates(SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | SCENE::SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS, Renderer.CurrentFrame);
+            DoSpriteAnimation(QuadInstance0.Materials[0].TextureSampleSize,
+                QuadInstance0.Materials[0].TextureSamplePosition, CurrentSpriteFrame, DeltaTime,13.0f, 2, 3);
+
+            Scene0.MarkResourceChanged(&Shovel, SCENE::MARK_CHANGED_TYPE_MESH_TRANSFORMATION | SCENE::MARK_CHANGED_TYPE_MESH_MATERIAL, Renderer.CurrentFrame);
+            Scene0.MarkResourceChanged(&QuadInstance0, SCENE::MARK_CHANGED_TYPE_MESH_MATERIAL, Renderer.CurrentFrame);
+
+            Scene0.FlushPendingUpdates(
+                SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | 
+                SCENE::SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS | 
+                SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS, 
+                Renderer.CurrentFrame
+            );
 
            Camera.Update(
                 RendererContext.Window,

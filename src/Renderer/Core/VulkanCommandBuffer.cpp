@@ -57,6 +57,62 @@ void RENDERER_CORE::ExecuteSingleTimeCommand(VkDevice &LogicalDevice,std::functi
     vkFreeCommandBuffers(LogicalDevice, Pool, 1, &SingleUseCommandBuffer);
 }
 
+void RENDERER_CORE::ExecuteSingleTimeCommand(
+    VkDevice& LogicalDevice, 
+    std::function<void(VkCommandBuffer& CommandBuffer)> Task, 
+    VkCommandBuffer& CommandBuffer, 
+    VkFence& Fence, 
+    VkQueue& Queue
+)
+{
+    VkCommandBufferBeginInfo CommandBufferBeginInfo{};
+    CommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    CommandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo);
+    Task(CommandBuffer);
+    vkEndCommandBuffer(CommandBuffer);
+
+    VkSubmitInfo CommandBufferSubmitInfo{};
+    CommandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    CommandBufferSubmitInfo.commandBufferCount = 1;
+    CommandBufferSubmitInfo.pCommandBuffers = &CommandBuffer;
+
+    vkQueueSubmit(Queue, 1, &CommandBufferSubmitInfo, Fence);
+    vkWaitForFences(LogicalDevice, 1, &Fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(LogicalDevice, 1, &Fence);
+    vkResetCommandBuffer(CommandBuffer, 0);
+}
+
+void RENDERER_CORE::ExecuteSingleTimeCommandAsync(
+    VkDevice& LogicalDevice,
+    std::function<void(VkCommandBuffer& CommandBuffer)> Task,
+    VkCommandBuffer& CommandBuffer,
+    VkFence& Fence,
+    VkQueue& Queue,
+    std::mutex& Mutex
+)
+{
+    std::unique_lock<std::mutex> lock(Mutex);
+    VkCommandBufferBeginInfo CommandBufferBeginInfo{};
+    CommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    CommandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo);
+    Task(CommandBuffer);
+    vkEndCommandBuffer(CommandBuffer);
+
+    VkSubmitInfo CommandBufferSubmitInfo{};
+    CommandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    CommandBufferSubmitInfo.commandBufferCount = 1;
+    CommandBufferSubmitInfo.pCommandBuffers = &CommandBuffer;
+
+    vkQueueSubmit(Queue, 1, &CommandBufferSubmitInfo, Fence);
+    vkWaitForFences(LogicalDevice, 1, &Fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(LogicalDevice, 1, &Fence);
+    vkResetCommandBuffer(CommandBuffer, 0);
+}
+
 void RENDERER_CORE::ExecuteSingleTimeCommandAsync(VkDevice& LogicalDevice, std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandPool& Pool, VkQueue& Queue, std::mutex& Mutex)
 {
     VkFence Fence{};

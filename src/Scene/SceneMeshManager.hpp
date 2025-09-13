@@ -39,32 +39,31 @@ namespace SCENE
 	{
 		struct TextureIndexData
 		{
-			int AlbedoTextureIndex;
-			int RoughnessTextureIndex;
-			int NormalMapTextureIndex;
-			int MetallicTextureIndex;
-			int OpacityTextureIndex;
+			std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
 		};
 
 		struct MaterialParameterData
 		{
-			glm::vec3 Albedo;
-			float Metallic;
 			float Roughness;
+			float Metallic;
+			float Padding;
+			glm::vec4 Albedo;
 		};
 
 		struct MaterialSamplingData
 		{
-			glm::vec3 Albedo;
-			float Metallic;
-			float Roughness;
+			glm::vec2 TextureSamplePosition;
+			glm::vec2 TextureSampleSize;
 		};
 
-		struct MaterialData
+		struct alignas(16) MaterialData
 		{
 			TextureIndexData IndexData;
+			MaterialParameterData Parameters;
+			MaterialSamplingData SamplingData;
 		};
 
+		
 		template<uint32_t BufferSetCount>
 		struct MeshFrustumCullBuffers
 		{
@@ -154,7 +153,7 @@ namespace SCENE
 		struct MaterialMetaData
 		{
 			MaterialData Material;
-			std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
+			//std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
 			RENDERER_CORE::MemoryRegion TextureIndexMemoryRegion;
 			RENDERER_CORE::MemoryRegion StagingTextureIndexMemoryRegion;
 		};
@@ -171,10 +170,8 @@ namespace SCENE
 		//General layer of the entries. Unique for each frame in flight
 		struct EntryManager
 		{
-			std::unordered_map<size_t, InstanceEntry> InstanceEntries;
+			COMMON::VectorMap<size_t, InstanceEntry> InstanceEntries;
 			COMMON::VectorMap<size_t, MeshEntry> MeshEntries;
-
-			std::vector<ModelInstance*> MaterialUpdateList;
 			//A flag to matrix buffer updating function to let it know when to recopy everything inside.
 			bool TransformationMatrixReallocated = false;
 		};
@@ -231,6 +228,7 @@ namespace SCENE
 		void ResetModels(uint32_t FrameIndex);
 		void AppendModels(
 			std::vector<ModelInstance*> &ModelInstances,
+			std::vector<ModelInstance*>& MaterialUpdateList,
 			const uint32_t &FrameIndex,
 			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> &TargetDescriptorSets,
 			PersistentStagingBuffer &StagingBuffer,

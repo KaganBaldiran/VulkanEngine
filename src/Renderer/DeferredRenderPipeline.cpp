@@ -158,7 +158,7 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
     const size_t PerformanceModeEnabledMeshCount = Scene.MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame];
     if (!(PerformanceModeEnabledMeshCount)) return;
 
-    std::array<VkClearValue, 3> ClearColors{};
+    std::array<VkClearValue, 4> ClearColors{};
     ClearColors[0].color = { {0.0f,0.0f,0.0f,0.0f} };
     ClearColors[1].color = { {0.0f,0.0f,0.0f,1.0f} };
     ClearColors[2].depthStencil = { 1.0f,0 };

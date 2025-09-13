@@ -42,10 +42,9 @@ void SCENE::MeshManager::Destroy()
         IndexBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
     }
 
-    ImportTargets.clear();
+    MeshImportResults.clear();
     ImportQueue.clear();
     Futures.clear();
-    AppendList.fill(false);
 
     IsDestroyed = true;
     std::cout << "Mesh manager destroyed!" << std::endl;
@@ -54,10 +53,6 @@ void SCENE::MeshManager::Destroy()
 void SCENE::MeshManager::AppendImportTask(ModelImportInfo ImportInfo)
 {
     ImportQueue.push_back(ImportInfo);
-
-    ImportTarget NewImportTarget{};
-    NewImportTarget.ConsumerModel = ImportInfo.DestinationModelHandle;
-    ImportTargets.push_back(std::move(NewImportTarget));
 }
 
 void SCENE::MeshManager::SubmitImport()
@@ -66,20 +61,30 @@ void SCENE::MeshManager::SubmitImport()
     for (size_t i = 0; i < ImportQueue.size(); i++)
     {
         auto& Import = ImportQueue[i];
-        auto& Target = ImportTargets[i];
-        //Futures.push_back(std::async(std::launch::async, SCENE::Import3DGeometry, Import.ModelFilePath, std::ref(*Import.DestinationModel), std::ref(*ImportManager)));
-        Futures.push_back(std::async(std::launch::async, SCENE::Import3DGeometry, Import.ModelFilePath, std::ref(Target.GeometryDatas), std::ref(*ImportManager)));
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Imported model [" + std::string(Import.ModelFilePath) + "].");
+        Futures.push_back({
+            std::async(std::launch::async, SCENE::Import3DGeometry, Import.ModelFilePath, std::ref(*ImportManager)),
+            Import.DestinationModelHandle
+        });
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Submitted model import [" + std::string(Import.ModelFilePath) + "].");
     }
     ImportQueue.clear();
 }
 
 void SCENE::MeshManager::WaitImportIdle()
 {
-    for (auto& future : Futures)
+    //Handle the fresh imports
+    std::vector<MeshImportResult> NewImportResults;
+    NewImportResults.reserve(Futures.size());
+    for (size_t i = 0; i < Futures.size(); i++)
     {
+        auto& Future = Futures[i];
         try {
-            future.get();
+            //Creates a new mesh import result which will temporarily keep the geometry datas and the model linkage
+            auto GeometryData = Future.first.get();
+            MeshImportResult NewImportResult{};
+            NewImportResult.ConsumerModel = Future.second;
+            NewImportResult.GeometryDatas = GeometryData;
+            NewImportResults.push_back(std::move(NewImportResult));
         }
         catch (const std::exception& e) {
             LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR,
@@ -89,20 +94,23 @@ void SCENE::MeshManager::WaitImportIdle()
     Futures.clear();
 
     //Fill in consumer model and required handles
-    for (size_t i = 0; i < ImportTargets.size(); i++)
+    for (auto& NewImportResult : NewImportResults)
     {
-        auto& Target = ImportTargets[i];
-        Target.GeometryHandles.reserve(Target.GeometryDatas.size());
+        NewImportResult.GeometryHandles.reserve(NewImportResult.GeometryDatas.size());
 
-        for (size_t y = 0; y < Target.GeometryDatas.size(); y++)
+        for (size_t y = 0; y < NewImportResult.GeometryDatas.size(); y++)
         {
             MeshHandle NewMeshHandle{};
             NewMeshHandle.GeometryID = GenerateResourceID();
-            Target.GeometryHandles.push_back(NewMeshHandle.GeometryID);
-            Target.ConsumerModel->Meshes.push_back(NewMeshHandle);
+            NewImportResult.GeometryHandles.push_back(NewMeshHandle.GeometryID);
+            NewImportResult.ConsumerModel->Meshes.push_back(NewMeshHandle);
         }
+        //Set to-be processed by the frames
+        NewImportResult.ResetFlags();
+        //Append in the actual result vector
+        MeshImportResults.push_back(std::move(NewImportResult));
     }
-    AppendList.fill(true);
+    NewImportResults.clear();
 
     double DeltaTime = glfwGetTime() - StartingTime;
     std::cout << "Models were imported in: " << DeltaTime << " seconds" << std::endl;
@@ -121,7 +129,7 @@ RENDERER_CORE::BufferAllocator& SCENE::MeshManager::GetCurrentIndexBuffer(uint32
 
 void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
 {
-    if (!AppendList[FrameIndex] || ImportTargets.empty()) return;
+    if (MeshImportResults.empty()) return;
 
     auto& VertexBufferSetBit = VertexBufferSet[FrameIndex];
     auto& IndexBufferSetBit = IndexBufferSet[FrameIndex];
@@ -136,15 +144,15 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
 
     std::unordered_map<size_t,GeometryEntry> InsertedGeometryEntries;
     std::unordered_map<size_t,GeometryData*> GeometryDataReferences;
-    for (auto& Target : ImportTargets)
+    for (auto& ImportResult : MeshImportResults)
     {
-        for (size_t i = 0; i < Target.GeometryDatas.size(); i++)
+        for (size_t i = 0; i < ImportResult.GeometryDatas.size(); i++)
         {
-            GeometryData& Data = Target.GeometryDatas[i];
-            size_t& Handle = Target.GeometryHandles[i];
+            GeometryData& Data = ImportResult.GeometryDatas[i];
+            size_t& Handle = ImportResult.GeometryHandles[i];
 
             //Referencing the data to use for copying later on
-            GeometryDataReferences[Handle] = &Target.GeometryDatas[i];
+            GeometryDataReferences[Handle] = &ImportResult.GeometryDatas[i];
 
             //Detect the data sizes and append them in the overall inserted size
             VertexSize = Data.Vertices.size() * sizeof(Vertex3D);
@@ -162,6 +170,8 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
             //GeometryEntryList[Handle] = NewGeometryEntry;
             InsertedGeometryEntries[Handle] = NewGeometryEntry;
         }
+        //Set processed by the current frame
+        ImportResult.SetFlag(FrameIndex, true);
     }
 
     //Decide whether buffers should be reallocated or not
@@ -239,19 +249,16 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
     for (auto& [handle, entry] : InsertedGeometryEntries)
         GeometryEntryList[handle] = std::move(entry);
 
-    AppendList[FrameIndex] = false;
-    bool ShouldEraseTargets = true;
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    //Clear out the fully processed targets
+    for (size_t i = 0; i < MeshImportResults.size(); i++)
     {
-        if (AppendList[i]) { 
-            ShouldEraseTargets = false;
-            break;
-        };
-    }
-    if (ShouldEraseTargets)
-    {
-        std::cout << "DELETED CPU SIDE!" << std::endl;
-        ImportTargets.clear();
+        auto& Target = MeshImportResults[i];
+        if (Target.IsProcessedByAll())
+        {
+            std::swap(Target, MeshImportResults.back());
+            MeshImportResults.pop_back();
+            --i;
+        }
     }
 }
 
@@ -414,3 +421,21 @@ void SCENE::RecreateBuffer(
     );
 }
 
+bool SCENE::MeshImportResult::IsProcessedByAll()
+{
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        if (!ProcessedPerFrame[i]) return false;
+    }
+    return true;
+}
+
+void SCENE::MeshImportResult::ResetFlags()
+{
+    ProcessedPerFrame.fill(false);
+}
+
+void SCENE::MeshImportResult::SetFlag(uint32_t FrameIndex, bool Value)
+{
+    ProcessedPerFrame[FrameIndex] = Value;
+}

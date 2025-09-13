@@ -82,7 +82,7 @@ std::vector<VkVertexInputAttributeDescription> SCENE::Vertex3D::GetAttributeDesc
     return AttributeDescriptions;
 }
 
-void SCENE::Import3DGeometry(const char* FilePath, std::vector<GeometryData>& DstGeometryDatas, SCENE::TextureManager& ImportManager)
+std::vector<SCENE::GeometryData> SCENE::Import3DGeometry(const char* FilePath, SCENE::TextureManager& ImportManager)
 {
     Assimp::Importer Importer;
     const aiScene* scene = Importer.ReadFile(FilePath,
@@ -99,13 +99,15 @@ void SCENE::Import3DGeometry(const char* FilePath, std::vector<GeometryData>& Ds
         throw std::runtime_error("Unable to import a 3D model(" + std::string(FilePath) + ")");
     }
 
-    if (!Scene->HasMeshes()) return;
+    if (!Scene->HasMeshes()) return std::vector<SCENE::GeometryData>();
     std::string MeshDirectory = std::string(FilePath);
     MeshDirectory = MeshDirectory.substr(0, MeshDirectory.find_last_of("\\"));
 
     std::queue<aiNode*> NodesToProcess;
     NodesToProcess.push(Scene->mRootNode);
     aiNode* Node = nullptr;
+
+    std::vector<SCENE::GeometryData> GeometryDatas;
     while (!NodesToProcess.empty())
     {
         Node = NodesToProcess.front();
@@ -119,7 +121,7 @@ void SCENE::Import3DGeometry(const char* FilePath, std::vector<GeometryData>& Ds
             float minZ = std::numeric_limits<float>::max();
             float maxZ = std::numeric_limits<float>::lowest();
 
-            GeometryData NewMesh;
+            SCENE::GeometryData NewMesh;
             auto& aiMesh = Scene->mMeshes[Node->mMeshes[MeshIndex]];
             NewMesh.Vertices.reserve(aiMesh->mNumVertices);
             for (size_t VertexIndex = 0; VertexIndex < aiMesh->mNumVertices; VertexIndex++)
@@ -172,7 +174,7 @@ void SCENE::Import3DGeometry(const char* FilePath, std::vector<GeometryData>& Ds
 
             NewMesh.BoundingBox.Center = (glm::vec3(maxX, maxY, maxZ) + glm::vec3(minX, minY, minZ)) * 0.5f;
             NewMesh.BoundingBox.Extends = (glm::vec3(maxX, maxY, maxZ) - glm::vec3(minX, minY, minZ)) * 0.5f;
-            DstGeometryDatas.push_back(NewMesh);
+            GeometryDatas.push_back(NewMesh);
         }
 
         for (size_t i = 0; i < Node->mNumChildren; i++)
@@ -180,6 +182,7 @@ void SCENE::Import3DGeometry(const char* FilePath, std::vector<GeometryData>& Ds
             NodesToProcess.push(*(Node->mChildren + i));
         }
     }
+    return std::move(GeometryDatas);
 }
 
 

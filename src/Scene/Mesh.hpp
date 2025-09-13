@@ -101,5 +101,5 @@ namespace SCENE
         std::vector<MeshHandle> Meshes;
     };
 
-    void Import3DGeometry(const char* FilePath, std::vector<GeometryData>& DstGeometryDatas,SCENE::TextureManager& ImportManager);
+    std::vector<SCENE::GeometryData> Import3DGeometry(const char* FilePath, SCENE::TextureManager& ImportManager);
 }

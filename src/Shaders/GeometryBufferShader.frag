@@ -15,40 +15,47 @@ layout(location = 4) in vec3 OutTangent;
 layout(location = 5) in vec3 OutBitangent;
 layout(location = 6) in vec3 OutNDCVelocity;
 
-struct MaterialTextureIndexes
+struct Material
 {
     int AlbedoTextureIndex;
     int RoughnessTextureIndex;
     int NormalMapTextureIndex;
     int MetallicTextureIndex;
     int OpacityTextureIndex;
+
+    //Parameters
+	float Metallic;
+	float Roughness;
+    float Padding;
+    vec4 Albedo;
+
+    vec2 TextureSamplePosition;
+    vec2 TextureSampleSize;
 };
 
 layout(set = 1,binding = 0) uniform sampler2D Textures[];
 layout(std430 ,set = 2,binding = 0) readonly buffer TextureIndexBuffer{
-    MaterialTextureIndexes TextureIndexes[];
+    Material Materials[];
 };
 
 void main() {
     Position = vec4(OutPosition,1.0f);
     Albedo = MeshIndex;
-    MaterialTextureIndexes Indexes = TextureIndexes[MeshIndex];
+    Material MaterialData = Materials[MeshIndex];
 
     //Albedo = vec4(MeshIndex,vec3(1));
     //Normal = vec4(OutNormals,1.0f);
-    vec2 FlippedUV = vec2(OutUVcoords.x,1.0f - OutUVcoords.y);
-    RoughnessMetallic = vec4(FlippedUV,1.0f,1.0f);
+    vec2 UV = MaterialData.TextureSamplePosition + MaterialData.TextureSampleSize * OutUVcoords;
+    RoughnessMetallic = vec4(UV,1.0f,1.0f);
     //RoughnessMetallic = FlippedUV;
 
-    if(Indexes.NormalMapTextureIndex >= 0)  
+    Normal = vec4(OutNormals,1.0f);
+    if(MaterialData.NormalMapTextureIndex >= 0)  
     {
-        vec3 TextureNormal = texture(Textures[nonuniformEXT(Indexes.NormalMapTextureIndex)],FlippedUV).xyz * 2.0 - 1.0; 
+        vec3 TextureNormal = texture(Textures[nonuniformEXT(MaterialData.NormalMapTextureIndex)],UV).xyz * 2.0 - 1.0; 
         mat3 TBNmatrix = mat3(OutTangent,OutBitangent,OutNormals);
         Normal = vec4(normalize(TBNmatrix * TextureNormal),1.0f);
-    }
-    else Normal = vec4(OutNormals,1.0f);
-    
-
+    }    
     //Albedo = Indexes.AlbedoTextureIndex;
 
     /*

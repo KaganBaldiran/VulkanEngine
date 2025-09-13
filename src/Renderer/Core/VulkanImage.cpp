@@ -12,6 +12,7 @@
 
 int RENDERER_CORE::ReadTexture(const char* FileName, RENDERER_CORE::RawImageData& DestinationImageData)
 {
+    stbi_set_flip_vertically_on_load(true);
     DestinationImageData.Pixels = stbi_load(FileName, &DestinationImageData.Width, &DestinationImageData.Height, &DestinationImageData.ChannelCount, STBI_rgb_alpha);
     if (!DestinationImageData.Pixels)
     {
@@ -217,6 +218,7 @@ void RENDERER_CORE::CopyBufferToImage(VkCommandBuffer& DstCommandBuffer, VkBuffe
 
 void RENDERER_CORE::CreateTextureImage(const char* ImageFilePath,VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice,VkCommandPool &CommandPool,VkQueue &GraphicsQueue,TextureData &DestinationTexture)
 {
+    stbi_set_flip_vertically_on_load(true);
     RawImageData ImageData;
     ImageData.Pixels = stbi_load(ImageFilePath, &ImageData.Width, &ImageData.Height, &ImageData.ChannelCount, STBI_rgb_alpha);
     VkDeviceSize ImageSize = ImageData.Width * ImageData.Height * 4;

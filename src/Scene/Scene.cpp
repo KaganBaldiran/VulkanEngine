@@ -8,6 +8,7 @@
 #include "../Renderer/Core/VulkanPipeline.hpp"
 
 #include "MaterialManager.hpp"
+#include <chrono>
 
 SCENE::Scene::Scene(RENDERER::RendererContext& RendererContext,SCENE::TextureManager &Manager, MeshManager& MeshManager, SceneOptions Options)
 {
@@ -72,7 +73,7 @@ void SCENE::Scene::LinkModelInstance(ModelInstance& Instance)
         UpdateLists[i].ModelInstancesAppendList.push_back(&Instance);
         UpdateLists[i].ModelInstancesTransformationUpdateList.push_back(&Instance);
         this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | 
-            SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS | SCENE_UPDATE_TYPE_LINK_MESHES;
+            SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS | SCENE_UPDATE_TYPE_LINK_MESHES;
     }
 }
 
@@ -83,7 +84,7 @@ void SCENE::Scene::LinkModelInstance(std::vector<ModelInstance*>& Instances)
         UpdateLists[i].ModelInstancesAppendList.insert(UpdateLists[i].ModelInstancesAppendList.end(), Instances.begin(), Instances.end());
         UpdateLists[i].ModelInstancesTransformationUpdateList.insert(UpdateLists[i].ModelInstancesTransformationUpdateList.end(), Instances.begin(), Instances.end());
         this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | 
-            SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS | SCENE_UPDATE_TYPE_LINK_MESHES;
+            SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS | SCENE_UPDATE_TYPE_LINK_MESHES;
     }
 }
 
@@ -131,20 +132,27 @@ void SCENE::Scene::MarkResourceChanged(Resource* Resource, MarkChangedType Type,
 
     for (uint32_t i = (IsAllFrames ? 0 : FrameIndex); i < (IsAllFrames ? MAX_FRAMES_IN_FLIGHT : (FrameIndex + 1)); i++)
     {
+        auto& Lists = UpdateLists[i];
+        auto& UpdateBit = PendingUpdateBits[i];
         if (Type & MARK_CHANGED_TYPE_MESH_TRANSFORMATION)
         {
-            UpdateLists[i].ModelInstancesTransformationUpdateList.push_back(reinterpret_cast<ModelInstance*>(Resource));
-            this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS;
+            Lists.ModelInstancesTransformationUpdateList.push_back(reinterpret_cast<ModelInstance*>(Resource));
+            UpdateBit = UpdateBit | SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS;
+        }
+        if (Type & MARK_CHANGED_TYPE_MESH_MATERIAL)
+        {
+            Lists.MaterialUpdateList.push_back(reinterpret_cast<ModelInstance*>(Resource));
+            UpdateBit = UpdateBit | SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS;
         }
         if (Type & MARK_CHANGED_TYPE_DYNAMIC_LIGHT)
         {
-            UpdateLists[i].DynamicLightAppendUpdateList.push_back(reinterpret_cast<Light*>(Resource));
-            this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS;
+            Lists.DynamicLightAppendUpdateList.push_back(reinterpret_cast<Light*>(Resource));
+            UpdateBit = UpdateBit | SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS;
         }
         if (Type & MARK_CHANGED_TYPE_STATIC_LIGHT)
         {
-            UpdateLists[i].StaticLightAppendUpdateList.push_back(reinterpret_cast<Light*>(Resource));
-            this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS;
+            Lists.StaticLightAppendUpdateList.push_back(reinterpret_cast<Light*>(Resource));
+            UpdateBit = UpdateBit | SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS;
         }
     }
 }
@@ -169,6 +177,7 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
 
             MeshBuffers.AppendModels(
                 UpdateList.ModelInstancesAppendList,
+                UpdateList.MaterialUpdateList,
                 i, 
                 IndirectDescriptorSets, 
                 StagingBuffers[i],
@@ -192,7 +201,7 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
         {
             UpdateMeshTransformations(i);
         }
-        if (Bit & SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS)
+        if (Bit & SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS)
         {
             MeshBuffers.UpdateMaterials(
                 UpdateList.MaterialUpdateList,
@@ -202,16 +211,23 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
                 StagingBuffers[i], 
                 SceneCopyInfos[i]
             );
+            UpdateList.MaterialUpdateList.clear();
         }
         if ((Bit & SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS) || (Bit & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS))
         {
+            bool UpdateDynamicLightBuffers = (Bit & SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS);
+            bool UpdateStaticLightBuffers = (Bit & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS);
+
             std::vector<Light*> EmptyLightList;
             LightAppendOrUpdateInfo Info{};
             Info.FrameIndex = i;
-            Info.DynamicLights = (Bit & SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS) ? UpdateList.DynamicLightAppendUpdateList : EmptyLightList;
-            Info.StaticLights = (Bit & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS) ? UpdateList.StaticLightAppendUpdateList : EmptyLightList;
+            Info.DynamicLights = UpdateDynamicLightBuffers ? UpdateList.DynamicLightAppendUpdateList : EmptyLightList;
+            Info.StaticLights = UpdateStaticLightBuffers ? UpdateList.StaticLightAppendUpdateList : EmptyLightList;
             Info.TargetDescriptorSets = SceneDescriptorSets;
             LightManager.AppendOrUpdateLights(Info);
+
+            if (UpdateDynamicLightBuffers) UpdateList.DynamicLightAppendUpdateList.clear();
+            if (UpdateStaticLightBuffers) UpdateList.StaticLightAppendUpdateList.clear();
         }
         this->PendingUpdateBits[i] = SCENE_UPDATE_TYPE_NONE;
     }

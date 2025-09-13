@@ -26,6 +26,7 @@
 #include "MaterialManager.hpp"
 #include "MeshManager.hpp"
 #include "PersistentSceneStagingBuffer.hpp"
+#include <memory_resource>
 
 namespace RENDERER_CORE
 {
@@ -78,14 +79,14 @@ namespace SCENE
 		SCENE_UPDATE_TYPE_NONE = 0,
 		SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS = 1 << 1,
 		SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS = 1 << 2,
-		SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS = 1 << 3,
+		SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS = 1 << 3,
 		SCENE_UPDATE_TYPE_LINK_MESHES = 1 << 4,
 		SCENE_UPDATE_TYPE_UNLINK_MESHES = 1 << 5,
 		SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS = 1 << 6,
 
 		SCENE_UPDATE_TYPE_ALL = SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS |
 										SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS |
-										SCENE_UPDATE_TYPE_UPDATE_TEXTURE_DESCRIPTORS |
+										SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS |
 										SCENE_UPDATE_TYPE_LINK_MESHES |
 										SCENE_UPDATE_TYPE_UNLINK_MESHES |
 										SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS,
@@ -100,8 +101,13 @@ namespace SCENE
 		MARK_CHANGED_TYPE_DYNAMIC_LIGHT = 1 << 2,
 		MARK_CHANGED_TYPE_MESH_TRANSFORMATION = 1 << 3,
 		MARK_CHANGED_TYPE_MESH_GEOMETRY = 1 << 4,
-		MARK_CHANGED_TYPE_MESH_TEXTURE = 1 << 5
+		MARK_CHANGED_TYPE_MESH_MATERIAL = 1 << 5
 	};
+
+	inline MarkChangedType operator|(MarkChangedType a, MarkChangedType b)
+	{
+		return static_cast<MarkChangedType>(static_cast<int>(a) | static_cast<int>(b));
+	}
 
 	inline SceneUpdateType operator|(SceneUpdateType a, SceneUpdateType b)
 	{
@@ -151,6 +157,20 @@ namespace SCENE
 	private:
 		struct UpdateLists
 		{
+			UpdateLists()
+			{
+				const size_t ReserveCount = 500;
+
+				ModelInstancesAppendList.reserve(ReserveCount);
+				ModelInstancesEraseList.reserve(ReserveCount);
+				ModelInstancesTransformationUpdateList.reserve(ReserveCount);
+				MaterialUpdateList.reserve(ReserveCount);
+				DynamicLightAppendUpdateList.reserve(ReserveCount);
+				StaticLightAppendUpdateList.reserve(ReserveCount);
+				DynamicLightEraseList.reserve(ReserveCount);
+				StaticLightEraseList.reserve(ReserveCount);
+			}
+
 			std::vector<ModelInstance*> ModelInstancesAppendList;
 			std::vector<ModelInstance*> ModelInstancesEraseList;
 			std::vector<ModelInstance*> ModelInstancesTransformationUpdateList;
