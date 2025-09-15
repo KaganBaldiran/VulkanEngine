@@ -4,9 +4,11 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "VulkanUtils.hpp" 
 #include <vector>
 #include <mutex>
+
+#include "VulkanSynchoronization.hpp"
+#include "VulkanUtils.hpp" 
 
 namespace RENDERER_CORE
 {
@@ -16,8 +18,7 @@ namespace RENDERER_CORE
 		VkDeviceMemory ImageMemory = VK_NULL_HANDLE;
 		VkSampler Sampler = VK_NULL_HANDLE;
 		VkImageView ImageView = VK_NULL_HANDLE;
-		VkImageLayout Layout = VK_IMAGE_LAYOUT_UNDEFINED;
-
+		ImageBarrierState BarrierState{};
 		void Destroy(VkDevice& LogicalDevice);
 	};
 

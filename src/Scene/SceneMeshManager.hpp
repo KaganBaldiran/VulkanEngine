@@ -37,9 +37,11 @@ namespace SCENE
 
 	namespace INTERNAL
 	{
-		struct TextureIndexData
+		struct MaterialTextureIndexData
 		{
 			std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
+
+			bool operator==(const MaterialTextureIndexData& Data0) const { return this->TextureIndexes == Data0.TextureIndexes; }
 		};
 
 		struct MaterialParameterData
@@ -48,19 +50,38 @@ namespace SCENE
 			float Metallic;
 			float Padding;
 			glm::vec4 Albedo;
+
+			bool operator==(const MaterialParameterData& Data0) const
+			{
+				return this->Roughness == Data0.Roughness &&
+					   this->Metallic == Data0.Metallic && 
+					   this->Albedo == Data0.Albedo;
+			}
 		};
 
 		struct MaterialSamplingData
 		{
 			glm::vec2 TextureSamplePosition;
 			glm::vec2 TextureSampleSize;
+
+			bool operator==(const MaterialSamplingData& Data0) const 
+			{
+				return this->TextureSampleSize == Data0.TextureSampleSize && this->TextureSamplePosition == Data0.TextureSamplePosition;
+			}
 		};
 
 		struct alignas(16) MaterialData
 		{
-			TextureIndexData IndexData;
+			MaterialTextureIndexData IndexData;
 			MaterialParameterData Parameters;
 			MaterialSamplingData SamplingData;
+
+			bool operator==(const MaterialData& Data0) const
+			{
+				return this->IndexData == Data0.IndexData &&
+					   this->Parameters == Data0.Parameters &&
+					   this->SamplingData == Data0.SamplingData;
+			}
 		};
 
 		
@@ -151,9 +172,8 @@ namespace SCENE
 		};
 
 		struct MaterialMetaData
-		{
+		{			
 			MaterialData Material;
-			//std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
 			RENDERER_CORE::MemoryRegion TextureIndexMemoryRegion;
 			RENDERER_CORE::MemoryRegion StagingTextureIndexMemoryRegion;
 		};

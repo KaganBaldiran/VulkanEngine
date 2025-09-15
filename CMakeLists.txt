@@ -52,8 +52,8 @@ if(WIN32)
     endforeach()
 
     include_directories(
+        external/assimp/include
         external/freeimage/include/Source 
-        external/VulkanMemoryAllocator/include external/assimp/include 
         external/glfw-3.3.7.bin.WIN64/glfw-3.3.7.bin.WIN64/include/GLFW
         ${VULKAN_SDK}/Include
         ${BULLET_PHYSICS_SDK_ROOT}/include
@@ -62,7 +62,6 @@ if(WIN32)
                                     ${CMAKE_SOURCE_DIR}/external/glfw-3.3.7.bin.WIN64/glfw-3.3.7.bin.WIN64/lib-vc2022/glfw3.lib 
                                     ${CMAKE_SOURCE_DIR}/external/freeimage/lib/release/FreeImage.lib
                                     ${CMAKE_SOURCE_DIR}/external/assimp/lib/assimp-vc143-mt.lib
-                                    ${CMAKE_SOURCE_DIR}/external/VulkanMemoryAllocator/lib/VmaSample.lib
                                     ${VULKAN_SDK}/Lib/vulkan-1.lib
 
                                     debug ${VULKAN_SDK}/Lib/shaderc_combinedd.lib

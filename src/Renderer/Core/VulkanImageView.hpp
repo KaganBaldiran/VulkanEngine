@@ -1,8 +1,10 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #include <glfw3.h>
-#include "VulkanUtils.hpp" 
 #include <vector>
+
+#include "VulkanSynchoronization.hpp"
+#include "VulkanUtils.hpp" 
 
 namespace RENDERER_CORE
 {
@@ -26,7 +28,7 @@ namespace RENDERER_CORE
     VulkanResult CreateSwapChainImageViews(
         std::vector<VkImage>& swapChainImages,
         std::vector<VkImageView>& swapChainImageViews,
-        std::vector<VkImageLayout>& swapChainLayouts,
+        std::vector<RENDERER_CORE::ImageBarrierState>& swapChainBarrierStates,
         VkFormat surfaceFormat,
         VkDevice& logicalDevice
     );

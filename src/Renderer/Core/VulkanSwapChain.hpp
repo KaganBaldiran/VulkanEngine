@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <vector>
 #include "VulkanUtils.hpp" 
+#include "VulkanSynchoronization.hpp"
 
 namespace RENDERER_CORE
 {
@@ -45,7 +46,7 @@ namespace RENDERER_CORE
         VkSwapchainKHR swapChain = VK_NULL_HANDLE;
         std::vector<VkImage> SwapChainImages;
         std::vector<VkImageView> SwapChainImagesViews;
-        std::vector<VkImageLayout> SwapChainImagesLayouts;
+        std::vector<ImageBarrierState> SwapChainImagesBarrierStates;
         VkSurfaceFormatKHR SurfaceFormat;
         VkPresentModeKHR PresentMode;
         VkExtent2D Extent;

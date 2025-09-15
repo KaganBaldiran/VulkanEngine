@@ -82,15 +82,21 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
         return;
     };
 
-    for (auto& Attachment : { FrameGbuffer.NormalAttachment , FrameGbuffer.PositionAttachment , FrameGbuffer.AlbedoAttachment ,  FrameGbuffer.RoughnessMetallicAttachment })
+    std::array<RENDERER_CORE::TextureData*, 4> GbufferAttachments = {
+        &FrameGbuffer.NormalAttachment,
+        &FrameGbuffer.PositionAttachment,
+        &FrameGbuffer.AlbedoAttachment,
+        &FrameGbuffer.RoughnessMetallicAttachment
+    };
+
+    for (auto& Attachment : GbufferAttachments)
     {
         RENDERER_CORE::SafeImageBarrier(
-            const_cast<RENDERER_CORE::TextureData&>(Attachment),
+            Attachment->Image,
+            Attachment->BarrierState,
             PipelineBarrier2,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            0,
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
         );
     }
@@ -107,15 +113,14 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
         ClearDepth
     );
 
-    for (auto& Attachment : { FrameGbuffer.NormalAttachment , FrameGbuffer.PositionAttachment , FrameGbuffer.AlbedoAttachment ,  FrameGbuffer.RoughnessMetallicAttachment })
+    for (auto& Attachment : GbufferAttachments)
     {
         RENDERER_CORE::SafeImageBarrier(
-            const_cast<RENDERER_CORE::TextureData&>(Attachment),
+            Attachment->Image,
+            Attachment->BarrierState,
             PipelineBarrier2,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
             VK_ACCESS_2_SHADER_READ_BIT
         );
     }
@@ -275,9 +280,8 @@ void RENDERER::DeferredRenderPipeline::RenderLightingPass(
     bool ClearColorAttachment
 )
 {
-    std::array<VkClearValue, 2> ClearColors{};
+    std::array<VkClearValue, 1> ClearColors{};
     ClearColors[0].color = { {0.0f,0.0f,0.0f,1.0f} };
-    ClearColors[1].depthStencil = { 1.0f,0 };
 
     RENDERER_CORE::DynamicRenderingPass RenderingPass;
     RenderingPass.AppendAttachment(

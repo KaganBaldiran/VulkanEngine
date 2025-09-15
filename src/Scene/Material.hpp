@@ -24,7 +24,6 @@ namespace SCENE
 	{
 	public:
 		Material();
-		
 		glm::vec4 Albedo = glm::vec4(1.0f);
 		float Roughness = 0.5f;
 		float Metallic = 0.0f;
@@ -37,4 +36,14 @@ namespace SCENE
 		inline void ReferenceTexture(const uint64_t& TextureID, MaterialTextureType TextureTypeSlot) { ReferencedTextures[static_cast<size_t>(TextureTypeSlot)] = TextureID; };
 		inline uint64_t GetTexture(MaterialTextureType TextureType) { return ReferencedTextures[static_cast<size_t>(TextureType)]; };
 	};
+
+	void DoSpriteAnimation(
+		glm::vec2& DestinationSize,
+		glm::vec2& DestinationPosition,
+		float& CurrentFrame,
+		float DeltaTime,
+		float Speed,
+		uint32_t RowCount,
+		uint32_t ColumnCount
+	);
 }

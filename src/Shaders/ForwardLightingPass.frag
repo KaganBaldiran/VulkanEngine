@@ -2,7 +2,14 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout(location = 0) out vec4 outColor;
-layout(location = 0) in vec2 OutUVcoords;
+
+layout(location = 0) in vec3 OutNormals;
+layout(location = 1) in vec3 OutPosition;
+layout(location = 2) in vec2 OutUVcoords;
+layout(location = 3) flat in int MeshIndex;
+layout(location = 4) in vec3 OutTangent;
+layout(location = 5) in vec3 OutBitangent;
+layout(location = 6) in vec3 OutNDCVelocity;
 
 layout(push_constant) uniform FrameData{
     vec3 CameraDirection;
@@ -13,11 +20,6 @@ layout(push_constant) uniform FrameData{
     int DynamicLightCount;
     float Time;
 };
-
-layout(set = 0,binding = 0) uniform sampler2D PositionBuffer;
-layout(set = 0,binding = 1) uniform sampler2D NormalBuffer;
-layout(set = 0,binding = 2) uniform isampler2D AlbedoBuffer;
-layout(set = 0,binding = 3) uniform sampler2D RoughnessMetallicBuffer;
 
 struct Light
 {
@@ -267,8 +269,7 @@ void main() {
     outColor = vec4(mix(vec3(0.6f,0.7f,0.6f),Ambient + Lo,FogAmount),1.0f);
     */
 
-    int MeshIndex = int(texture(AlbedoBuffer,OutUVcoords).x);
-    if(MeshIndex < 0) discard;
+   
 
     vec2 UV = texture(RoughnessMetallicBuffer,OutUVcoords).xy;
     vec3 Normal = texture(NormalBuffer,OutUVcoords).xyz;
@@ -286,10 +287,7 @@ void main() {
     vec3 ShadedPixel = CalculateLighting(Normal,Position,Albedo,Roughness,Metallic);
    
     float Distance = dot(Position - CameraPosition,Position - CameraPosition);
-    float NormalizedDistance = Distance / (CameraFrustumLength * CameraFrustumLength);
-    float FogAmount = clamp(exp(-NormalizedDistance * FogIntensity),0.0f,1.0f);
+    float FogAmount = clamp(exp(-Distance / (CameraFrustumLength * CameraFrustumLength) * FogIntensity),0.0f,1.0f);
 
-    
     outColor = vec4(mix(vec3(0.6f,0.7f,0.6f),ShadedPixel,FogAmount),1.0f);
-    //outColor = vec4(UV,0.0f,1.0f);
 }

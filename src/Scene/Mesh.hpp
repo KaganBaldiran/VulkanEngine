@@ -83,8 +83,8 @@ namespace SCENE
     {
     public:
         size_t GeometryID = 0;
-        bool Enabled = true;
-        MeshUpdateMode meshUpdateMode = MESH_UPDATE_MODE_PERFORMANCE;
+        Material MeshMaterial;
+        BoundingBoxAABB BoundingBox;
     };
 
     struct Transformation
@@ -94,6 +94,13 @@ namespace SCENE
         glm::mat4 RotationMatrix = glm::mat4(1.0f);
 
         glm::mat4 GetModelMatrix() { return TranslationMatrix * RotationMatrix * ScalingMatrix; };
+        void Translate(glm::vec3 TranslationVector);
+        void Rotate(float RotationInDegrees, glm::vec3 Axis);
+        void Scale(glm::vec3 ScaleCoefficient);
+
+        void SetTranslationMatrix(const glm::mat4& Matrix);
+        void SetRotationMatrix(const glm::mat4& Matrix);
+        void SetScalingMatrix(const glm::mat4& Matrix);
     };
 
     struct ModelHandle : public Resource

@@ -37,54 +37,123 @@ void RENDERER::Renderer::Create(RendererContext& DestinationRendererContext, boo
     CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     RENDERER_CORE::AllocateCommandBuffers(rendererContext->CommandPool.commandPool, LogicalDevice, CommandBuffers);
 
-    RENDERER_CORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, rendererContext->DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage.Image, DepthImage.ImageMemory);
-    DepthImage.ImageView = RENDERER_CORE::CreateImageView(DepthImage.Image, rendererContext->DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
-
-    /*
-    RENDERER_CORE::CreateImage(
-        PhysicalDevice, 
-        LogicalDevice, 
-        rendererContext->SwapChain.Extent.width, 
-        rendererContext->SwapChain.Extent.height, 
-        VK_IMAGE_TILING_OPTIMAL,
-        rendererContext->SwapChain.SurfaceFormat.format, 
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-        ColorRenderAttachmentImage.Image,
-        ColorRenderAttachmentImage.ImageMemory
-    );
-    DepthImage.ImageView = RENDERER_CORE::CreateImageView(
-        ColorRenderAttachmentImage.Image,
-        rendererContext->SwapChain.SurfaceFormat.format,
-        VK_IMAGE_VIEW_TYPE_2D,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        LogicalDevice
-    );
-    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, ColorRenderAttachmentImage.Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-
-    */
-    for (auto& Gbuffer : Gbuffers)
-    {
-        Gbuffer.Create(PhysicalDevice, LogicalDevice, DestinationRendererContext.SwapChain.Extent.width, DestinationRendererContext.SwapChain.Extent.height);
-    }
-
     //Lighting pass descriptor set
     DescriptorPool.Create(
-        { {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,4 * MAX_FRAMES_IN_FLIGHT} },
-        MAX_FRAMES_IN_FLIGHT, LogicalDevice
+        { {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,10 * MAX_FRAMES_IN_FLIGHT} },
+        2 * MAX_FRAMES_IN_FLIGHT, LogicalDevice
     );
 
     RENDERER_CORE::AllocateDescriptorSets(LogicalDevice, MAX_FRAMES_IN_FLIGHT, DescriptorPool.Handle, DestinationRendererContext.LightingPassLayout.Handle, LightingPassDescriptorSets.data());
+    RENDERER_CORE::AllocateDescriptorSets(LogicalDevice, MAX_FRAMES_IN_FLIGHT, DescriptorPool.Handle, DestinationRendererContext.PostProcessDescriptorSetLayout.Handle, PostProcessingPassDescriptorSets.data());
 
+    std::vector<RENDERER_CORE::DescriptorSetWriteImage> ImageWrites;
+    ImageWrites.reserve(7 * MAX_FRAMES_IN_FLIGHT);
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        RENDERER_CORE::DescriptorSetWriteImage PositionTextureWrite(Gbuffers[i].PositionAttachment.ImageView, Gbuffers[i].PositionAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        RENDERER_CORE::DescriptorSetWriteImage NormalTextureWrite(Gbuffers[i].NormalAttachment.ImageView, Gbuffers[i].NormalAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        RENDERER_CORE::DescriptorSetWriteImage AlbedoTextureWrite(Gbuffers[i].AlbedoAttachment.ImageView, Gbuffers[i].AlbedoAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        RENDERER_CORE::DescriptorSetWriteImage RoughnessMetallicTextureWrite(Gbuffers[i].RoughnessMetallicAttachment.ImageView, Gbuffers[i].RoughnessMetallicAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 3, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        RENDERER_CORE::WriteDescriptorSets(LogicalDevice, { }, { NormalTextureWrite,PositionTextureWrite,AlbedoTextureWrite ,RoughnessMetallicTextureWrite });
+        Gbuffers[i].Create(PhysicalDevice, LogicalDevice, DestinationRendererContext.SwapChain.Extent.width, DestinationRendererContext.SwapChain.Extent.height);
+
+        RENDERER_CORE::CreateImage(
+            PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width,
+            rendererContext->SwapChain.Extent.height,
+            VK_IMAGE_TILING_OPTIMAL, rendererContext->DepthImageFormat,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImages[i].Image, DepthImages[i].ImageMemory
+        );
+        DepthImages[i].ImageView = RENDERER_CORE::CreateImageView(DepthImages[i].Image, rendererContext->DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
+        RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, DepthImages[i].Sampler, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+
+        //Main color attachment thats finally drawn onto 
+        RENDERER_CORE::CreateImage(
+            PhysicalDevice,
+            LogicalDevice,
+            rendererContext->SwapChain.Extent.width,
+            rendererContext->SwapChain.Extent.height,
+            VK_IMAGE_TILING_OPTIMAL,
+            rendererContext->SwapChain.SurfaceFormat.format,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            ColorRenderAttachmentImages[i].Image,
+            ColorRenderAttachmentImages[i].ImageMemory
+        );
+        ColorRenderAttachmentImages[i].ImageView = RENDERER_CORE::CreateImageView(
+            ColorRenderAttachmentImages[i].Image,
+            rendererContext->SwapChain.SurfaceFormat.format,
+            VK_IMAGE_VIEW_TYPE_2D,
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            LogicalDevice
+        );
+        RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, ColorRenderAttachmentImages[i].Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+
+
+        //Gbuffer attachments descriptor writes
+        RENDERER_CORE::DescriptorSetWriteImage PositionTextureWrite(
+            Gbuffers[i].PositionAttachment.ImageView,
+            Gbuffers[i].PositionAttachment.Sampler, 
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+            0,
+            LightingPassDescriptorSets[i], 
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage NormalTextureWrite(
+            Gbuffers[i].NormalAttachment.ImageView,
+            Gbuffers[i].NormalAttachment.Sampler, 
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+            1, 
+            LightingPassDescriptorSets[i], 
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage AlbedoTextureWrite(
+            Gbuffers[i].AlbedoAttachment.ImageView, 
+            Gbuffers[i].AlbedoAttachment.Sampler, 
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            2, 
+            LightingPassDescriptorSets[i], 
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage RoughnessMetallicTextureWrite(
+            Gbuffers[i].RoughnessMetallicAttachment.ImageView, 
+            Gbuffers[i].RoughnessMetallicAttachment.Sampler, 
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+            3, 
+            LightingPassDescriptorSets[i], 
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        ImageWrites.push_back(std::move(PositionTextureWrite));
+        ImageWrites.push_back(std::move(NormalTextureWrite));
+        ImageWrites.push_back(std::move(AlbedoTextureWrite));
+        ImageWrites.push_back(std::move(RoughnessMetallicTextureWrite));
+    
+
+        //Post process pass attachments descriptor writes
+        RENDERER_CORE::DescriptorSetWriteImage ColorRenderAttachmentTextureWrite(
+            ColorRenderAttachmentImages[i].ImageView,
+            ColorRenderAttachmentImages[i].Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+            0, 
+            PostProcessingPassDescriptorSets[i], 
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage DepthTextureWrite(
+            DepthImages[i].ImageView,
+            DepthImages[i].Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+            1, 
+            PostProcessingPassDescriptorSets[i], 
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage PostProcessNormalTextureWrite(
+            Gbuffers[i].NormalAttachment.ImageView, 
+            Gbuffers[i].NormalAttachment.Sampler, 
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+            2, 
+            PostProcessingPassDescriptorSets[i], 
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        ImageWrites.push_back(std::move(ColorRenderAttachmentTextureWrite));
+        ImageWrites.push_back(std::move(DepthTextureWrite));
+        ImageWrites.push_back(std::move(PostProcessNormalTextureWrite));
     }
+    RENDERER_CORE::WriteDescriptorSets(LogicalDevice, { }, ImageWrites);
 
     InitializePipelines();
 
@@ -213,37 +282,37 @@ void RENDERER::Renderer::RenderFrame()
         vkCmdSetScissor(CommandBuffer, 0, 1, &Scissor);
 
         //Transition the current swap chain image into color attachment
-        auto& SwapChainLayout = rendererContext->SwapChain.SwapChainImagesLayouts[CurrentImageIndex];
-        if (SwapChainLayout != VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-        {
-            PipelineBarrier2.AppendImageMemoryBarrier(
-                rendererContext->SwapChain.SwapChainImages[CurrentImageIndex],
-                VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                0,
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                SwapChainLayout,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-            );
-            SwapChainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        }
-        //Transition depth image into depth attachment
-        if (DepthImage.Layout != VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
-        {
-            PipelineBarrier2.AppendImageMemoryBarrier(
-                DepthImage.Image,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                0,
-                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_IMAGE_ASPECT_DEPTH_BIT
-            );
-            DepthImage.Layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-        }
+        auto& SwapChainBarrierState = rendererContext->SwapChain.SwapChainImagesBarrierStates[CurrentImageIndex];
+        RENDERER_CORE::SafeImageBarrier(
+            rendererContext->SwapChain.SwapChainImages[CurrentImageIndex],
+            SwapChainBarrierState,
+            PipelineBarrier2,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+        );
+
+        RENDERER_CORE::SafeImageBarrier(
+            ColorRenderAttachmentImages[CurrentFrame].Image,
+            ColorRenderAttachmentImages[CurrentFrame].BarrierState,
+            PipelineBarrier2,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+        );
+
+        RENDERER_CORE::SafeImageBarrier(
+            DepthImages[CurrentFrame].Image,
+            DepthImages[CurrentFrame].BarrierState,
+            PipelineBarrier2,
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_IMAGE_ASPECT_DEPTH_BIT
+        );
+
         PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
 
         for (uint32_t i = 0; i < RenderPasses.size(); i++)
@@ -252,11 +321,19 @@ void RENDERER::Renderer::RenderFrame()
             RenderPassConfiguration& RenderPass = RenderPasses[i];
             auto& SceneCopyInfos = RenderPass.Scene->SceneCopyInfos[CurrentFrame];
 
+            //Handle copy operations from respective scenes.
             for (int CopySlot = 0; CopySlot < static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE); CopySlot++)
             {
                 if (!SceneCopyInfos[CopySlot].CopyRegions.empty())
                 {
-                    vkCmdCopyBuffer(CommandBuffer, SceneCopyInfos[CopySlot].SourceBuffer, SceneCopyInfos[CopySlot].DestinationBuffer, static_cast<uint32_t>(SceneCopyInfos[CopySlot].CopyRegions.size()), SceneCopyInfos[CopySlot].CopyRegions.data());
+                    vkCmdCopyBuffer(
+                        CommandBuffer, 
+                        SceneCopyInfos[CopySlot].SourceBuffer, 
+                        SceneCopyInfos[CopySlot].DestinationBuffer, 
+                        static_cast<uint32_t>(SceneCopyInfos[CopySlot].CopyRegions.size()), 
+                        SceneCopyInfos[CopySlot].CopyRegions.data()
+                    );
+                    //Buffer memory barrier to make it visible
                     PipelineBarrier2.AppendBufferMemoryBarrier(
                         SceneCopyInfos[CopySlot].DestinationBuffer,
                         0,
@@ -279,8 +356,9 @@ void RENDERER::Renderer::RenderFrame()
                 CommandBuffer,
                 CurrentImageIndex,
                 CurrentFrame,
-                DepthImage.ImageView,
-                rendererContext->SwapChain.SwapChainImagesViews[CurrentImageIndex],
+                DepthImages[CurrentFrame].ImageView,
+                //rendererContext->SwapChain.SwapChainImagesViews[CurrentImageIndex],
+                ColorRenderAttachmentImages[CurrentFrame].ImageView,
                 Gbuffers[CurrentFrame],
                 LightingPassDescriptorSets[CurrentFrame],
                 RenderPass.EnableDepthTesting,
@@ -288,20 +366,42 @@ void RENDERER::Renderer::RenderFrame()
                 IsFirstOne
             );
         }
+
+        RENDERER_CORE::SafeImageBarrier(
+            ColorRenderAttachmentImages[CurrentFrame].Image,
+            ColorRenderAttachmentImages[CurrentFrame].BarrierState,
+            PipelineBarrier2,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT
+        );
+        
+        //Transition depth image into depth attachment
+        RENDERER_CORE::SafeImageBarrier(
+            DepthImages[CurrentFrame].Image,
+            DepthImages[CurrentFrame].BarrierState,
+            PipelineBarrier2,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_IMAGE_ASPECT_DEPTH_BIT
+        );
+        
+
+        PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
+
+        RenderPostProcessPass(SCENE::Camera3D(), CommandBuffer, CurrentImageIndex, CurrentFrame);
        
-        if (SwapChainLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-        {
-            PipelineBarrier2.AppendImageMemoryBarrier(
-                rendererContext->SwapChain.SwapChainImages[CurrentImageIndex],
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                0,
-                SwapChainLayout,
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-            );
-            SwapChainLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        }
+        RENDERER_CORE::SafeImageBarrier(
+            rendererContext->SwapChain.SwapChainImages[CurrentImageIndex],
+            SwapChainBarrierState,
+            PipelineBarrier2,
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0
+        );
 
         PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
 
@@ -354,7 +454,7 @@ void RENDERER::Renderer::RenderPhysicsDebugPass(SCENE::Scene& Scene, SCENE::Came
         ClearColors[0]
     );
     RenderingPass.AppendAttachment(
-        DepthImage.ImageView,
+        DepthImages[CurrentFrame].ImageView,
         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
         VK_ATTACHMENT_LOAD_OP_LOAD,
         VK_ATTACHMENT_STORE_OP_STORE,
@@ -384,7 +484,60 @@ void RENDERER::Renderer::RenderPhysicsDebugPass(SCENE::Scene& Scene, SCENE::Came
     vkCmdDraw(CommandBuffer,glm::min((int)DebugDrawer->DebugLines.size(), MaxLines), 1, 0, 0);
 
     RenderingPass.EndRendering(CommandBuffer);
-};
+}
+void RENDERER::Renderer::RenderPostProcessPass(
+    SCENE::Camera3D& Camera, 
+    VkCommandBuffer& CommandBuffer, 
+    uint32_t CurrentImageIndex, 
+    uint32_t CurrentFrame
+)
+{
+    std::array<VkClearValue, 2> ClearColors{};
+    ClearColors[0].color = { {0.0f,0.0f,0.0f,1.0f} };
+    ClearColors[1].depthStencil = { 1.0f,0 };
+
+    RENDERER_CORE::DynamicRenderingPass RenderingPass;
+    RenderingPass.AppendAttachment(
+        rendererContext->SwapChain.SwapChainImagesViews[CurrentImageIndex],
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_ATTACHMENT_LOAD_OP_CLEAR,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        ClearColors[0]
+    );
+
+    RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)rendererContext->SwapChain.Extent.width, (uint32_t)rendererContext->SwapChain.Extent.height} });
+
+    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = rendererContext->PostProcessingGraphicsPipeline;
+    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.pipeline);
+
+    VkBuffer VertexBuffers[] = { rendererContext->QuadVertexBuffer.BufferObject };
+    VkDeviceSize Offsets[] = { 0 };
+    vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, Offsets);
+    VkDescriptorSet DescriptorSets[] = {
+        PostProcessingPassDescriptorSets[CurrentFrame]
+    };
+    vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Layout, 0, 1, DescriptorSets, 0, nullptr);
+
+    PostProcessingPassPushConstantData PushConstantData{};
+    PushConstantData.CameraDirection = Camera.CameraDirection;
+    PushConstantData.CameraPosition = Camera.CameraPosition;
+    PushConstantData.FogIntensity = 0.4f;
+    PushConstantData.CameraFrustumLength = Camera.FarPlane - Camera.NearPlane;
+   // PushConstantData.Time = std::chrono::duration<float>(std::chrono::system_clock::now()).count();
+    PushConstantData.Time = glfwGetTime();
+
+    vkCmdPushConstants(
+        CommandBuffer,
+        CurrentPipeline.Layout,
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        0,
+        sizeof(PostProcessingPassPushConstantData),
+        &PushConstantData
+    );
+
+    vkCmdDraw(CommandBuffer, 4, 1, 0, 0);
+    RenderingPass.EndRendering(CommandBuffer);
+}
 
 void RENDERER::Renderer::InitializePipelines()
 {
@@ -473,50 +626,122 @@ void RENDERER::Renderer::OnRecreateSwapChain() {
     vkDeviceWaitIdle(LogicalDevice);
 
     rendererContext->SwapChain.Destroy(LogicalDevice);
-    DepthImage.Destroy(LogicalDevice);
-
     rendererContext->SwapChain.Create(PhysicalDevice, LogicalDevice, rendererContext->Surface.Handle, rendererContext->Window.window);
 
-    RENDERER_CORE::CreateImage(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height, VK_IMAGE_TILING_OPTIMAL, rendererContext->DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage.Image, DepthImage.ImageMemory);
-    DepthImage.ImageView = RENDERER_CORE::CreateImageView(DepthImage.Image, rendererContext->DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
-
-    for (auto& Gbuffer : Gbuffers)
-    {
-        Gbuffer.Destroy(LogicalDevice);
-        Gbuffer.Create(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height);
-    }
-
+    std::vector<RENDERER_CORE::DescriptorSetWriteImage> ImageWrites;
+    ImageWrites.reserve(7 * MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        RENDERER_CORE::DescriptorSetWriteImage PositionTextureWrite(Gbuffers[i].PositionAttachment.ImageView, Gbuffers[i].PositionAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        RENDERER_CORE::DescriptorSetWriteImage NormalTextureWrite(Gbuffers[i].NormalAttachment.ImageView, Gbuffers[i].NormalAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        RENDERER_CORE::DescriptorSetWriteImage AlbedoTextureWrite(Gbuffers[i].AlbedoAttachment.ImageView, Gbuffers[i].AlbedoAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        RENDERER_CORE::DescriptorSetWriteImage RoughnessMetallicTextureWrite(Gbuffers[i].RoughnessMetallicAttachment.ImageView, Gbuffers[i].RoughnessMetallicAttachment.Sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 3, LightingPassDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        RENDERER_CORE::WriteDescriptorSets(LogicalDevice, {}, { NormalTextureWrite,PositionTextureWrite,AlbedoTextureWrite ,RoughnessMetallicTextureWrite });
+        //Gbuffer recreation
+        Gbuffers[i].Destroy(LogicalDevice);
+        Gbuffers[i].Create(PhysicalDevice, LogicalDevice, rendererContext->SwapChain.Extent.width, rendererContext->SwapChain.Extent.height);
+
+        //Depth image recreation
+        DepthImages[i].Destroy(LogicalDevice);
+        RENDERER_CORE::CreateImage(
+            PhysicalDevice,
+            LogicalDevice, 
+            rendererContext->SwapChain.Extent.width, 
+            rendererContext->SwapChain.Extent.height, 
+            VK_IMAGE_TILING_OPTIMAL, 
+            rendererContext->DepthImageFormat, 
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+            DepthImages[i].Image, 
+            DepthImages[i].ImageMemory
+        );
+        DepthImages[i].ImageView = RENDERER_CORE::CreateImageView(DepthImages[i].Image, rendererContext->DepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, LogicalDevice);
+        RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, DepthImages[i].Sampler, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+
+        //Main render attachment recreation
+        ColorRenderAttachmentImages[i].Destroy(LogicalDevice);
+        RENDERER_CORE::CreateImage(
+            PhysicalDevice,
+            LogicalDevice,
+            rendererContext->SwapChain.Extent.width,
+            rendererContext->SwapChain.Extent.height,
+            VK_IMAGE_TILING_OPTIMAL,
+            rendererContext->SwapChain.SurfaceFormat.format,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            ColorRenderAttachmentImages[i].Image,
+            ColorRenderAttachmentImages[i].ImageMemory
+        );
+        ColorRenderAttachmentImages[i].ImageView = RENDERER_CORE::CreateImageView(
+            ColorRenderAttachmentImages[i].Image,
+            rendererContext->SwapChain.SurfaceFormat.format,
+            VK_IMAGE_VIEW_TYPE_2D,
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            LogicalDevice
+        );
+        RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, ColorRenderAttachmentImages[i].Sampler, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+
+        RENDERER_CORE::DescriptorSetWriteImage PositionTextureWrite(
+            Gbuffers[i].PositionAttachment.ImageView,
+            Gbuffers[i].PositionAttachment.Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            0, LightingPassDescriptorSets[i],
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage NormalTextureWrite(
+            Gbuffers[i].NormalAttachment.ImageView,
+            Gbuffers[i].NormalAttachment.Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            1, LightingPassDescriptorSets[i],
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage AlbedoTextureWrite(
+            Gbuffers[i].AlbedoAttachment.ImageView,
+            Gbuffers[i].AlbedoAttachment.Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            2,
+            LightingPassDescriptorSets[i],
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage RoughnessMetallicTextureWrite(
+            Gbuffers[i].RoughnessMetallicAttachment.ImageView,
+            Gbuffers[i].RoughnessMetallicAttachment.Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            3,
+            LightingPassDescriptorSets[i],
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        ImageWrites.push_back(std::move(PositionTextureWrite));
+        ImageWrites.push_back(std::move(NormalTextureWrite));
+        ImageWrites.push_back(std::move(AlbedoTextureWrite));
+        ImageWrites.push_back(std::move(RoughnessMetallicTextureWrite));
+
+
+        //Post process pass attachments descriptor writes
+        RENDERER_CORE::DescriptorSetWriteImage ColorRenderAttachmentTextureWrite(
+            ColorRenderAttachmentImages[i].ImageView,
+            ColorRenderAttachmentImages[i].Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            0,
+            PostProcessingPassDescriptorSets[i],
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage DepthTextureWrite(
+            DepthImages[i].ImageView,
+            DepthImages[i].Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            1,
+            PostProcessingPassDescriptorSets[i],
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        RENDERER_CORE::DescriptorSetWriteImage PostProcessNormalTextureWrite(
+            Gbuffers[i].NormalAttachment.ImageView,
+            Gbuffers[i].NormalAttachment.Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            2,
+            PostProcessingPassDescriptorSets[i],
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        );
+        ImageWrites.push_back(std::move(ColorRenderAttachmentTextureWrite));
+        ImageWrites.push_back(std::move(DepthTextureWrite));
+        ImageWrites.push_back(std::move(PostProcessNormalTextureWrite));
     }
-    /*
-    ColorRenderAttachmentImage.Destroy(LogicalDevice);
-    RENDERER_CORE::CreateImage(
-        PhysicalDevice,
-        LogicalDevice,
-        rendererContext->SwapChain.Extent.width,
-        rendererContext->SwapChain.Extent.height,
-        VK_IMAGE_TILING_OPTIMAL,
-        rendererContext->SwapChain.SurfaceFormat.format,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        ColorRenderAttachmentImage.Image,
-        ColorRenderAttachmentImage.ImageMemory
-    );
-    DepthImage.ImageView = RENDERER_CORE::CreateImageView(
-        ColorRenderAttachmentImage.Image,
-        rendererContext->SwapChain.SurfaceFormat.format,
-        VK_IMAGE_VIEW_TYPE_2D,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        LogicalDevice
-    );
-    */
+    RENDERER_CORE::WriteDescriptorSets(LogicalDevice, { }, ImageWrites);
 
     for (uint32_t i = 0; i < RenderPasses.size(); i++)
     {
@@ -530,11 +755,12 @@ void RENDERER::Renderer::Destroy()
     if (IsDestroyed) return;
 
     RENDERER_CORE::DestroyFrameSyncObjects(LogicalDevice, SyncObjects);
-    DepthImage.Destroy(LogicalDevice);
   
-    for (auto& Gbuffer : Gbuffers)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        Gbuffer.Destroy(LogicalDevice);
+        DepthImages[i].Destroy(LogicalDevice);
+        ColorRenderAttachmentImages[i].Destroy(LogicalDevice);
+        Gbuffers[i].Destroy(LogicalDevice);
     }
     DescriptorPool.Destroy(LogicalDevice);
 

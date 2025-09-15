@@ -97,13 +97,17 @@ void SCENE::MeshManager::WaitImportIdle()
     for (auto& NewImportResult : NewImportResults)
     {
         NewImportResult.GeometryHandles.reserve(NewImportResult.GeometryDatas.size());
-
         for (size_t y = 0; y < NewImportResult.GeometryDatas.size(); y++)
         {
+            GeometryData& GeometryData = NewImportResult.GeometryDatas[y];
+
             MeshHandle NewMeshHandle{};
+            NewMeshHandle.MeshMaterial = GeometryData.MeshMaterial;
+            NewMeshHandle.BoundingBox = GeometryData.BoundingBox;
             NewMeshHandle.GeometryID = GenerateResourceID();
+
             NewImportResult.GeometryHandles.push_back(NewMeshHandle.GeometryID);
-            NewImportResult.ConsumerModel->Meshes.push_back(NewMeshHandle);
+            NewImportResult.ConsumerModel->Meshes.push_back(std::move(NewMeshHandle));
         }
         //Set to-be processed by the frames
         NewImportResult.ResetFlags();

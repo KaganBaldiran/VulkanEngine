@@ -31,13 +31,13 @@ VkImageView RENDERER_CORE::CreateImageView(VkImage& Image, VkFormat Format,VkIma
 RENDERER_CORE::VulkanResult RENDERER_CORE::CreateSwapChainImageViews(
     std::vector<VkImage>& swapChainImages,
     std::vector<VkImageView>& swapChainImageViews,
-    std::vector<VkImageLayout>& swapChainLayouts,
+    std::vector<RENDERER_CORE::ImageBarrierState>& swapChainBarrierStates,
     VkFormat surfaceFormat,
     VkDevice& logicalDevice
 )
 {
     swapChainImageViews.resize(swapChainImages.size());
-    swapChainLayouts.resize(swapChainImages.size());
+    swapChainBarrierStates.resize(swapChainImages.size());
     for (size_t i = 0; i < swapChainImages.size(); i++)
     {
         swapChainImageViews[i] = RENDERER_CORE::CreateImageView(
@@ -47,7 +47,6 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateSwapChainImageViews(
             VK_IMAGE_ASPECT_COLOR_BIT,
             logicalDevice
         );
-        swapChainLayouts[i] = VK_IMAGE_LAYOUT_UNDEFINED;
     }
     return VULKAN_SUCCESS;
 }

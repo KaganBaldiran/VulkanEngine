@@ -888,6 +888,7 @@ void ExtractMaterial(
 )
 {
     auto& MaterialData = MaterialMetaData.Material;
+
     MaterialData.Parameters.Albedo = MaterialPtr->Albedo;
     MaterialData.Parameters.Metallic = MaterialPtr->Metallic;
     MaterialData.Parameters.Roughness = MaterialPtr->Roughness;
@@ -936,20 +937,24 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     bool IsThereTextureIndexCopyInfos = !CopyInfos[TEXTUREINDEX_COPY].CopyRegions.empty();
 
     uint32_t MaterialTextureTypeCount = static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE);
-    uint32_t Inserted = 0;
     size_t SizeOfMaterialData = sizeof(INTERNAL::MaterialData);
     
+    //Material meta data caches to avoid fetching the datas from the unordered map again.
+    std::vector<SCENE::INTERNAL::MaterialMetaData*> InstanceMaterialMetaDataCaches;
+    InstanceMaterialMetaDataCaches.reserve(SceneMaterialUpdateList.size() * 10);
     //Handle material update lists and extract materials
     RENDERER_CORE::BufferCopyInfo CopyInfo{};
     for (auto& ModelInstancePtr : SceneMaterialUpdateList)
     {
+        //Fetch the instance entries belonging to this instance ID
         auto InstanceEntryIterator = CurrentFrameEntries.InstanceEntries.Find(ModelInstancePtr->ResourceID);
         if (!InstanceEntryIterator) continue;
 
-        for (size_t i = 0; i < ModelInstancePtr->Source->Meshes.size(); i++)
+        for (size_t i = 0; i < ModelInstancePtr->Materials.size(); i++)
         {
+            auto& InstanceMaterial = ModelInstancePtr->Materials[i];
             //Pick the right material
-            Material* MaterialPtr = nullptr;
+            /*
             size_t MeshGeometryID = ModelInstancePtr->Source->Meshes[i].GeometryID;
             if (ModelInstancePtr->Materials.size() > i)
             {
@@ -964,14 +969,20 @@ void SCENE::SceneMeshManager::UpdateMaterials(
                 }
                 MaterialPtr = &GeometryEntryIterator->second.MeshMaterial;
             }
+            */
 
+            auto& MaterialMetaData = InstanceEntryIterator->second.Materials[ModelInstancePtr->Source->Meshes[i].GeometryID];
             //Extract the material data
             ExtractMaterial(
-                InstanceEntryIterator->second.Materials[MeshGeometryID], 
+                MaterialMetaData,
                 TextureImportManagerPtr->TextureDatas, 
-                MaterialPtr, 
+                &InstanceMaterial,
                 FrameIndex
             );
+
+            //Push back the material cache
+            //Since all of the traversed containers are vectors, caches will be in the pushed order. 
+            InstanceMaterialMetaDataCaches.push_back(&MaterialMetaData);
         }
     }
     
@@ -1022,6 +1033,7 @@ void SCENE::SceneMeshManager::UpdateMaterials(
         {
             for (auto& [MeshGeometryHandle, MetaData] : InstanceEntry.Materials)
             {
+                //Reallocate a memory region from the staging buffer if staging buffer was reset or it's first time
                 if (!IsThereTextureIndexCopyInfos || !MetaData.StagingTextureIndexMemoryRegion.Size)
                 {
                     MetaData.StagingTextureIndexMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMaterialData);
@@ -1038,24 +1050,29 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     }
     else
     {
-        CopyInfos[TEXTUREINDEX_COPY].CopyRegions.reserve(SceneMaterialUpdateList.size() * 10);
         //Copy only the related ones.
+        CopyInfos[TEXTUREINDEX_COPY].CopyRegions.reserve(SceneMaterialUpdateList.size() * 10);
+        size_t MaterialCacheIterator = 0;
         for (auto& ModelInstancePtr : SceneMaterialUpdateList)
         {
-            auto InstanceEntryIterator = CurrentFrameEntries.InstanceEntries.Find(ModelInstancePtr->ResourceID);
-            for (auto& [MeshGeometryHandle, MetaData] : InstanceEntryIterator->second.Materials)
+            for (size_t y = 0; y < ModelInstancePtr->Materials.size(); y++)
             {
-                if (!IsThereTextureIndexCopyInfos || !MetaData.StagingTextureIndexMemoryRegion.Size)
+                //Fetch the cached data
+                auto& MaterialCache = InstanceMaterialMetaDataCaches[MaterialCacheIterator];
+                //Reallocate a memory region from the staging buffer if staging buffer was reset or it's first time
+                if (!IsThereTextureIndexCopyInfos || !MaterialCache->StagingTextureIndexMemoryRegion.Size)
                 {
-                    MetaData.StagingTextureIndexMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMaterialData);
+                    MaterialCache->StagingTextureIndexMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMaterialData);
                 }
-                memcpy(StagingBufferPtr + MetaData.StagingTextureIndexMemoryRegion.Offset, &MetaData.Material, MetaData.StagingTextureIndexMemoryRegion.Size);
+                memcpy(StagingBufferPtr + MaterialCache->StagingTextureIndexMemoryRegion.Offset, &MaterialCache->Material, MaterialCache->StagingTextureIndexMemoryRegion.Size);
 
                 VkBufferCopy CopyRegion{};
-                CopyRegion.dstOffset = MetaData.TextureIndexMemoryRegion.Offset;
-                CopyRegion.size = MetaData.StagingTextureIndexMemoryRegion.Size;
-                CopyRegion.srcOffset = MetaData.StagingTextureIndexMemoryRegion.Offset;
+                CopyRegion.dstOffset = MaterialCache->TextureIndexMemoryRegion.Offset;
+                CopyRegion.size = MaterialCache->StagingTextureIndexMemoryRegion.Size;
+                CopyRegion.srcOffset = MaterialCache->StagingTextureIndexMemoryRegion.Offset;
                 CopyInfos[TEXTUREINDEX_COPY].CopyRegions.push_back(std::move(CopyRegion));
+                    
+                MaterialCacheIterator++;
             }
         }
     }

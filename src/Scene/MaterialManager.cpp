@@ -104,11 +104,12 @@ void SCENE::TextureManager::SubmitImport()
     }
     Futures.clear();
 
-    RENDERER_CORE::PipelineBarrier2 PipelineBarrier;
+    //RENDERER_CORE::PipelineBarrier2 PipelineBarrier;
     for (auto& ImageID : ImagesToTransition)
     {
         auto Iterator = TextureDatas.find(ImageID);
         if (Iterator == TextureDatas.end()) continue;
+        /*
         PipelineBarrier.AppendImageMemoryBarrier(
             Iterator->second.Data.Image,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,
@@ -119,15 +120,18 @@ void SCENE::TextureManager::SubmitImport()
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         );
         Iterator->second.Data.Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        */
         for (size_t i = 0; i < this->DescriptorWriteQueue.size(); i++)
         {
             DescriptorWriteQueue[i].push_back(ImageID);
         }
     }
 
+    /*
     auto TransitionImages = [&PipelineBarrier](VkCommandBuffer& CommandBuffer) {
         PipelineBarrier.ExecutePipelineBarrier(CommandBuffer);
     };
+    */
 
     /*
     RENDERER_CORE::ExecuteSingleTimeCommand(

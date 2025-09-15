@@ -39,6 +39,17 @@ namespace RENDERER
 		RENDERER_CORE::GraphicsPipeline Pipeline;
 		std::chrono::system_clock::time_point StartingTime;
 
+		void RenderLightingPass(
+			SCENE::Scene& Scene,
+			VkCommandBuffer& CommandBuffer,
+			uint32_t CurrentImageIndex,
+			uint32_t CurrentFrame,
+			VkImageView& DepthImage,
+			GeometryBuffer& Gbuffers,
+			bool EnableDepthTesting,
+			bool ClearDepth
+		);
+
 		//References
 		uint32_t GraphicsQueueIndex;
 

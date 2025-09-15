@@ -46,6 +46,7 @@ void main() {
     //Albedo = vec4(MeshIndex,vec3(1));
     //Normal = vec4(OutNormals,1.0f);
     vec2 UV = MaterialData.TextureSamplePosition + MaterialData.TextureSampleSize * OutUVcoords;
+    //vec2 UV = OutUVcoords;
     RoughnessMetallic = vec4(UV,1.0f,1.0f);
     //RoughnessMetallic = FlippedUV;
 

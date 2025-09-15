@@ -241,3 +241,32 @@ void ProcessMeshMaterial(std::string MeshDirectory, SCENE::TextureManager& Impor
     LoadMaterialTextures(MeshDirectory, ImportManager, SourceMaterial, aiTextureType_NORMALS, DestinationMaterial.ReferencedTextures[static_cast<size_t>(SCENE::MATERIAL_TEXTURE_TYPE_NORMAL_MAP)]);
 }
 
+void SCENE::Transformation::Translate(glm::vec3 TranslationVector)
+{
+    TranslationMatrix = glm::translate(TranslationMatrix, TranslationVector);
+}
+
+void SCENE::Transformation::Rotate(float RotationInDegrees, glm::vec3 Axis)
+{
+    RotationMatrix = glm::rotate(RotationMatrix, glm::radians(RotationInDegrees), Axis);
+}
+
+void SCENE::Transformation::Scale(glm::vec3 ScaleCoefficient)
+{
+    ScalingMatrix = glm::scale(ScalingMatrix, ScaleCoefficient);
+}
+
+void SCENE::Transformation::SetTranslationMatrix(const glm::mat4& Matrix)
+{
+    TranslationMatrix = Matrix;
+}
+
+void SCENE::Transformation::SetRotationMatrix(const glm::mat4& Matrix)
+{
+    RotationMatrix = Matrix;
+}
+
+void SCENE::Transformation::SetScalingMatrix(const glm::mat4& Matrix)
+{
+    ScalingMatrix = Matrix;
+}

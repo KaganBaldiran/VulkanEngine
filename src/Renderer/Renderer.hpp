@@ -82,12 +82,13 @@ namespace RENDERER
         int MaxLines;
         VkDeviceSize PhysicsDebugLineVertexBuffersize;
 
-        RENDERER_CORE::TextureData DepthImage{};
-        RENDERER_CORE::TextureData ColorRenderAttachmentImage{};
+        std::array<RENDERER_CORE::TextureData, MAX_FRAMES_IN_FLIGHT> DepthImages;
+        std::array<RENDERER_CORE::TextureData, MAX_FRAMES_IN_FLIGHT> ColorRenderAttachmentImages;
         std::array<GeometryBuffer, MAX_FRAMES_IN_FLIGHT> Gbuffers;
 
         RENDERER_CORE::DescriptorPool DescriptorPool;
         std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> LightingPassDescriptorSets;
+        std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> PostProcessingPassDescriptorSets;
 
         RENDERER_CORE::GraphicsPipeline PhysicsDebugGraphicsPipeline;
         RENDERER_CORE::PipelineBarrier2 PipelineBarrier2;
@@ -106,9 +107,15 @@ namespace RENDERER
             uint32_t CurrentFrame
         );
 
+        void RenderPostProcessPass(
+            SCENE::Camera3D& Camera,
+            VkCommandBuffer& CommandBuffer,
+            uint32_t CurrentImageIndex,
+            uint32_t CurrentFrame
+        );
+
         std::vector<RenderPassConfiguration> RenderPasses;
         std::queue<std::function<void(VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)>> RenderTasks;
-        std::vector<RENDERER_CORE::Buffer*> SceneBufferDestroyList;
     };
 
     struct Matrixes {

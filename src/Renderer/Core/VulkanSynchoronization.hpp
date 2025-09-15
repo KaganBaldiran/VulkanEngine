@@ -45,14 +45,29 @@ namespace RENDERER_CORE
 		std::vector<VkBufferMemoryBarrier2> BufferMemoryBarriers;
 	};
 
+	struct ImageBarrierState
+	{
+		VkImageLayout ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkPipelineStageFlags2 Stage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+		VkAccessFlags2 AccessMask = 0;
+	};
+
+	struct BufferBarrierState
+	{
+		VkPipelineStageFlags2 Stage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+		VkAccessFlags2 AccessMask = 0;
+	};
+
 	void SafeImageBarrier(
-		TextureData& Image,
+		VkImage& Image,
+		ImageBarrierState& State,
 		PipelineBarrier2& Barrier,
 		VkImageLayout DestinationLayout,
-		VkPipelineStageFlagBits2 SrcStage,
-		VkPipelineStageFlagBits2 DstStage,
-		VkAccessFlagBits2 SrcAccesMask,
-		VkAccessFlagBits2 DstAccesMask
+		VkPipelineStageFlags2 DstStage,
+		VkAccessFlags2 DstAccesMask,
+		uint32_t SrcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		uint32_t DstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		VkImageAspectFlags AspectMask = VK_IMAGE_ASPECT_COLOR_BIT
 	);
 
 	class TimelineSync

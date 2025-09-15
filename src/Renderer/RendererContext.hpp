@@ -45,6 +45,15 @@ namespace RENDERER
         float Time;
     };
 
+    struct PostProcessingPassPushConstantData
+    {
+        glm::vec3 CameraDirection;
+        float FogIntensity;
+        glm::vec3 CameraPosition;
+        float CameraFrustumLength;
+        float Time;
+    };
+
 	class RendererContext : COMMON::Destructible
 	{
         friend class SCENE::Scene;
@@ -91,6 +100,12 @@ namespace RENDERER
         RENDERER_CORE::DescriptorSetLayout TextureIndicesDescriptorSetLayout;
         std::vector<VkDescriptorSetLayout> TextureIndicesDescriptorSetLayouts;
 
+        // PostProcessDescriptorSetLayout bindings:
+        // 0: VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER - Main render attachment image accessed from post progressing pass fragment shader.
+        // 1: VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER - Depth buffer attachment image accessed from post progressing pass fragment shader.
+        // 2: VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER - Normal buffer attachment image accessed from post progressing pass fragment shader.
+        RENDERER_CORE::DescriptorSetLayout PostProcessDescriptorSetLayout;
+
         RENDERER_CORE::DescriptorPool HDRIrenderPassDescriptorPool;
         RENDERER_CORE::DescriptorSetLayout HDRIrenderPassLayout;
         std::vector<VkDescriptorSet> HDRIrenderPassDescriptorSets;
@@ -111,6 +126,10 @@ namespace RENDERER
         RENDERER_CORE::ShaderModule LightingFragmentShaderModule;
         RENDERER_CORE::GraphicsPipelineCreateInfo LatestShadingPassPipelineCreateInfo;
 
+        RENDERER_CORE::ShaderModule PostProcessingFragmentShaderModule;
+        RENDERER_CORE::GraphicsPipeline PostProcessingGraphicsPipeline;
+        RENDERER_CORE::GraphicsPipelineCreateInfo LatestPostProcessPassPipelineCreateInfo;
+
         std::unordered_map<uint32_t,std::array<RENDERER_CORE::GraphicsPipeline,3>> TextureDescriptorPipelines;
         //RENDERER_CORE::GraphicsPipeline DeferredLightingPassGraphicsPipeline;
         RENDERER_CORE::DescriptorSetLayout LightingPassLayout;
@@ -123,6 +142,6 @@ namespace RENDERER
 	private:
         void CreateHDRIrenderPassResources();
         std::array<RENDERER_CORE::GraphicsPipeline,3>* CreateTextureDescriptorPipelines(VkDescriptorSetLayout Layout,uint32_t MaxTextureCount);
-        //void CreateDeferredLightingPassPipeline();
+        void CreatePostProcessingPassPipeline();
 	};
 }
