@@ -12,4 +12,4 @@ Vulkan engine is a real time PBR renderer powered by Vulkan graphics API written
 - Native instancing control.
 - Asynchronous asset loading.
 # Current Look
-<img width="1919" height="1032" alt="image" src="https://github.com/user-attachments/assets/06141fb3-5ef3-44e5-98a3-72ed7943bfde" />
+<img width="1919" height="1028" alt="image" src="https://github.com/user-attachments/assets/2ee5ceb6-def8-4a95-bab6-9b032f52de60" />
