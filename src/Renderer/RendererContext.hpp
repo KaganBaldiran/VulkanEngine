@@ -29,11 +29,13 @@
 namespace SCENE
 {
     class Scene;
-    class TextureManager;
 }
 
 namespace RENDERER
 {
+    class TextureManager;
+    class Renderer;
+
     struct LightingPassUBOdata
     {
         glm::vec3 CameraDirection;
@@ -57,7 +59,8 @@ namespace RENDERER
 	class RendererContext : COMMON::Destructible
 	{
         friend class SCENE::Scene;
-        friend class SCENE::TextureManager;
+        friend class TextureManager;
+        friend class Renderer;
 	public:
         RendererContext(bool EnableValidationLayers);
         RendererContext() = default;
@@ -139,6 +142,7 @@ namespace RENDERER
 
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> SingleTimeCommandBuffers;
         RENDERER_CORE::Fence SingleTimeCommandFence;
+
 	private:
         void CreateHDRIrenderPassResources();
         std::array<RENDERER_CORE::GraphicsPipeline,3>* CreateTextureDescriptorPipelines(VkDescriptorSetLayout Layout,uint32_t MaxTextureCount);

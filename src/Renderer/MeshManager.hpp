@@ -1,21 +1,21 @@
 #pragma once
-#include "Mesh.hpp"
+#include "../Scene/Mesh.hpp"
 #include "../Renderer/Core/VulkanBuffer.hpp"
 
 #include "../Common/DestructionQueue.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
+namespace SCENE
+{
+    class SceneMeshManager;
+}
+
 namespace RENDERER
 {
+    class TextureManager;
     class RendererContext;
     class Renderer;
     class DeferredRenderPipeline;
-}
-
-namespace SCENE
-{
-    class TextureManager;
-    class SceneMeshManager;
 
     //Info used during model importing
     struct ModelImportInfo
@@ -30,8 +30,8 @@ namespace SCENE
     {
         RENDERER_CORE::MemoryRegion VertexRegion;
         RENDERER_CORE::MemoryRegion IndexRegion;
-        BoundingBoxAABB BoundingBox;
-        Material MeshMaterial;
+        SCENE::BoundingBoxAABB BoundingBox;
+        SCENE::Material MeshMaterial;
     };
 
     //Intermediate import data target.
@@ -39,8 +39,8 @@ namespace SCENE
     {
         MeshImportResult() { ProcessedPerFrame.fill(true); };
 
-        ModelHandle* ConsumerModel = nullptr;
-        std::vector<GeometryData> GeometryDatas;
+        SCENE::ModelHandle* ConsumerModel = nullptr;
+        std::vector<SCENE::GeometryData> GeometryDatas;
         std::vector<size_t> GeometryHandles;
         //Flags to keep track of whether the target is included in the entries or not. 
         //If all frames had previously processed the target, it's erased 
@@ -55,7 +55,7 @@ namespace SCENE
 
     class MeshManager : COMMON::Destructible
     {
-        friend class SceneMeshManager;
+        friend class SCENE::SceneMeshManager;
         friend class RENDERER::Renderer;
         friend class RENDERER::DeferredRenderPipeline;
     public:
@@ -73,7 +73,7 @@ namespace SCENE
         void SubmitImport();
         //Waits for the import tasks in flight and processed the result.
         //Creates intermediary import results to be processed further.
-        void WaitImportIdle();
+        void WaitImportsIdle();
 
         using ImportFuture = std::pair<std::future<std::vector<SCENE::GeometryData>>, SCENE::ModelHandle*>;
         std::vector<ImportFuture> Futures;

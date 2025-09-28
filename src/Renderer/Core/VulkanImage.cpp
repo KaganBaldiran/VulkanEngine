@@ -274,8 +274,18 @@ void RENDERER_CORE::CreateTextureImageAsync(RawImageData& ImageData, VkPhysicalD
     memcpy(Data, ImageData.Pixels, ImageSize);
     vkUnmapMemory(LogicalDevice, StagingBuffer.BufferMemory);
 
-    RENDERER_CORE::CreateImage(PhysicalDevice, LogicalDevice, ImageData.Width, ImageData.Height, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DestinationTexture.Image, DestinationTexture.ImageMemory);
+    RENDERER_CORE::CreateImage(
+        PhysicalDevice, 
+        LogicalDevice, 
+        ImageData.Width, 
+        ImageData.Height, 
+        VK_IMAGE_TILING_OPTIMAL, 
+        VK_FORMAT_R8G8B8A8_SRGB, 
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+        DestinationTexture.Image, 
+        DestinationTexture.ImageMemory
+    );
 
     auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
         RENDERER_CORE::TransitionImageLayout(CommandBuffer, DestinationTexture.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,

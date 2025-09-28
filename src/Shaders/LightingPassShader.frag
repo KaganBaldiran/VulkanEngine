@@ -128,7 +128,7 @@ vec3 CookTorranceBRDF(vec3 Normal, vec3 ViewDirection,vec3 Position,vec3 LightDi
     float NdotL = dot(Normal, L);
     if (NdotL <= 0.0)
         return vec3(0.0);
-
+    NdotL = max(NdotL, 0.0);
     //float R0 = pow((1.0 - IOR) / (1.0 + IOR), 2.0);
     //vec3 F0 = mix(vec3(R0), Albedo, Metallic);
     vec3 F0 = mix(vec3(0.04f), Albedo, Metallic);
@@ -141,8 +141,8 @@ vec3 CookTorranceBRDF(vec3 Normal, vec3 ViewDirection,vec3 Position,vec3 LightDi
     float NdotV = max(dot(Normal, ViewDirection), 0.0);
     vec3 kD = (1.0 - F) * (1.0 - Metallic);
 
-    vec3 specular = (NDF * G * F) / max(4.0 * max(NdotL, 0.0) * NdotV, 1e-4);
-    return (kD * Albedo * Inv_PI + specular) * LightColor * max(NdotL, 0.0);
+    vec3 specular = (NDF * G * F) / max(4.0 * NdotL * NdotV, 1e-4);
+    return (kD * Albedo * Inv_PI + specular) * LightColor * NdotL;
 }
 
 vec3 CalculateLighting(in vec3 Normal,in vec3 Position,in vec3 Albedo,in float Roughness,in float Metallic)
@@ -289,7 +289,6 @@ void main() {
     float NormalizedDistance = Distance / (CameraFrustumLength * CameraFrustumLength);
     float FogAmount = clamp(exp(-NormalizedDistance * FogIntensity),0.0f,1.0f);
 
-    
     outColor = vec4(mix(vec3(0.6f,0.7f,0.6f),ShadedPixel,FogAmount),1.0f);
     //outColor = vec4(UV,0.0f,1.0f);
 }

@@ -16,8 +16,9 @@
 #include <future>
 
 #include "../Common/Log.hpp"
-#include "../Scene/MaterialManager.hpp"
-#include "../Scene/MeshManager.hpp"
+#include "MaterialManager.hpp"
+#include "MeshManager.hpp"
+#include "ResourceManager.hpp"
 
 RENDERER::Renderer::Renderer(RendererContext& DestinationRendererContext, bool EnablePhysicsDebugDrawing)
 {
@@ -314,13 +315,13 @@ void RENDERER::Renderer::RenderFrame()
         );
 
         PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
-
         for (uint32_t i = 0; i < RenderPasses.size(); i++)
         {
             bool IsFirstOne = i == 0;
             RenderPassConfiguration& RenderPass = RenderPasses[i];
-            auto& SceneCopyInfos = RenderPass.Scene->SceneCopyInfos[CurrentFrame];
+            //auto& SceneCopyInfos = RenderPass.Scene->SceneCopyInfos[CurrentFrame];
 
+            /*
             //Handle copy operations from respective scenes.
             for (int CopySlot = 0; CopySlot < static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE); CopySlot++)
             {
@@ -328,7 +329,7 @@ void RENDERER::Renderer::RenderFrame()
                 {
                     vkCmdCopyBuffer(
                         CommandBuffer, 
-                        SceneCopyInfos[CopySlot].SourceBuffer, 
+                        RenderPass.Scene->ResourceManagerPtr->StagingBuffers[CurrentFrame].StagingBuffer.Buffer.Buffer.BufferObject, //Man it's way too many redirections. Should do something about this.
                         SceneCopyInfos[CopySlot].DestinationBuffer, 
                         static_cast<uint32_t>(SceneCopyInfos[CopySlot].CopyRegions.size()), 
                         SceneCopyInfos[CopySlot].CopyRegions.data()
@@ -346,10 +347,13 @@ void RENDERER::Renderer::RenderFrame()
                     SceneCopyInfos[CopySlot].CopyRegions.clear();
                 }
             }
-            PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
+            */
+            
 
-            auto& SceneStagingBufferAllocator = RenderPass.Scene->StagingBuffers[CurrentFrame].StagingBuffer.Allocator;
-            SceneStagingBufferAllocator.Reset(SceneStagingBufferAllocator.GetCapacity());
+            PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
+            RenderPass.Scene->ResourceManagerPtr->HandleCopyOperations(CommandBuffer,CurrentFrame,PipelineBarrier2);
+           /* auto& SceneStagingBufferAllocator = RenderPass.Scene->ResourceManagerPtr->StagingBuffers[CurrentFrame].StagingBuffer.Allocator;
+            SceneStagingBufferAllocator.Reset(SceneStagingBufferAllocator.GetCapacity());*/
 
             RenderPass.Pipeline->RenderScene(
                 *RenderPass.Scene,
@@ -429,6 +433,7 @@ void RENDERER::Renderer::RenderFrame()
         CurrentFrame,
         MAX_FRAMES_IN_FLIGHT
     );
+
 }
 
 void RENDERER::Renderer::RenderPhysicsDebugPass(SCENE::Scene& Scene, SCENE::Camera3D& Camera, VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)

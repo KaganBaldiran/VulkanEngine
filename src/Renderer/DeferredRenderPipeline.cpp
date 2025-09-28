@@ -1,9 +1,10 @@
 #include "DeferredRenderPipeline.hpp"
 #include "GeometryBuffer.hpp"
+#include "MeshManager.hpp"
+#include "MaterialManager.hpp"
+#include "ResourceManager.hpp"
 
 #include "../Scene/Scene.hpp"
-#include "../Scene/MeshManager.hpp"
-#include "../Scene/MaterialManager.hpp"
 #include "../Scene/Camera.hpp"
 
 #include "../Common/Log.hpp"
@@ -64,12 +65,12 @@ void RENDERER::DeferredRenderPipeline::CompileCustomPipeline(std::string ShadePi
 }
 
 void RENDERER::DeferredRenderPipeline::RenderScene(
-    SCENE::Scene& Scene, 
+    SCENE::Scene& Scene,
     VkCommandBuffer& CommandBuffer,
     uint32_t CurrentImageIndex,
-    uint32_t CurrentFrame, 
-    VkImageView& DepthImageImageView, 
-    VkImageView &DstColorRenderTargetImageViews,
+    uint32_t CurrentFrame,
+    VkImageView& DepthImageImageView,
+    VkImageView& DstColorRenderTargetImageViews,
     GeometryBuffer& FrameGbuffer,
     VkDescriptorSet& GeometrybufferDescriptorSet,
     bool EnableDepthTesting,
@@ -77,7 +78,7 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
     bool ClearColorAttachment
 )
 {
-    if (!Scene.MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame] || !Scene.TextureManager->TextureDescriptorsPipelines || !Scene.MeshManagerPtr)
+    if (!Scene.MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame] || !Scene.ResourceManagerPtr || !Scene.ResourceManagerPtr->TextureManager.TextureDescriptorsPipelines)
     {
         return;
     };
@@ -213,21 +214,23 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
     );
 
     RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)RendererContextPtr->SwapChain.Extent.width, (uint32_t)RendererContextPtr->SwapChain.Extent.height} });
+    RENDERER::TextureManager& TextureManager = Scene.ResourceManagerPtr->TextureManager;
+    RENDERER::MeshManager& MeshManager = Scene.ResourceManagerPtr->MeshManager;
 
-    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = Scene.TextureManager->TextureDescriptorsPipelines->at(static_cast<int>(EnableDepthTesting));
+    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = TextureManager.TextureDescriptorsPipelines->at(static_cast<int>(EnableDepthTesting));
     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.pipeline);
     VkDescriptorSet DescriptorSets[] = { 
         Scene.IndirectDescriptorSets[CurrentFrame],
-        Scene.TextureManager->TexturesDescriptors[CurrentFrame].DescriptorSets[0],
+        TextureManager.TexturesDescriptors[CurrentFrame].DescriptorSets[0],
         Scene.TextureIndicesDescriptorSets[CurrentFrame] 
     };
     vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Layout, 0, 3, DescriptorSets, 0, nullptr);
 
-    VkBuffer VertexBuffers[] = { Scene.MeshManagerPtr->GetCurrentVertexBuffer(CurrentFrame).Buffer.BufferObject };
+    VkBuffer VertexBuffers[] = { MeshManager.GetCurrentVertexBuffer(CurrentFrame).Buffer.BufferObject };
     VkDeviceSize VertexOffsets[] = { 0 };
     vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, VertexOffsets);
     VkDeviceSize IndexOffset = 0;
-    vkCmdBindIndexBuffer(CommandBuffer, Scene.MeshManagerPtr->GetCurrentIndexBuffer(CurrentFrame).Buffer.BufferObject, IndexOffset, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(CommandBuffer, MeshManager.GetCurrentIndexBuffer(CurrentFrame).Buffer.BufferObject, IndexOffset, VK_INDEX_TYPE_UINT32);
 
     glm::mat4 ProjViewMatrix = Scene.Camera->ProjectionMatrix * Scene.Camera->ViewMatrix;
     //glm::mat4 Matrices[2] = { Scene.Camera->ViewMatrix , Scene.Camera->ProjectionMatrix };
@@ -294,7 +297,10 @@ void RENDERER::DeferredRenderPipeline::RenderLightingPass(
 
     RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)RendererContextPtr->SwapChain.Extent.width, (uint32_t)RendererContextPtr->SwapChain.Extent.height} });
 
-    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = Pipeline.pipeline ? Pipeline : Scene.TextureManager->TextureDescriptorsPipelines->at(2);
+    RENDERER::TextureManager& TextureManager = Scene.ResourceManagerPtr->TextureManager;
+    RENDERER::MeshManager& MeshManager = Scene.ResourceManagerPtr->MeshManager;
+
+    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = Pipeline.pipeline ? Pipeline : TextureManager.TextureDescriptorsPipelines->at(2);
     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.pipeline);
 
     VkBuffer VertexBuffers[] = { RendererContextPtr->QuadVertexBuffer.BufferObject };
@@ -304,7 +310,7 @@ void RENDERER::DeferredRenderPipeline::RenderLightingPass(
         GeometrybufferDescriptorSet,
         Scene.SceneDescriptorSets[CurrentFrame] ,
         Scene.TextureIndicesDescriptorSets[CurrentFrame], 
-        Scene.TextureManager->TexturesDescriptors[CurrentFrame].DescriptorSets[0]
+        TextureManager.TexturesDescriptors[CurrentFrame].DescriptorSets[0]
     };
     vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Layout, 0, 4, DescriptorSets, 0, nullptr);
     

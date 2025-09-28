@@ -6,12 +6,12 @@
 
 #include "../Renderer/RendererContext.hpp"
 
-SCENE::MeshManager::MeshManager(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext)
+RENDERER::MeshManager::MeshManager(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext)
 {
     Create(ImportManager, RendererContext);
 }
 
-void SCENE::MeshManager::Create(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext)
+void RENDERER::MeshManager::Create(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext)
 {
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -29,7 +29,7 @@ void SCENE::MeshManager::Create(TextureManager& ImportManager, RENDERER::Rendere
     COMMON::DestructionQueue::Get()->Register(this);
 }
 
-void SCENE::MeshManager::Destroy()
+void RENDERER::MeshManager::Destroy()
 {
     if (IsDestroyed || !RendererContext) return;
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -50,12 +50,12 @@ void SCENE::MeshManager::Destroy()
     std::cout << "Mesh manager destroyed!" << std::endl;
 }
 
-void SCENE::MeshManager::AppendImportTask(ModelImportInfo ImportInfo)
+void RENDERER::MeshManager::AppendImportTask(ModelImportInfo ImportInfo)
 {
     ImportQueue.push_back(ImportInfo);
 }
 
-void SCENE::MeshManager::SubmitImport()
+void RENDERER::MeshManager::SubmitImport()
 {
     StartingTime = glfwGetTime();
     for (size_t i = 0; i < ImportQueue.size(); i++)
@@ -70,7 +70,7 @@ void SCENE::MeshManager::SubmitImport()
     ImportQueue.clear();
 }
 
-void SCENE::MeshManager::WaitImportIdle()
+void RENDERER::MeshManager::WaitImportsIdle()
 {
     //Handle the fresh imports
     std::vector<MeshImportResult> NewImportResults;
@@ -99,12 +99,12 @@ void SCENE::MeshManager::WaitImportIdle()
         NewImportResult.GeometryHandles.reserve(NewImportResult.GeometryDatas.size());
         for (size_t y = 0; y < NewImportResult.GeometryDatas.size(); y++)
         {
-            GeometryData& GeometryData = NewImportResult.GeometryDatas[y];
+            SCENE::GeometryData& GeometryData = NewImportResult.GeometryDatas[y];
 
-            MeshHandle NewMeshHandle{};
+            SCENE::MeshHandle NewMeshHandle{};
             NewMeshHandle.MeshMaterial = GeometryData.MeshMaterial;
             NewMeshHandle.BoundingBox = GeometryData.BoundingBox;
-            NewMeshHandle.GeometryID = GenerateResourceID();
+            NewMeshHandle.GeometryID = SCENE::GenerateResourceID();
 
             NewImportResult.GeometryHandles.push_back(NewMeshHandle.GeometryID);
             NewImportResult.ConsumerModel->Meshes.push_back(std::move(NewMeshHandle));
@@ -121,17 +121,17 @@ void SCENE::MeshManager::WaitImportIdle()
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Models were imported in " + std::to_string(DeltaTime) + " seconds.");
 }
 
-RENDERER_CORE::BufferAllocator& SCENE::MeshManager::GetCurrentVertexBuffer(uint32_t FrameIndex)
+RENDERER_CORE::BufferAllocator& RENDERER::MeshManager::GetCurrentVertexBuffer(uint32_t FrameIndex)
 {
     return VertexBuffers[VertexBufferSet[FrameIndex] * MAX_FRAMES_IN_FLIGHT + FrameIndex];
 }
 
-RENDERER_CORE::BufferAllocator& SCENE::MeshManager::GetCurrentIndexBuffer(uint32_t FrameIndex)
+RENDERER_CORE::BufferAllocator& RENDERER::MeshManager::GetCurrentIndexBuffer(uint32_t FrameIndex)
 {
     return IndexBuffers[IndexBufferSet[FrameIndex] * MAX_FRAMES_IN_FLIGHT + FrameIndex];
 }
 
-void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
+void RENDERER::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
 {
     if (MeshImportResults.empty()) return;
 
@@ -147,19 +147,19 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
     size_t VertexSize, IndexSize,VertexBufferSize = 0, IndexBufferSize = 0;
 
     std::unordered_map<size_t,GeometryEntry> InsertedGeometryEntries;
-    std::unordered_map<size_t,GeometryData*> GeometryDataReferences;
+    std::unordered_map<size_t,SCENE::GeometryData*> GeometryDataReferences;
     for (auto& ImportResult : MeshImportResults)
     {
         for (size_t i = 0; i < ImportResult.GeometryDatas.size(); i++)
         {
-            GeometryData& Data = ImportResult.GeometryDatas[i];
+            SCENE::GeometryData& Data = ImportResult.GeometryDatas[i];
             size_t& Handle = ImportResult.GeometryHandles[i];
 
             //Referencing the data to use for copying later on
             GeometryDataReferences[Handle] = &ImportResult.GeometryDatas[i];
 
             //Detect the data sizes and append them in the overall inserted size
-            VertexSize = Data.Vertices.size() * sizeof(Vertex3D);
+            VertexSize = Data.Vertices.size() * sizeof(SCENE::Vertex3D);
             IndexSize = Data.Indices.size() * sizeof(uint32_t);
             VertexBufferSize += VertexSize;
             IndexBufferSize += IndexSize;
@@ -216,7 +216,7 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
     //Append newly inserted data
     for (auto& [Handle,GeoEntry] : InsertedGeometryEntries)
     {
-        GeometryData*& Data = GeometryDataReferences[Handle];
+        SCENE::GeometryData*& Data = GeometryDataReferences[Handle];
 
         RENDERER_CORE::MemoryRegion VertexAllocatedRegion = StagingBuffer.Allocator.Suballocate(GeoEntry.VertexRegion.Size);
         memcpy(StagingBufferPtr + VertexAllocatedRegion.Offset, Data->Vertices.data(), VertexAllocatedRegion.Size);
@@ -266,7 +266,7 @@ void SCENE::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
     }
 }
 
-void SCENE::MeshManager::CreateGeometryBuffers(
+void RENDERER::MeshManager::CreateGeometryBuffers(
     RENDERER::RendererContext* RendererContext,
     RENDERER_CORE::PersistentBufferAllocator &StagingBuffer,
     bool VertexBufferReallocated,
@@ -283,7 +283,7 @@ void SCENE::MeshManager::CreateGeometryBuffers(
     {
         size_t BufferSize = VertexBuffers[VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator.GetCapacity();
 
-        SCENE::RecreateBuffer(
+        RENDERER::RecreateBuffer(
             RendererContext,
             BufferSize,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -294,7 +294,7 @@ void SCENE::MeshManager::CreateGeometryBuffers(
         //Allocate the second buffer in case copying needed
         if (!VertexBufferAllocatedFirstTime)
         {
-            SCENE::RecreateBuffer(
+            RENDERER::RecreateBuffer(
                 RendererContext,
                 BufferSize,
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -309,7 +309,7 @@ void SCENE::MeshManager::CreateGeometryBuffers(
     {
         size_t BufferSize = IndexBuffers[IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator.GetCapacity();
 
-        SCENE::RecreateBuffer(
+        RENDERER::RecreateBuffer(
             RendererContext,
             BufferSize,
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -320,7 +320,7 @@ void SCENE::MeshManager::CreateGeometryBuffers(
         //Allocate the second buffer in case copying needed
         if (!IndexBufferAllocatedFirstTime)
         {
-            SCENE::RecreateBuffer(
+            RENDERER::RecreateBuffer(
                 RendererContext,
                 BufferSize,
                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -340,7 +340,7 @@ void SCENE::MeshManager::CreateGeometryBuffers(
     StagingBuffer.Buffer.Map(RendererContext->DeviceContext.LogicalDevice, 0, StagingBuffer.Allocator.GetCapacity(), 0);
 }
 
-void SCENE::MeshManager::HandleGeometryBufferReallocationCopy(
+void RENDERER::MeshManager::HandleGeometryBufferReallocationCopy(
     std::vector<RENDERER_CORE::BufferCopyInfo> &CopyInfos,
     bool VertexBufferReallocated,
     bool IndexBufferReallocated,
@@ -406,7 +406,7 @@ void SCENE::MeshManager::HandleGeometryBufferReallocationCopy(
     }
 }
 
-void SCENE::RecreateBuffer(
+void RENDERER::RecreateBuffer(
     RENDERER::RendererContext* RendererContext,
     VkDeviceSize NewCapacity,
     VkBufferUsageFlags Usage, 
@@ -425,7 +425,7 @@ void SCENE::RecreateBuffer(
     );
 }
 
-bool SCENE::MeshImportResult::IsProcessedByAll()
+bool RENDERER::MeshImportResult::IsProcessedByAll()
 {
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -434,12 +434,12 @@ bool SCENE::MeshImportResult::IsProcessedByAll()
     return true;
 }
 
-void SCENE::MeshImportResult::ResetFlags()
+void RENDERER::MeshImportResult::ResetFlags()
 {
     ProcessedPerFrame.fill(false);
 }
 
-void SCENE::MeshImportResult::SetFlag(uint32_t FrameIndex, bool Value)
+void RENDERER::MeshImportResult::SetFlag(uint32_t FrameIndex, bool Value)
 {
     ProcessedPerFrame[FrameIndex] = Value;
 }

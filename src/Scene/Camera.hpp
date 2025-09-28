@@ -66,8 +66,6 @@ namespace SCENE
 		CameraModeInfo* CameraModeInfo = nullptr;
 	};
 
-	
-
 	class Camera3D : public Resource
 	{
 	public:

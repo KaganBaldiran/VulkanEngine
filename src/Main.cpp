@@ -1,4 +1,5 @@
 #include "Renderer/Renderer.hpp"
+#include "Renderer/ResourceManager.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../include/stbi/stb_image.h"
@@ -42,6 +43,19 @@ int main()
         SCENE::Texture SomeTexture{};
         SCENE::Texture AnimationSprite{};
 
+        RENDERER::ResourceManager ResourceManager(RendererContext);
+        ResourceManager.AppendModelImportTask({ &SponzaModel , "Resources\\sponza.obj" });
+        ResourceManager.AppendModelImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
+        ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
+        ResourceManager.AppendModelImportTask({ &Quad , "Resources\\Quad.fbx" });
+
+        ResourceManager.AppendTextureImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.ResourceID });
+        ResourceManager.AppendTextureImportTask({ "Resources\\SpriteAnimation3.jpg",AnimationSprite.ResourceID });
+        ResourceManager.SubmitImports();
+        ResourceManager.WaitImportsIdle();
+
+        
+        /*
         SCENE::TextureManager TextureImportManager(RendererContext);
         SCENE::MeshManager Importer(TextureImportManager, RendererContext);
         Importer.AppendImportTask({ &SponzaModel , "Resources\\sponza.obj" });
@@ -49,12 +63,14 @@ int main()
         Importer.AppendImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
         Importer.AppendImportTask({ &Quad , "Resources\\Quad.fbx" });
         Importer.SubmitImport();
-        Importer.WaitImportIdle();
+        Importer.WaitImportsIdle();
         
         TextureImportManager.AppendImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.ResourceID });
         TextureImportManager.AppendImportTask({ "Resources\\SpriteAnimation3.jpg",AnimationSprite.ResourceID });
         TextureImportManager.SubmitImport();
+        TextureImportManager.WaitImportsIdle();
 
+        */
         SCENE::ModelInstance Sponza(SponzaModel);
         SCENE::ModelInstance Shovel(ShovelModel);
         SCENE::ModelInstance Shovel1(ShovelModel);
@@ -130,15 +146,16 @@ int main()
         Light2.SetDirection(glm::vec4(0.8f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
         Light2.SetType(SCENE::DIRECTIONAL_LIGHT);
       
+        SCENE::SceneOptions Options{};
+        Options.UploadMode = SCENE::SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL;
 
         SCENE::Scene Scene0;
-        Scene0.Create(RendererContext, TextureImportManager, Importer);
-
+        Scene0.Create(RendererContext,ResourceManager,Options);
+       
         SCENE::Scene Scene1;
-        Scene1.Create(RendererContext, TextureImportManager, Importer);
+        Scene1.Create(RendererContext,ResourceManager, Options);
 
         Shovel1.Transformations.TranslationMatrix = glm::translate(glm::mat4(1.0f), { 30,100,40.0f });
-
        
         Scene0.LinkStaticLight(Light0);
         Scene0.LinkStaticLight(Light1);
@@ -155,15 +172,28 @@ int main()
         Scene0.LinkModelInstance(SponzaTextured);
         Scene0.LinkModelInstance(QuadInstance0);
         Scene0.LinkModelInstance(Shovel);
+
+        for (size_t i = 0; i < 100; i++)
+        {
+            Scene0.LinkModelInstance(Shovels[i]);
+        }
+
         Scene0.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
             FRAME_INDEX_ALL_FRAMES
         );
 
-        for (size_t i = 0; i < 100; i++)
+        for (size_t i = 101; i < 200; i++)
         {
-            Scene1.LinkModelInstance(Shovels[i]);
+            Scene0.LinkModelInstance(Shovels[i]);
         }
+
+        Scene0.FlushPendingUpdates(
+            SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
+            FRAME_INDEX_ALL_FRAMES
+        );
+
+
         Scene1.LinkModelInstance(SceneModelInstance);
         Scene1.LinkModelInstance(Shovel1);
         Scene1.FlushPendingUpdates(
@@ -298,7 +328,6 @@ int main()
 
             Scene0.MarkResourceChanged(&Shovel, SCENE::MARK_CHANGED_TYPE_MESH_TRANSFORMATION | SCENE::MARK_CHANGED_TYPE_MESH_MATERIAL, Renderer.CurrentFrame);
             Scene0.MarkResourceChanged(&QuadInstance0, SCENE::MARK_CHANGED_TYPE_MESH_MATERIAL, Renderer.CurrentFrame);
-
             
             Scene0.FlushPendingUpdates(
                 SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | 
@@ -317,15 +346,13 @@ int main()
                 45.0f
             );
 
-      
             Renderer.RenderFrame();
             glfwPollEvents();
 
             //PhysicsDebugDrawer.ClearDebugBuffers();
         }
 
-        RendererContext.WaitDeviceIdle();
-        COMMON::DestructionQueue::Get()->Destroy();
+        COMMON::DestroyResources(RendererContext);
         glfwTerminate();
     }
     catch (const std::exception& e)

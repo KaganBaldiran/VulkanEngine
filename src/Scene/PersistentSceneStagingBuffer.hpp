@@ -23,7 +23,6 @@ namespace SCENE
 		PersistentStagingBuffer();
 
 		void AllocateSceneStagingBuffer(
-			std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos,
 			size_t RequiredStagingBufferSize,
 			RENDERER::RendererContext* RendererContext
 		);

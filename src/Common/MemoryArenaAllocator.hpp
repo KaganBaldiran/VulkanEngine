@@ -31,6 +31,7 @@ namespace RENDERER_CORE
 		double GetFragmentationPercent();
 		inline size_t GetCapacity() noexcept { return Capacity; };
 		inline size_t GetTotalFreeSpace() noexcept { return TotalFreeSpace; };
+		inline const std::vector<MemoryRegion>& GetFreeRegions() { return FreeRegions; };
 	private:
 		size_t Capacity = 0,ChunkSize = MEMORY_SIZE_KILOBYTE,TotalFreeSpace = 0;
 		std::vector<MemoryRegion> FreeRegions;

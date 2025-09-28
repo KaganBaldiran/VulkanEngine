@@ -66,8 +66,8 @@ namespace RENDERER_CORE
 	struct BufferCopyInfo
 	{
 		std::vector<VkBufferCopy> CopyRegions;
-		VkBuffer SourceBuffer;
-		VkBuffer DestinationBuffer;
+		VkBuffer SourceBuffer = VK_NULL_HANDLE;
+		VkBuffer DestinationBuffer = VK_NULL_HANDLE;
 	};
 
 	void CopyBuffer(

@@ -7,6 +7,7 @@
 #include <future>
 #include <queue>
 #include <unordered_set>
+#include <memory_resource>
 
 #include "../Renderer/Core/VulkanBuffer.hpp"
 #include "../Physics/DebugDrawer.hpp"
@@ -23,10 +24,7 @@
 #include "SceneLightManager.hpp"
 #include "Light.hpp"
 #include "ModelInstance.hpp"
-#include "MaterialManager.hpp"
-#include "MeshManager.hpp"
-#include "PersistentSceneStagingBuffer.hpp"
-#include <memory_resource>
+#include "Texture.hpp"
 
 namespace RENDERER_CORE
 {
@@ -41,6 +39,8 @@ namespace RENDERER
 	class Renderer;
 	class RendererContext;
 	class DeferredRenderPipeline;
+	class ResourceManager;
+	class MeshManager;
 }
 
 namespace SCENE
@@ -122,19 +122,22 @@ namespace SCENE
 	{
 		friend class RENDERER::Renderer;
 		friend class ResourceDependencyManager;
-		friend class MeshManager;
+		friend class RENDERER::MeshManager;
 		friend class RENDERER::DeferredRenderPipeline;
 	public:
-		Scene(RENDERER::RendererContext& RendererContext,TextureManager& Manager, MeshManager& MeshManager, SceneOptions Options = SceneOptions());
+		Scene(RENDERER::RendererContext& RendererContext, RENDERER::ResourceManager& ResourceManager,SceneOptions Options = SceneOptions());
 		Scene() = default;
-		void Create(RENDERER::RendererContext& RendererContext, TextureManager& Manager, MeshManager& MeshManager, SceneOptions Options = SceneOptions());
+		void Create(RENDERER::RendererContext& RendererContext, RENDERER::ResourceManager& ResourceManager, SceneOptions Options = SceneOptions());
 		void Destroy() override;
 
 		void LinkModelInstance(ModelInstance &Instance);
 		void LinkModelInstance(std::vector<ModelInstance*> &Instances);
 		void UnlinkModelInstance(ModelInstance& Instance);
 		void UnlinkModelInstance(std::vector<ModelInstance*>& Instances);
-		void UpdateMeshTransformations(uint32_t CurrentFrame);
+		void UpdateMeshTransformations(
+			uint32_t CurrentFrame,
+			std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations
+		);
 
 		void LinkDynamicLight(Light& DynamicLight);
 		void LinkStaticLight(Light& StaticLight);
@@ -184,8 +187,9 @@ namespace SCENE
 
 		SCENE::SceneMeshManager MeshBuffers;
 		SCENE::LightManager LightManager;
-		std::array<PersistentStagingBuffer, MAX_FRAMES_IN_FLIGHT> StagingBuffers;
-		std::array<std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>, MAX_FRAMES_IN_FLIGHT> SceneCopyInfos;
+		//std::array<PersistentStagingBuffer, MAX_FRAMES_IN_FLIGHT> StagingBuffers;
+		std::array<std::array<uint32_t, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>, MAX_FRAMES_IN_FLIGHT> SceneCopyInfoIndices;
+		//std::array<std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>, MAX_FRAMES_IN_FLIGHT> SceneCopyInfos;
 		SceneOptions Options;
 
 		std::array<UpdateLists, MAX_FRAMES_IN_FLIGHT> UpdateLists;
@@ -201,7 +205,6 @@ namespace SCENE
 		//Links to the managers
 		RENDERER::RendererContext* RendererContext = nullptr;
 		SCENE::ResourceDependencyManager* DependencyManager = nullptr;
-		TextureManager* TextureManager = nullptr;
-		MeshManager* MeshManagerPtr = nullptr;
+		RENDERER::ResourceManager* ResourceManagerPtr = nullptr;
 	};
 }

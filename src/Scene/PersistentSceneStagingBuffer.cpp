@@ -8,7 +8,6 @@ SCENE::PersistentStagingBuffer::PersistentStagingBuffer()
 }
 
 void SCENE::PersistentStagingBuffer::AllocateSceneStagingBuffer(
-    std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos,
     size_t RequiredStagingBufferSize,
     RENDERER::RendererContext* RendererContext
 )
@@ -19,26 +18,42 @@ void SCENE::PersistentStagingBuffer::AllocateSceneStagingBuffer(
         uint8_t* Space = nullptr;
         uint8_t* StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.Buffer.MappedMemory);
 
-        bool IsThereAnyCopyRegion = false;
-        for (uint32_t i = 0; i < CopyInfos.size(); i++)
+        std::vector<RENDERER_CORE::MemoryRegion> Regions;
+        if (InitialCapacity)
         {
-            if (!CopyInfos[i].CopyRegions.empty())
+            auto& FreeRegions = StagingBuffer.Allocator.GetFreeRegions();
+            Regions.reserve(FreeRegions.size());
+
+            Space = new uint8_t[InitialCapacity]();
+            size_t Offset = 0, TempBufferOffset = 0;
+            if (FreeRegions.empty())
             {
-                IsThereAnyCopyRegion = true;
-                break;
+                Regions.push_back({ 0,StagingBuffer.Allocator.GetCapacity() });
             }
-        }
-        if (IsThereAnyCopyRegion)
-        {
-            Space = new uint8_t[InitialCapacity];
-            for (uint32_t i = 0; i < static_cast<int>(BUFFER_COPY_SLOT_SIZE); i++)
+            else
             {
-                for (auto& CopyRegion : CopyInfos[i].CopyRegions)
+                for (size_t i = 0; i < FreeRegions.size(); i++)
                 {
-                    memcpy(Space + CopyRegion.srcOffset, StagingBufferPtr + CopyRegion.srcOffset, CopyRegion.size);
+                    const auto& FreeRegion = FreeRegions[i];
+                    if (Offset != FreeRegion.Offset)
+                    {
+                        size_t Size = FreeRegion.Offset - Offset;
+                        Regions.push_back({ Offset,Size });
+                    }
+                    Offset = FreeRegion.Offset + FreeRegion.Size;
+                }
+                if (Offset < StagingBuffer.Allocator.GetCapacity())
+                {
+                    Regions.push_back({ Offset,StagingBuffer.Allocator.GetCapacity() - Offset });
                 }
             }
-            //memcpy(Space, StagingBuffer.Buffer.MappedMemory, InitialCapacity);
+
+            size_t TempOffset = 0;
+            for (auto& Region : Regions)
+            {
+                memcpy(Space + TempOffset, StagingBufferPtr + Region.Offset, Region.Size);
+                TempOffset += Region.Size;
+            }
         }
         StagingBuffer.Allocator.Allocate(RequiredStagingBufferSize - StagingBuffer.Allocator.GetTotalFreeSpace());
 
@@ -54,20 +69,14 @@ void SCENE::PersistentStagingBuffer::AllocateSceneStagingBuffer(
 
         if (Space)
         {
-            //memcpy(StagingBuffer.Buffer.MappedMemory, Space, InitialCapacity);
-            for (uint32_t i = 0; i < static_cast<int>(BUFFER_COPY_SLOT_SIZE); i++)
+            size_t TempOffset = 0;
+            for (auto& Region : Regions)
             {
-                for (auto& CopyRegion : CopyInfos[i].CopyRegions)
-                {
-                    memcpy(StagingBufferPtr + CopyRegion.srcOffset, Space + CopyRegion.srcOffset, CopyRegion.size);
-                }
+                memcpy(StagingBufferPtr + Region.Offset,Space + TempOffset, Region.Size);
+                TempOffset += Region.Size;
             }
-            delete[] Space;
-        }
 
-        for (int i = 0; i < static_cast<int>(BUFFER_COPY_SLOT_SIZE); i++)
-        {
-            CopyInfos[i].SourceBuffer = StagingBuffer.Buffer.Buffer.BufferObject;
+            delete[] Space;
         }
     }
 }

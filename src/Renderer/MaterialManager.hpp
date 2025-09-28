@@ -15,22 +15,17 @@
 #include "../Renderer/Core/VulkanImage.hpp"
 #include "../Renderer/Core/VulkanDescriptor.hpp"
 #include "../Renderer/Core/VulkanPipeline.hpp"
-#include "SceneResource.hpp"
+
+namespace SCENE
+{
+	class SceneMeshManager;
+}
 
 namespace RENDERER
 {
 	class RendererContext;
 	class Renderer;
 	class DeferredRenderPipeline;
-}
-
-namespace SCENE
-{
-	class Texture : public Resource
-	{
-	public:
-	private:
-	};
 
 	struct TextureImportInfo
 	{
@@ -46,17 +41,18 @@ namespace SCENE
 
 	class TextureManager : COMMON::Destructible
 	{
-		friend class SceneMeshManager;
-		friend class RENDERER::Renderer;
-		friend class RENDERER::DeferredRenderPipeline;
+		friend class SCENE::SceneMeshManager;
+		friend class Renderer;
+		friend class DeferredRenderPipeline;
 	public:
-		TextureManager(RENDERER::RendererContext& RendererContext);
+		TextureManager(RendererContext& RendererContext);
 		TextureManager() = default;
-		void Create(RENDERER::RendererContext& RendererContext);
+		void Create(RendererContext& RendererContext);
 		void Destroy() override;
 
 		void AppendImportTask(TextureImportInfo ImportInfo);
 		void SubmitImport();
+		void WaitImportsIdle();
 
 		std::vector<std::pair<TextureImportInfo,std::future<bool>>> Futures;
 		std::queue<TextureImportInfo> ImportQueue;
@@ -65,8 +61,9 @@ namespace SCENE
 		std::unordered_map<uint64_t,RENDERER_CORE::RawImageData> RawImageDatas;
 		std::unordered_map<uint64_t,TextureDataEntry> TextureDatas;
 	private:
+		std::mutex Mutex;
 		double StartingTime;
-		RENDERER::RendererContext* RendererContext = nullptr;
+		RendererContext* RendererContextPtr = nullptr;
 		bool CreateMeshTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex);
 		void DestroyMeshTextureDescriptors();
 		void UpdateDescriptors(uint32_t FrameIndex);

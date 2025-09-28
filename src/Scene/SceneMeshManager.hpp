@@ -12,10 +12,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../Renderer/Core/VulkanBuffer.hpp"
+#include "../Renderer/Core/VulkanDescriptorSet.hpp"
+#include "../Renderer/ResourceManager.hpp"
+
 #include "../Common/CommonDefinitions.hpp"
 #include "../Common/MemoryArenaAllocator.hpp"
 #include "../Common/VectorMap.hpp"
-#include "../Renderer/Core/VulkanDescriptorSet.hpp"
 
 #include "Mesh.hpp"
 #include "Material.hpp"
@@ -24,6 +26,7 @@
 namespace RENDERER
 {
 	class RendererContext;
+	//class ResourceManager;
 }
 
 namespace SCENE
@@ -31,7 +34,6 @@ namespace SCENE
 	//Forward Declarations;
 	class ModelInstance;
 	class TextureManager;
-	class MeshManager;
 	enum SceneDynamicUploadMode;
 	struct SceneOptions;
 
@@ -227,9 +229,9 @@ namespace SCENE
 	{
 		friend class Scene;
 	public:
-		SceneMeshManager(MeshManager& MeshManager,RENDERER::RendererContext& RendererContext,size_t BufferAllocationStep);
+		SceneMeshManager(RENDERER::ResourceManager& ResourceManager,RENDERER::RendererContext& RendererContext,size_t BufferAllocationStep);
 		SceneMeshManager() = default;
-		void Create(MeshManager& MeshManager,RENDERER::RendererContext& RendererContext, size_t BufferAllocationStep);
+		void Create(RENDERER::ResourceManager& ResourceManager,RENDERER::RendererContext& RendererContext, size_t BufferAllocationStep);
 		void Destroy(VkDevice& LogicalDevice);
 
 		INTERNAL::MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> SceneBuffers;
@@ -241,7 +243,7 @@ namespace SCENE
 		void UpdateMeshTransformationsDeviceLocal(
 			std::vector<ModelInstance*>& UpdateList,
 			uint32_t CurrentFrame,
-			std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE)>& CurrentCopyInfos,
+			std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
 			SCENE::PersistentStagingBuffer& StagingBuffer
 		);
 
@@ -253,19 +255,18 @@ namespace SCENE
 			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> &TargetDescriptorSets,
 			PersistentStagingBuffer &StagingBuffer,
 			SceneOptions SceneOptions,
-			std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+			std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 		);
 		void EraseModels(MeshEraseInfo Info);
 		void UpdateMaterials(
 			std::vector<SCENE::ModelInstance*>& SceneMaterialUpdateList,
-			TextureManager* TextureImportManagerPtr,
 			uint32_t FrameIndex,
 			VkDescriptorSet& TargetDescriptorSet,
 			PersistentStagingBuffer& StagingBuffer,
-			std::array<RENDERER_CORE::BufferCopyInfo, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+			std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 		);
 	private:
-		MeshManager* MeshManagerPtr = nullptr;
+		RENDERER::ResourceManager* ResourceManagerPtr = nullptr;
 		RENDERER::RendererContext* RendererContext = nullptr;
 	};
 }

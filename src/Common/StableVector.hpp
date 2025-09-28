@@ -6,39 +6,48 @@
 namespace COMMON
 {
     template<typename T>
-    class StableVectorAlive {
+    class StableVector {
     public:
-        StableVectorAlive(size_t reserveCapacity = 100) {
-            Data.reserve(reserveCapacity);
-            Alive.reserve(reserveCapacity);
-            FreeIndices.reserve(reserveCapacity);
+        StableVector(size_t ReserveCapacity = 100) {
+            Data.reserve(ReserveCapacity);
+            Alive.reserve(ReserveCapacity);
+            FreeIndices.reserve(ReserveCapacity);
         }
 
-        size_t push_back(T input) {
+        size_t push_back(T Input) {
             if (!FreeIndices.empty()) {
-                size_t idx = FreeIndices.back();
+                size_t Index = FreeIndices.back();
                 FreeIndices.pop_back();
-                Data[idx] = std::move(input);
-                Alive[idx] = true;
-                return idx;
+                Data[Index] = std::move(Input);
+                Alive[Index] = true;
+                return Index;
             }
-            Data.push_back(std::move(input));
+            Data.push_back(std::move(Input));
             Alive.push_back(true);
             return Data.size() - 1;
         }
 
-        void erase(size_t idx) {
-            Alive[idx] = false;
-            FreeIndices.push_back(idx);
+        void erase(size_t Index) {
+            Alive[Index] = false;
+            FreeIndices.push_back(Index);
         }
 
-        bool valid(size_t idx) const {
-            return idx < Alive.size() && Alive[idx];
+        void Reserve(size_t ReserveSize)
+        {
+            Data.reserve(ReserveSize);
+            Alive.reserve(ReserveSize);
+            FreeIndices.reserve(ReserveSize);
         }
 
-        T& operator[](size_t idx) { return Data[idx]; }
-        const T& operator[](size_t idx) const { return Data[idx]; }
+        bool valid(size_t Index) const {
+            return Index < Alive.size() && Alive[Index];
+        }
 
+        T& operator[](size_t Index) { return Data[Index]; }
+        const T& operator[](size_t Index) const { return Data[Index]; }
+
+        auto& begin() noexcept { return Data.begin(); };
+        auto& end() noexcept { return Data.end(); };
         size_t size() const { return Data.size(); }
 
     private:

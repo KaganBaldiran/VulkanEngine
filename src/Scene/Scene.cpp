@@ -7,24 +7,22 @@
 #include "Cubemap.hpp"
 #include "../Renderer/Core/VulkanPipeline.hpp"
 
-#include "MaterialManager.hpp"
+#include "../Renderer/ResourceManager.hpp"
 #include <chrono>
 
-SCENE::Scene::Scene(RENDERER::RendererContext& RendererContext,SCENE::TextureManager &Manager, MeshManager& MeshManager, SceneOptions Options)
+SCENE::Scene::Scene(RENDERER::RendererContext& RendererContext, RENDERER::ResourceManager& ResourceManager,SceneOptions Options)
 {
-    Create(RendererContext, Manager, MeshManager);
+    Create(RendererContext, ResourceManager);
 }
 
-void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext, SCENE::TextureManager& Manager, MeshManager& MeshManager, SceneOptions Options)
+void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,RENDERER::ResourceManager& ResourceManager,SceneOptions Options)
 {
     this->Options = Options;
-    this->MeshBuffers.Create(MeshManager,RendererContext, Options.BufferAllocationStep);
+    this->MeshBuffers.Create(ResourceManager,RendererContext, Options.BufferAllocationStep);
     this->LightManager.Create(RendererContext);
-    TextureManager = &Manager;
-    this->MeshManagerPtr = &MeshManager;
+    this->ResourceManagerPtr = &ResourceManager;
 
     PendingUpdateBits.fill(SCENE_UPDATE_TYPE_NONE);
-   
     //SceneDescriptorSetLayout + IndirectDescriptorSetLayout + TextureIndicesDescriptorSetLayout
     SceneDescriptorPool.Create(
         { 
@@ -42,6 +40,46 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext, SCENE::Tex
     RENDERER_CORE::AllocateDescriptorSets(RendererContext.DeviceContext.LogicalDevice, MAX_FRAMES_IN_FLIGHT,
         SceneDescriptorPool.Handle, RendererContext.TextureIndicesDescriptorSetLayout.Handle, TextureIndicesDescriptorSets.data());
 
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        auto& CurrentCopyOperationIndices = SceneCopyInfoIndices[i];
+        CurrentCopyOperationIndices[INDIRECT_COPY] = ResourceManager.RequestCopyOperation(
+            MeshBuffers.SceneBuffers.IndirectBuffers[i].Buffer.BufferObject,
+            i,
+            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+            VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT
+        );
+
+        CurrentCopyOperationIndices[DRAWMETA_COPY] = ResourceManager.RequestCopyOperation(
+            MeshBuffers.SceneBuffers.DrawMetaDataBuffer[i].Buffer.BufferObject,
+            i,
+            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+            VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            VK_ACCESS_2_SHADER_READ_BIT
+        );
+
+        CurrentCopyOperationIndices[TEXTUREINDEX_COPY] = ResourceManager.RequestCopyOperation(
+            MeshBuffers.SceneBuffers.TexturesIndexBuffers[i].Buffer.BufferObject,
+            i,
+            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+            VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            VK_ACCESS_2_SHADER_READ_BIT
+        );
+
+        CurrentCopyOperationIndices[TRANSFORMATION_MATRIX_COPY] = ResourceManager.RequestCopyOperation(
+            MeshBuffers.SceneBuffers.ModelMatricesBuffers[i].Buffer.Buffer.BufferObject,
+            i,
+            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+            VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            VK_ACCESS_2_SHADER_READ_BIT
+        );
+    }
+
     this->RendererContext = &RendererContext;
     DrawCubeMap = true;
     IsDestroyed = false;
@@ -57,10 +95,6 @@ void SCENE::Scene::Destroy()
     DestroyMeshBuffers();
     //DestroyLightBuffers();
     LightManager.Destroy(RendererContext->DeviceContext.LogicalDevice);
-    for (size_t i = 0; i < StagingBuffers.size(); i++)
-    {
-        StagingBuffers[i].StagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
-    }
     IsDestroyed = true;
 
     std::cout << "Scene destroyed!" << std::endl;
@@ -168,6 +202,14 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
     //Update all the frames if IsAllFrames
     for (uint32_t i = (IsAllFrames ? 0 : FrameIndex); i < (IsAllFrames ? MAX_FRAMES_IN_FLIGHT : (FrameIndex + 1)); i++)
     {
+        //Construct the array that points to the copy operations related to this scene
+        std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)> CopyOperations = {
+            ResourceManagerPtr->GetCopyOperationEntry(SceneCopyInfoIndices[i][INDIRECT_COPY],i),
+            ResourceManagerPtr->GetCopyOperationEntry(SceneCopyInfoIndices[i][DRAWMETA_COPY],i),
+            ResourceManagerPtr->GetCopyOperationEntry(SceneCopyInfoIndices[i][TEXTUREINDEX_COPY],i),
+            ResourceManagerPtr->GetCopyOperationEntry(SceneCopyInfoIndices[i][TRANSFORMATION_MATRIX_COPY],i)
+        };
+
         auto& UpdateList = UpdateLists[i];
         const SceneUpdateType &Bit = IsPendingOnly ? this->PendingUpdateBits[i] : Type;
         if ((IsPendingOnly && (this->PendingUpdateBits[i] == SCENE_UPDATE_TYPE_NONE))) continue;
@@ -180,10 +222,12 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
                 UpdateList.MaterialUpdateList,
                 i, 
                 IndirectDescriptorSets, 
-                StagingBuffers[i],
+                ResourceManagerPtr->StagingBuffers[i],
                 this->Options,
-                SceneCopyInfos[i]
+                CopyOperations
             );
+            ResourceManagerPtr->SetCopyOperationDirty(SceneCopyInfoIndices[i][INDIRECT_COPY], i);
+            ResourceManagerPtr->SetCopyOperationDirty(SceneCopyInfoIndices[i][DRAWMETA_COPY], i);
 
             UpdateList.ModelInstancesAppendList.clear();
         }
@@ -199,18 +243,19 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
         }
         if (Bit & SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS)
         {
-            UpdateMeshTransformations(i);
+            UpdateMeshTransformations(i, CopyOperations);
+            ResourceManagerPtr->SetCopyOperationDirty(SceneCopyInfoIndices[i][TRANSFORMATION_MATRIX_COPY], i);
         }
         if (Bit & SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS)
         {
             MeshBuffers.UpdateMaterials(
                 UpdateList.MaterialUpdateList,
-                this->TextureManager,
                 i, 
                 TextureIndicesDescriptorSets[i], 
-                StagingBuffers[i], 
-                SceneCopyInfos[i]
+                ResourceManagerPtr->StagingBuffers[i],
+                CopyOperations
             );
+            ResourceManagerPtr->SetCopyOperationDirty(SceneCopyInfoIndices[i][TEXTUREINDEX_COPY], i);
             UpdateList.MaterialUpdateList.clear();
         }
         if ((Bit & SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS) || (Bit & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS))
@@ -233,7 +278,10 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
     }
 }
 
-void SCENE::Scene::UpdateMeshTransformations(uint32_t CurrentFrame)
+void SCENE::Scene::UpdateMeshTransformations(
+    uint32_t CurrentFrame,
+    std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations
+)
 {
     switch (Options.UploadMode)
     {
@@ -247,8 +295,8 @@ void SCENE::Scene::UpdateMeshTransformations(uint32_t CurrentFrame)
         this->MeshBuffers.UpdateMeshTransformationsDeviceLocal(
             UpdateLists[CurrentFrame].ModelInstancesTransformationUpdateList,
             CurrentFrame,
-            SceneCopyInfos[CurrentFrame],
-            StagingBuffers[CurrentFrame]
+            CopyOperations,
+            ResourceManagerPtr->StagingBuffers[CurrentFrame]
         );
         break;
     }

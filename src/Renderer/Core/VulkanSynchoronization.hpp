@@ -52,10 +52,12 @@ namespace RENDERER_CORE
 		VkAccessFlags2 AccessMask = 0;
 	};
 
-	struct BufferBarrierState
+	struct MemoryBufferBarrierState
 	{
-		VkPipelineStageFlags2 Stage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-		VkAccessFlags2 AccessMask = 0;
+		VkPipelineStageFlags2 SrcStageMask;
+		VkPipelineStageFlags2 DstStageMask;
+		VkAccessFlags2 SrcAccessMask;
+		VkAccessFlags2 DstAccessMask;
 	};
 
 	void SafeImageBarrier(

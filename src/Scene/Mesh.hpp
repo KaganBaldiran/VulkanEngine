@@ -13,10 +13,13 @@
 
 #include "Material.hpp"
 
-namespace SCENE
+namespace RENDERER
 {
     class TextureManager;
+}
 
+namespace SCENE
+{
     struct Vertex2D {
         glm::vec2 Position;
         glm::vec3 Color;
@@ -108,5 +111,5 @@ namespace SCENE
         std::vector<MeshHandle> Meshes;
     };
 
-    std::vector<SCENE::GeometryData> Import3DGeometry(const char* FilePath, SCENE::TextureManager& ImportManager);
+    std::vector<SCENE::GeometryData> Import3DGeometry(const char* FilePath, RENDERER::TextureManager& ImportManager);
 }

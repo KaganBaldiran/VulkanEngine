@@ -1,6 +1,11 @@
 #pragma once
 #include <vector>
 
+namespace RENDERER
+{
+	class RendererContext;
+}
+
 namespace COMMON
 {
 	class Destructible
@@ -26,4 +31,6 @@ namespace COMMON
 	private:
 		std::vector<Destructible*> DestructibleList;
 	};
+
+	void DestroyResources(RENDERER::RendererContext &RendererContext);
 }

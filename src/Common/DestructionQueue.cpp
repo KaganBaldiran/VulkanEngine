@@ -1,6 +1,8 @@
 #include "DestructionQueue.hpp"
 #include <algorithm>
 
+#include "../Renderer/RendererContext.hpp"
+
 void COMMON::DestructionQueue::Destroy()
 {
 	std::sort(DestructibleList.begin(), DestructibleList.end(), [](Destructible* Destructible0, Destructible* Destructible1) {
@@ -23,4 +25,10 @@ COMMON::DestructionQueue* COMMON::DestructionQueue::Get()
 void COMMON::DestructionQueue::Register(Destructible* DestructibleToRegister)
 {
 	DestructibleList.push_back(DestructibleToRegister);
+}
+
+void COMMON::DestroyResources(RENDERER::RendererContext& RendererContext)
+{
+	RendererContext.WaitDeviceIdle();
+	COMMON::DestructionQueue::Get()->Destroy();
 }
