@@ -42,7 +42,7 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsHostVisible(std::vector<M
     MemoryRanges.reserve(UpdateList.size());
     for (auto& ModelInstance : UpdateList)
     {
-        auto ModelInstanceEntryIterator = CurrentFrameInstanceEntries.Find(ModelInstance->ResourceID);
+        auto ModelInstanceEntryIterator = CurrentFrameInstanceEntries.Find(ModelInstance->GetHandleID());
         if (!ModelInstanceEntryIterator) continue;
 
         //Copy onto the destination buffer
@@ -95,7 +95,7 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
         //Updates the model matrixes if given.
         for (auto& ModelInstance : UpdateList)
         {
-            auto ModelInstanceEntryIterator = CurrentFrameInstanceEntries.Find(ModelInstance->ResourceID);
+            auto ModelInstanceEntryIterator = CurrentFrameInstanceEntries.Find(ModelInstance->GetHandleID());
             if (!ModelInstanceEntryIterator) continue;
             ModelInstanceEntryIterator->second.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
         }
@@ -135,7 +135,7 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
         CopyOperations[TRANSFORMATION_MATRIX_COPY]->CopyInfo.CopyRegions.reserve(UpdateList.size());
         for (auto& ModelInstance : UpdateList)
         {
-            auto ModelInstanceEntryIterator = CurrentFrameInstanceEntries.Find(ModelInstance->ResourceID);
+            auto ModelInstanceEntryIterator = CurrentFrameInstanceEntries.Find(ModelInstance->GetHandleID());
             if (!ModelInstanceEntryIterator) continue;
 
             auto& AllocatedMemoryRegion = ModelInstanceEntryIterator->second.TransformationMatrixMemoryRegion;
@@ -197,7 +197,7 @@ void ProcessAppendList(
 
         MaterialUpdateList.push_back(ModelInstance);
         //Handle already existing instance case
-        auto InstanceIterator = CurrentFrameEntries.InstanceEntries.Find(ModelInstance->ResourceID);
+        auto InstanceIterator = CurrentFrameEntries.InstanceEntries.Find(ModelInstance->GetHandleID());
         if (InstanceIterator)
         {
             InstanceIterator->second.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
@@ -231,7 +231,7 @@ void ProcessAppendList(
             {
                 MeshEntryIterator->second.IsChanged = true;
                 MeshEntryIterator->second.ReferenceCount++;
-                MeshEntryIterator->second.InstanceLinks.push_back({ ModelInstance->ResourceID, RENDERER_CORE::MemoryRegion() });
+                MeshEntryIterator->second.InstanceLinks.push_back({ ModelInstance->GetHandleID(), RENDERER_CORE::MemoryRegion() });
                 continue;
             }
             
@@ -240,7 +240,7 @@ void ProcessAppendList(
             NewMeshEntry.BoundingBox = GeometryEntryIterator->second.BoundingBox;
             NewMeshEntry.ReferenceCount++;
             NewMeshEntry.IsChanged = true;
-            NewMeshEntry.InstanceLinks.push_back({ ModelInstance->ResourceID, RENDERER_CORE::MemoryRegion() });
+            NewMeshEntry.InstanceLinks.push_back({ ModelInstance->GetHandleID(), RENDERER_CORE::MemoryRegion() });
 
             SCENE::DrawInfo MeshDrawInfo{};
             MeshDrawInfo.VertexOffset = GeometryEntryIterator->second.VertexRegion.Offset / SizeOfVertex;
@@ -256,7 +256,7 @@ void ProcessAppendList(
 
             EnabledMeshCount++;
         }
-        CurrentFrameEntries.InstanceEntries.Insert(ModelInstance->ResourceID,NewInstanceEntry);
+        CurrentFrameEntries.InstanceEntries.Insert(ModelInstance->GetHandleID(), NewInstanceEntry);
         //Inserted total instance per mesh count
         InsertedMeshInstanceCount += ModelInstance->Source->Meshes.size();
     }
@@ -949,7 +949,7 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     for (auto& ModelInstancePtr : SceneMaterialUpdateList)
     {
         //Fetch the instance entries belonging to this instance ID
-        auto InstanceEntryIterator = CurrentFrameEntries.InstanceEntries.Find(ModelInstancePtr->ResourceID);
+        auto InstanceEntryIterator = CurrentFrameEntries.InstanceEntries.Find(ModelInstancePtr->GetHandleID());
         if (!InstanceEntryIterator) continue;
 
         for (size_t i = 0; i < ModelInstancePtr->Materials.size(); i++)

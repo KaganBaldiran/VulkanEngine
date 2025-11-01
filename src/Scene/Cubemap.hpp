@@ -7,7 +7,7 @@
 #include "../Common/DestructionQueue.hpp"
 #include <array>
 
-#include "SceneResource.hpp"
+#include "../Common/Handle.hpp"
 
 namespace RENDERER
 {
@@ -19,7 +19,7 @@ namespace SCENE
 {
 	class ResourceDependencyManager;
 
-	class Cubemap : public Resource , public COMMON::Destructible
+	class Cubemap : public COMMON::Handle , public COMMON::Destructible
 	{
 	public:
 		Cubemap(RENDERER::RendererContext& RendererContext,uint32_t Width, uint32_t Height);

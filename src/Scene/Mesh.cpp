@@ -207,8 +207,8 @@ void LoadMaterialTextures(std::string MeshDirectory, RENDERER::TextureManager& I
         if (!skip)
         {
             SCENE::Texture NewTexture;
-            MaterialTextureReferenceIndex = NewTexture.ResourceID;
-            ImportQueue.push({ MeshDirectory + "\\" + std::string(str.C_Str()),NewTexture.ResourceID});
+            MaterialTextureReferenceIndex = NewTexture.GetHandleID();
+            ImportQueue.push({ MeshDirectory + "\\" + std::string(str.C_Str()),NewTexture.GetHandleID() });
         }
     }
 }
@@ -256,6 +256,11 @@ void SCENE::Transformation::Rotate(float RotationInDegrees, glm::vec3 Axis)
 void SCENE::Transformation::Scale(glm::vec3 ScaleCoefficient)
 {
     ScalingMatrix = glm::scale(ScalingMatrix, ScaleCoefficient);
+}
+
+glm::vec3 SCENE::Transformation::GetPosition()
+{
+    return { TranslationMatrix[0][3],TranslationMatrix[1][3],TranslationMatrix[2][3] };
 }
 
 void SCENE::Transformation::SetTranslationMatrix(const glm::mat4& Matrix)

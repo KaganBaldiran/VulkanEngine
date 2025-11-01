@@ -32,15 +32,27 @@ namespace COMMON
             FreeIndices.push_back(Index);
         }
 
-        void Reserve(size_t ReserveSize)
+        void reserve(size_t ReserveSize)
         {
             Data.reserve(ReserveSize);
             Alive.reserve(ReserveSize);
             FreeIndices.reserve(ReserveSize);
         }
 
+        void clear()
+        {
+            Data.clear();
+            Alive.clear();
+            FreeIndices.clear();
+        }
+
         bool valid(size_t Index) const {
             return Index < Alive.size() && Alive[Index];
+        }
+
+        auto& back() const 
+        {
+            return Data.back();
         }
 
         T& operator[](size_t Index) { return Data[Index]; }
@@ -49,10 +61,9 @@ namespace COMMON
         auto& begin() noexcept { return Data.begin(); };
         auto& end() noexcept { return Data.end(); };
         size_t size() const { return Data.size(); }
-
     private:
         std::vector<T> Data;
-        std::vector<bool> Alive;
+        std::vector<uint8_t> Alive;
         std::vector<size_t> FreeIndices;
     };
 }

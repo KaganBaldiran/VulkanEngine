@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "SceneResource.hpp"
+#include "../Common/Handle.hpp"
 
 namespace SCENE
 {
@@ -24,7 +24,7 @@ namespace SCENE
 		LightType Type = DIRECTIONAL_LIGHT;
 	};
 
-	class Light : public Resource
+	class Light : public COMMON::Handle
 	{
 	public:
 		Light();

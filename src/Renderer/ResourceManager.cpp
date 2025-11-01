@@ -44,16 +44,24 @@ void RENDERER::ResourceManager::AppendTextureImportTask(TextureImportInfo Import
 	TextureManager.AppendImportTask(ImportInfo);
 }
 
-void RENDERER::ResourceManager::WaitImportsIdle()
+void RENDERER::ResourceManager::SubmitTextureImports()
 {
-	MeshManager.SubmitImport();
-	MeshManager.WaitImportsIdle();
 	TextureManager.SubmitImport();
-	TextureManager.WaitImportsIdle();
 }
 
-void RENDERER::ResourceManager::SubmitImports()
+void RENDERER::ResourceManager::SubmitModelImports()
 {
+	MeshManager.SubmitImport();
+}
+
+void RENDERER::ResourceManager::WaitModelImportsIdle()
+{
+	MeshManager.WaitImportsIdle();
+}
+
+void RENDERER::ResourceManager::WaitTextureImportsIdle()
+{
+	TextureManager.WaitImportsIdle();
 }
 
 size_t RENDERER::ResourceManager::RequestCopyOperation(
@@ -67,7 +75,7 @@ size_t RENDERER::ResourceManager::RequestCopyOperation(
 {
 	auto& CurrentCopyInfoList = CopyInfos[FrameIndex];
 
-	std::vector<CopyOperationEntry>::iterator Iterator = CurrentCopyInfoList.end();
+	auto &Iterator = CurrentCopyInfoList.end();
 	if (DestinationBuffer != VK_NULL_HANDLE)
 	{
 		Iterator = std::find_if(CurrentCopyInfoList.begin(), CurrentCopyInfoList.end(), [&](CopyOperationEntry& Info) {

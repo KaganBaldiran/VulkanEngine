@@ -3,6 +3,7 @@
 #include "MeshManager.hpp"
 #include "MaterialManager.hpp"
 #include "ResourceManager.hpp"
+#include "RendererContext.hpp"
 
 #include "../Scene/Scene.hpp"
 #include "../Scene/Camera.hpp"
@@ -25,6 +26,7 @@ void RENDERER::DeferredRenderPipeline::Create(RendererContext& RendererContext)
     PhysicalDevice = RendererContext.DeviceContext.PhysicalDevice;
     GraphicsQueueIndex = RendererContext.QueueFamilyIndices.GraphicsFamily.value();
 
+    HasCustomPipeline.fill(false);
     this->StartingTime = std::chrono::system_clock::now();
 
     PipelineType = RENDER_PIPELINE_TYPE_DEFERRED_RENDER;
@@ -36,31 +38,43 @@ void RENDERER::DeferredRenderPipeline::Create(RendererContext& RendererContext)
 void RENDERER::DeferredRenderPipeline::CompileCustomPipeline(std::string ShadePixelFunction,const char* Label)
 {
     if (ShadePixelFunction.empty()) throw std::runtime_error("Shader pixel function cannot be empty!");
-    static uint32_t CustomDeferredPipelineIterator = 0;
 
-    std::vector<char> File = RENDERER_CORE::ReadFile("Shaders\\CustomizableDeferredShading.frag");
-    std::string FileText(File.begin(),File.end());
-    auto TargetLocation = FileText.find("//APPENDSPOT");
-    if (TargetLocation == std::string::npos) return;
-    
-    FileText.insert(TargetLocation + 13, ShadePixelFunction);
-    auto PipelineCreateInfo = RendererContextPtr->LatestShadingPassPipelineCreateInfo;
-
-    std::string SpirvFileName = Label + std::string(".spv");
-    RENDERER_CORE::ShaderModule FragmentShader;
-    RENDERER_CORE::ShaderData ShaderData;
-    if (VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS)
+    RENDERER_CORE::ShaderModule* FragmentShaderPtr = nullptr;
+    if (!(FragmentShaderPtr = RendererContextPtr->ShaderManager.GetShaderModule(Label)))
     {
-        ShaderData.FromGLSL(FileText, shaderc_fragment_shader, Label);
-        ShaderData.WriteFileSpirv(SpirvFileName.c_str());
-    }
-    else ShaderData.FromSpirV(SpirvFileName.c_str());
-    FragmentShader.Create(ShaderData, LogicalDevice);
+        std::vector<char> File = RENDERER_CORE::ReadFile("Shaders\\CustomizableDeferredShading.frag");
+        std::string FileText(File.begin(), File.end());
+        auto TargetLocation = FileText.find("//APPENDSPOT");
+        if (TargetLocation == std::string::npos) return;
 
-    PipelineCreateInfo.ShaderModules[1] = { &FragmentShader , VK_SHADER_STAGE_FRAGMENT_BIT };
-    Pipeline.Destroy(LogicalDevice);
-    Pipeline.Create(PipelineCreateInfo, LogicalDevice);
-    FragmentShader.Destroy(RendererContextPtr->DeviceContext.LogicalDevice);
+        FileText.insert(TargetLocation + 13, ShadePixelFunction);
+        std::string SpirvFileName = Label + std::string(".spv");
+        RENDERER_CORE::ShaderData ShaderData;
+        if (VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS)
+        {
+            ShaderData.FromGLSL(FileText, shaderc_fragment_shader, Label);
+            ShaderData.WriteFileSpirv(SpirvFileName.c_str());
+        }
+        else ShaderData.FromSpirV(SpirvFileName.c_str());
+        FragmentShaderPtr = RendererContextPtr->ShaderManager.AppendShaderModule(Label, ShaderData, RendererContextPtr->DeviceContext.LogicalDevice);
+    }
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        if (HasCustomPipeline[i]) {
+            RendererContextPtr->PipelineManager.EraseGraphicsPipelineByHash(PipelineIndices[i], RendererContextPtr->DeviceContext.LogicalDevice);
+        }
+        size_t DefaultPipelineIndex = RendererContextPtr->DefaultPipelines.DeferredShading[i];
+        auto PipelineCreateInfo = RendererContextPtr->PipelineManager.GetGraphicsPipeline(DefaultPipelineIndex)->PipelineCreateInfo;
+        PipelineCreateInfo.ShaderModules[1] = { FragmentShaderPtr , VK_SHADER_STAGE_FRAGMENT_BIT };
+        auto PipelineIterator = RendererContextPtr->PipelineManager.AppendGraphicsPipeline(
+            PipelineCreateInfo,
+            RendererContextPtr->DeviceContext.LogicalDevice
+        );
+        //Update the custom pipeline map to let the context know of the change.
+        PipelineIndices[i] = PipelineIterator.second;
+        RendererContextPtr->CustomPipelines[i][this->GetHandleID()] = PipelineIterator.second;
+        HasCustomPipeline[i] = true;
+    }
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created custom deferred pipeline (" + std::string(Label) + ")."));
 }
 
@@ -78,7 +92,7 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
     bool ClearColorAttachment
 )
 {
-    if (!Scene.MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame] || !Scene.ResourceManagerPtr || !Scene.ResourceManagerPtr->TextureManager.TextureDescriptorsPipelines)
+    if (!Scene.MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame] || !Scene.ResourceManagerPtr)
     {
         return;
     };
@@ -141,7 +155,13 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
 void RENDERER::DeferredRenderPipeline::Destroy()
 {
     if (IsDestroyed) return;
-    
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        if (!HasCustomPipeline[i]) continue;
+        RendererContextPtr->CustomPipelines[i].erase(this->GetHandleID());
+        RendererContextPtr->PipelineManager.EraseGraphicsPipelineByHash(PipelineIndices[i], RendererContextPtr->DeviceContext.LogicalDevice);
+        HasCustomPipeline[i] = false;
+    }
     IsDestroyed = true;
 }
 
@@ -214,14 +234,18 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
     );
 
     RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)RendererContextPtr->SwapChain.Extent.width, (uint32_t)RendererContextPtr->SwapChain.Extent.height} });
-    RENDERER::TextureManager& TextureManager = Scene.ResourceManagerPtr->TextureManager;
     RENDERER::MeshManager& MeshManager = Scene.ResourceManagerPtr->MeshManager;
 
-    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = TextureManager.TextureDescriptorsPipelines->at(static_cast<int>(EnableDepthTesting));
-    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.pipeline);
+    const size_t &CurrentPipelineIndex = EnableDepthTesting ? RendererContextPtr->DefaultPipelines.GbufferDepthEnabled[CurrentFrame] :
+                                                              RendererContextPtr->DefaultPipelines.GbufferDepthDisabled[CurrentFrame];
+    RENDERER_CORE::GraphicsPipelineEntry* CurrentPipelineEntry = RendererContextPtr->PipelineManager.GetGraphicsPipeline(CurrentPipelineIndex);
+    assert(CurrentPipelineEntry);
+    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = CurrentPipelineEntry->Pipeline;
+
+    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Handle);
     VkDescriptorSet DescriptorSets[] = { 
         Scene.IndirectDescriptorSets[CurrentFrame],
-        TextureManager.TexturesDescriptors[CurrentFrame].DescriptorSets[0],
+        RendererContextPtr->TexturesDescriptors[CurrentFrame].DescriptorSets[0],
         Scene.TextureIndicesDescriptorSets[CurrentFrame] 
     };
     vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Layout, 0, 3, DescriptorSets, 0, nullptr);
@@ -297,11 +321,11 @@ void RENDERER::DeferredRenderPipeline::RenderLightingPass(
 
     RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)RendererContextPtr->SwapChain.Extent.width, (uint32_t)RendererContextPtr->SwapChain.Extent.height} });
 
-    RENDERER::TextureManager& TextureManager = Scene.ResourceManagerPtr->TextureManager;
-    RENDERER::MeshManager& MeshManager = Scene.ResourceManagerPtr->MeshManager;
-
-    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = Pipeline.pipeline ? Pipeline : TextureManager.TextureDescriptorsPipelines->at(2);
-    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.pipeline);
+    size_t CurrentPipelineIndex = HasCustomPipeline[CurrentFrame] ? PipelineIndices[CurrentFrame] : RendererContextPtr->DefaultPipelines.DeferredShading[CurrentFrame];
+    RENDERER_CORE::GraphicsPipelineEntry* CurrentPipelineEntry = RendererContextPtr->PipelineManager.GetGraphicsPipeline(CurrentPipelineIndex);
+    assert(CurrentPipelineEntry);
+    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = CurrentPipelineEntry->Pipeline;
+    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Handle);
 
     VkBuffer VertexBuffers[] = { RendererContextPtr->QuadVertexBuffer.BufferObject };
     VkDeviceSize Offsets[] = { 0 };
@@ -310,7 +334,7 @@ void RENDERER::DeferredRenderPipeline::RenderLightingPass(
         GeometrybufferDescriptorSet,
         Scene.SceneDescriptorSets[CurrentFrame] ,
         Scene.TextureIndicesDescriptorSets[CurrentFrame], 
-        TextureManager.TexturesDescriptors[CurrentFrame].DescriptorSets[0]
+        RendererContextPtr->TexturesDescriptors[CurrentFrame].DescriptorSets[0]
     };
     vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Layout, 0, 4, DescriptorSets, 0, nullptr);
     

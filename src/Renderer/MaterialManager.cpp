@@ -24,22 +24,11 @@ void RENDERER::TextureManager::Create(RENDERER::RendererContext& RendererContext
     IsDestroyed = false;
     DestructionPriority = 2;
     COMMON::DestructionQueue::Get()->Register(this);
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        TextureDescriptorIndexAllocators[i].Create();
-        this->TextureDescriptorUpperBounds[i] = 0;
-    }
 }
 
 void RENDERER::TextureManager::Destroy()
 {
     if (IsDestroyed) return;
-
-    for (size_t i = 0; i < TexturesDescriptors.size(); i++)
-    {
-        TexturesDescriptors[i].Destroy(this->RendererContextPtr->DeviceContext.LogicalDevice);
-    }
     for (auto &[id,TextureDataEntry]:TextureDatas)
     {
         TextureDataEntry.Data.Destroy(this->RendererContextPtr->DeviceContext.LogicalDevice);
@@ -92,32 +81,6 @@ void RENDERER::TextureManager::SubmitImport()
         }) });
 
     }
-
-   /*
-    for (auto& [ImportInfo,future] : Futures)
-    {
-        if (future.get())
-        {
-            ImportRegistries.emplace(std::string(ImportInfo.FileName), ImportInfo.DestinationTextureID);
-            ImagesToTransition.push_back(ImportInfo.DestinationTextureID);
-        }
-    }
-    Futures.clear();
-
-    for (auto& ImageID : ImagesToTransition)
-    {
-        auto Iterator = TextureDatas.find(ImageID);
-        if (Iterator == TextureDatas.end()) continue;
-     
-        for (size_t i = 0; i < this->DescriptorWriteQueue.size(); i++)
-        {
-            DescriptorWriteQueue[i].push_back(ImageID);
-        }
-    }
-
-    double DeltaTime = glfwGetTime() - StartingTime;
-    std::cout << "Textures were imported in: " << DeltaTime << " seconds" << std::endl;
-    */
 }
 
 void RENDERER::TextureManager::WaitImportsIdle()
@@ -145,12 +108,11 @@ void RENDERER::TextureManager::WaitImportsIdle()
 
 void RENDERER::TextureManager::UpdateDescriptors(uint32_t FrameIndex)
 {
-    auto& CurrentTextureDescriptorUpperBound = TextureDescriptorUpperBounds[FrameIndex];
     auto& CurrentDescriptorWriteList = this->DescriptorWriteQueue[FrameIndex];
-    auto& CurrentTexturesDescriptor = TexturesDescriptors[FrameIndex];
-    auto& CurrentTextureDescriptorIndexAllocator = TextureDescriptorIndexAllocators[FrameIndex];
+    auto& CurrentTexturesDescriptor = RendererContextPtr->TexturesDescriptors[FrameIndex];
+    auto& CurrentTextureDescriptorIndexAllocator = RendererContextPtr->TextureDescriptorIndexAllocators[FrameIndex];
 
-    bool ShouldRewrite = CreateMeshTextureDescriptors(CurrentTextureDescriptorUpperBound + CurrentDescriptorWriteList.size(), FrameIndex);
+    bool ShouldRewrite = RendererContextPtr->CreateTextureDescriptors(CurrentDescriptorWriteList.size(), FrameIndex,true);
     std::vector<RENDERER_CORE::DescriptorSetWriteImage> ImageWrites;
     if (ShouldRewrite)
     {
@@ -204,72 +166,3 @@ void RENDERER::TextureManager::UpdateDescriptors(uint32_t FrameIndex)
     );
     CurrentDescriptorWriteList.clear();
 }
-
-bool RENDERER::TextureManager::CreateMeshTextureDescriptors(
-    uint32_t DescriptorCount,
-    uint32_t FrameIndex
-)
-{
-    bool ShouldRewrite = false;
-    auto& CurrentTexturesDescriptor = TexturesDescriptors[FrameIndex];
-    auto& CurrentTextureDescriptorUpperBound = TextureDescriptorUpperBounds[FrameIndex];
-    if (DescriptorCount > CurrentTextureDescriptorUpperBound)
-    {
-        if (CurrentTextureDescriptorUpperBound)
-        {
-            CurrentTexturesDescriptor.Destroy(RendererContextPtr->DeviceContext.LogicalDevice);
-            ShouldRewrite = true;
-        }
-
-        CurrentTextureDescriptorUpperBound = static_cast<uint32_t>(glm::ceil((float)DescriptorCount / (float)TextureDescriptorBlockSize)) * TextureDescriptorBlockSize;
-        std::cout << "Creating texture descriptor set with upper bound: " << CurrentTextureDescriptorUpperBound << "\n";
-
-        CurrentTexturesDescriptor.DescriptorPool.Create(
-            { {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,CurrentTextureDescriptorUpperBound} },
-            1,
-            RendererContextPtr->DeviceContext.LogicalDevice,
-            VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
-        );
-
-        VkDescriptorBindingFlags LayoutFlags[2] = {
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-        };
-        VkDescriptorSetLayoutBindingFlagsCreateInfo BindingFlags{};
-        BindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-        BindingFlags.pBindingFlags = LayoutFlags;
-        BindingFlags.bindingCount = 1;
-
-        CurrentTexturesDescriptor.Layout.AppendLayoutBinding(
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            CurrentTextureDescriptorUpperBound,
-            0,
-            VK_SHADER_STAGE_FRAGMENT_BIT
-        );
-
-        CurrentTexturesDescriptor.Layout.CreateLayout(
-            RendererContextPtr->DeviceContext.LogicalDevice,
-            VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
-            &BindingFlags
-        );
-
-        RENDERER_CORE::AllocateDescriptorSets(
-            RendererContextPtr->DeviceContext.LogicalDevice,
-            CurrentTexturesDescriptor.DescriptorSets.size(),
-            CurrentTexturesDescriptor.DescriptorPool.Handle,
-            CurrentTexturesDescriptor.Layout.Handle,
-            CurrentTexturesDescriptor.DescriptorSets.data()
-        );
-        TextureDescriptorsPipelines = RendererContextPtr->CreateTextureDescriptorPipelines(CurrentTexturesDescriptor.Layout.Handle, CurrentTextureDescriptorUpperBound);
-        return ShouldRewrite;
-    }
-    return ShouldRewrite;
-}
-
-void RENDERER::TextureManager::DestroyMeshTextureDescriptors()
-{
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        TexturesDescriptors[i].Destroy(RendererContextPtr->DeviceContext.LogicalDevice);
-    }
-}
-

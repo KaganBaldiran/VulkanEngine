@@ -2,6 +2,8 @@
 #include "RenderPipeline.hpp"
 #include "Core/VulkanSynchoronization.hpp"
 
+#include "../Common/DestructionQueue.hpp"
+
 #include <chrono>
 #include <array>
 
@@ -36,7 +38,7 @@ namespace RENDERER
 		void OnResize(uint32_t Width, uint32_t Height) override;
 
 		glm::mat4 PreviousProjViewMatrix;
-		RENDERER_CORE::GraphicsPipeline Pipeline;
+		size_t Pipeline;
 		std::chrono::system_clock::time_point StartingTime;
 
 		void RenderLightingPass(

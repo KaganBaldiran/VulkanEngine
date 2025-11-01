@@ -1,15 +1,19 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #include <glfw3.h>
-#include "VulkanUtils.hpp" 
 #include <vector>
+
+#include "VulkanUtils.hpp" 
 #include "VulkanShader.hpp"
+#include "VulkanDescriptorSetLayout.hpp"
 
 namespace RENDERER_CORE
 {
+    class PipelineManager;
+
 	struct ShaderModuleInfo
 	{
-		ShaderModule* Module;
+		ShaderModule* Module = nullptr;
 		VkShaderStageFlagBits Usage;
 	};
 
@@ -25,10 +29,10 @@ namespace RENDERER_CORE
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
         };
-        std::vector<ShaderModuleInfo> ShaderModules = {}; 
-        std::vector<VkDescriptorSetLayout> DescriptorSetLayouts = {};
-        std::vector<VkVertexInputAttributeDescription> AttributeDescriptions = {};
-        std::vector<VkPushConstantRange> PushConstantRanges = {};
+        std::vector<ShaderModuleInfo> ShaderModules; 
+        std::vector<DescriptorSetLayout> DescriptorSetLayouts;
+        std::vector<VkVertexInputAttributeDescription> AttributeDescriptions;
+        std::vector<VkPushConstantRange> PushConstantRanges;
         VkVertexInputBindingDescription BindingDescription = {
             0,                  
             0,                  
@@ -51,36 +55,52 @@ namespace RENDERER_CORE
         VkExtent2D ScissorExtent = { 800, 600 };
         float ViewportMinDepth = 0.0f;
         float ViewportMaxDepth = 1.0f;
+
+        //Hashes the create info, used for unique look-up on the central pipeline map
+        size_t Hash() const;
+        //bool operator==(const GraphicsPipelineCreateInfo& Other) const;
     };
 
 
 	class GraphicsPipeline
 	{
+        friend class PipelineManager;
 	public:
-		GraphicsPipeline(GraphicsPipelineCreateInfo &CreateInfo,VkDevice& LogicalDevice);
+		GraphicsPipeline(GraphicsPipelineCreateInfo &CreateInfo,VkDevice& LogicalDevice,bool CalculateHash = false);
 		GraphicsPipeline() = default;
-		void Create(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice);
+		void Create(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice,bool CalculateHash = false);
 		void Destroy(VkDevice& LogicalDevice);
-		VkPipeline pipeline = VK_NULL_HANDLE;
+		VkPipeline Handle = VK_NULL_HANDLE;
 		VkPipelineLayout Layout = VK_NULL_HANDLE;
+
+        size_t GetHash() const { return Hash; };
+    private:
+        size_t Hash = 0;
 	};
 
     struct ComputePipelineCreateInfo
     {
         ShaderModule* ComputeShaderModule;
-        std::vector<VkDescriptorSetLayout> DescriptorSetLayouts = {};
+        std::vector<DescriptorSetLayout> DescriptorSetLayouts = {};
         std::vector<VkPushConstantRange> PushConstantRanges = {};
+
+        //Hashes the create info, used for unique look-up on the central pipeline map
+        size_t Hash() const;
     };
 
     class ComputePipeline
     {
+        friend class PipelineManager;
     public:
-        ComputePipeline(const ComputePipelineCreateInfo& Info,const VkDevice& LogicalDevice);
+        ComputePipeline(const ComputePipelineCreateInfo& Info,const VkDevice& LogicalDevice, bool CalculateHash = false);
         ComputePipeline() = default;
-        void Create(const ComputePipelineCreateInfo& Info, const VkDevice& LogicalDevice);
+        void Create(const ComputePipelineCreateInfo& Info, const VkDevice& LogicalDevice, bool CalculateHash = false);
         void Destroy(const VkDevice& LogicalDevice);
 
-        VkPipeline Pipeline = VK_NULL_HANDLE;
+        VkPipeline Handle = VK_NULL_HANDLE;
         VkPipelineLayout Layout = VK_NULL_HANDLE;
+        size_t GetHash() { return Hash; };
+    private:
+        size_t Hash = 0;
     };
 }

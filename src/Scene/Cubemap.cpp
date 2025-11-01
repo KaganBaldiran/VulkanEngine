@@ -193,7 +193,9 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 		VkClearValue ClearColor{};
 		ClearColor.color = { {0.0f,0.0f,0.0f,0.0f} };
 
-		vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RendererContext.HDRIrenderGraphicsPipeline.pipeline);
+		size_t CurrentRenderPipelineIndex = RendererContext.DefaultPipelines.HDRIrender;
+		RENDERER_CORE::GraphicsPipeline CurrentRenderPipeline = RendererContext.PipelineManager.GetGraphicsPipeline(CurrentRenderPipelineIndex)->Pipeline;
+		vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentRenderPipeline.Handle);
 
 		VkViewport Viewport{};
 		Viewport.x = 0.0f;
@@ -218,7 +220,7 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 		vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, Offsets);
 
 		//HDRI to cubemap pass
-		vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RendererContext.HDRIrenderGraphicsPipeline.Layout, 0, 1, &RendererContext.HDRIrenderPassDescriptorSets[0], 0, nullptr);
+		vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentRenderPipeline.Layout, 0, 1, &RendererContext.HDRIrenderPassDescriptorSets[0], 0, nullptr);
 
 		for (size_t i = 0; i < 6; i++)
 		{
@@ -235,7 +237,7 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 			std::array<glm::mat4, 2> Matrixes = { FboViews[i],Projection };
 			vkCmdPushConstants(
 				CommandBuffer,
-				RendererContext.HDRIrenderGraphicsPipeline.Layout,
+				CurrentRenderPipeline.Layout,
 				VK_SHADER_STAGE_VERTEX_BIT,
 				0,
 				2 * sizeof(glm::mat4), Matrixes.data()
@@ -256,8 +258,11 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 		RENDERER_CORE::DescriptorSetWriteImage CubemapTextureWrite(DestinationCubeMap.CubemapSampleImageView, DestinationCubeMap.CubemapSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, RendererContext.HDRIrenderPassDescriptorSets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 		RENDERER_CORE::WriteDescriptorSets(RendererContext.DeviceContext.LogicalDevice, {}, { CubemapTextureWrite });
 
-		vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RendererContext.HDRIconvoluteGraphicsPipeline.pipeline);
-		vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RendererContext.HDRIconvoluteGraphicsPipeline.Layout, 0, 1, &RendererContext.HDRIrenderPassDescriptorSets[0], 0, nullptr);
+		size_t CurrentConvolutePipelineIndex = RendererContext.DefaultPipelines.HDRIconvolute;
+		RENDERER_CORE::GraphicsPipeline& CurrentConvolutePipeline = RendererContext.PipelineManager.GetGraphicsPipeline(CurrentConvolutePipelineIndex)->Pipeline;
+
+		vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentConvolutePipeline.Handle);
+		vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentConvolutePipeline.Layout, 0, 1, &RendererContext.HDRIrenderPassDescriptorSets[0], 0, nullptr);
 
 		Viewport.x = 0.0f;
 		Viewport.y = 0.0f;
@@ -289,7 +294,7 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 			std::array<glm::mat4, 2> Matrixes = { FboViews[i],Projection };
 			vkCmdPushConstants(
 				CommandBuffer,
-				RendererContext.HDRIconvoluteGraphicsPipeline.Layout,
+				CurrentConvolutePipeline.Layout,
 				VK_SHADER_STAGE_VERTEX_BIT,
 				0,
 				2 * sizeof(glm::mat4), Matrixes.data()

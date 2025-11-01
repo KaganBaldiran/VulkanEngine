@@ -55,17 +55,32 @@ float skyboxVertices[] = {
      1.0f, -1.0f,  1.0f
 };
 
-RENDERER::RendererContext::RendererContext(bool EnableValidationLayers)
+RENDERER::RendererContext::RendererContext(
+    uint32_t WindowWidth,
+    uint32_t WindowHeight,
+    const char* WindowName,
+    bool EnableValidationLayers
+)
 {
-    Create(EnableValidationLayers);
+    Create(
+        WindowWidth,
+        WindowHeight,
+        WindowName,
+        EnableValidationLayers
+    );
 }
 
-void RENDERER::RendererContext::Create(bool EnableValidationLayers)
+void RENDERER::RendererContext::Create(
+    uint32_t WindowWidth,
+    uint32_t WindowHeight,
+    const char* WindowName,
+    bool EnableValidationLayers
+)
 {
     RENDERER_CORE::VulkanWindowCreateInfo WindowCreateInfo{};
-    WindowCreateInfo.WindowInitialHeight = 800;
-    WindowCreateInfo.WindowInitialWidth = 1000;
-    WindowCreateInfo.WindowsName = "Hello World";
+    WindowCreateInfo.WindowInitialHeight = WindowHeight;
+    WindowCreateInfo.WindowInitialWidth = WindowWidth;
+    WindowCreateInfo.WindowsName = WindowName;
     Window.Create(WindowCreateInfo);
 
     RENDERER_CORE::VulkanInstanceCreateInfo InstanceCreateInfo{};
@@ -89,7 +104,7 @@ void RENDERER::RendererContext::Create(bool EnableValidationLayers)
     QueueFamilyIndices = RENDERER_CORE::FindQueueFamilies(DeviceContext.PhysicalDevice, Surface.Handle);
 
     CommandPool.Create(QueueFamilyIndices.GraphicsFamily.value(), DeviceContext.LogicalDevice);
-
+    PipelineManager.Create(100);
     //Layout needed for the scene descriptor sets
     SceneDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 0, VK_SHADER_STAGE_FRAGMENT_BIT);
     SceneDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -158,52 +173,57 @@ void RENDERER::RendererContext::Create(bool EnableValidationLayers)
     DepthImageFormat = RENDERER_CORE::FindSupportedFormat(DeviceContext.PhysicalDevice, { VK_FORMAT_D32_SFLOAT,VK_FORMAT_D32_SFLOAT_S8_UINT,VK_FORMAT_D24_UNORM_S8_UINT },
         VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT);
 
-    
     ///Geometry buffer pass vertex shader module creation
-    GbufferVertexShaderModule.CompileOrLoadShaderModule(
+    ShaderManager.AppendShaderModule(
+        "GbufferVertexShader",
         "Shaders\\GeometryBufferShader.vert",
         "Shaders\\GeometryBufferShaderVert.spv",
         shaderc_vertex_shader,
-        "GbufferVertexShader",
         DeviceContext.LogicalDevice
     );
 
     ///Geometry buffer pass fragment shader module creation
-    GbufferFragmentShaderModule.CompileOrLoadShaderModule(
+    ShaderManager.AppendShaderModule(
+        "GbufferFragmentShader",
         "Shaders\\GeometryBufferShader.frag",
         "Shaders\\GeometryBufferShaderFrag.spv",
         shaderc_fragment_shader,
-        "GbufferFragmentShader",
         DeviceContext.LogicalDevice
     );
-    
+
     ///Deferred shading pass vertex shader module creation
-    LightingVertexShaderModule.CompileOrLoadShaderModule(
+    ShaderManager.AppendShaderModule(
+        "DeferredShadingVertexShader",
         "Shaders\\LightingPassShader.vert",
         "Shaders\\LightingPassShaderVert.spv",
         shaderc_vertex_shader,
-        "DeferredShadingVertexShader",
         DeviceContext.LogicalDevice
     );
 
     ///Deferred shading pass fragment shader module creation
-    LightingFragmentShaderModule.CompileOrLoadShaderModule(
+    ShaderManager.AppendShaderModule(
+        "DeferredShadingFragmentShader",
         "Shaders\\LightingPassShader.frag",
         "Shaders\\LightingPassShaderFrag.spv",
         shaderc_fragment_shader,
-        "DeferredShadingFragmentShader",
         DeviceContext.LogicalDevice
     );
 
     ///Default post processing pass fragment shader module creation
-    PostProcessingFragmentShaderModule.CompileOrLoadShaderModule(
+    ShaderManager.AppendShaderModule(
+        "DefaultPostProcessingFragmentShader",
         "Shaders\\DefaultPostProcessingShader.frag",
         "Shaders\\DefaultPostProcessingShader.spv",
         shaderc_fragment_shader,
-        "DefaultPostProcessingFragmentShader",
         DeviceContext.LogicalDevice
     );
 
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        TextureDescriptorIndexAllocators[i].Create(0,1);
+        this->TextureDescriptorUpperBounds[i] = 0;
+        CreateTextureDescriptors(InitialTextureDescriptorSize, i);
+    }
     SingleTimeCommandFence.Create(DeviceContext.LogicalDevice,0);
     //RENDERER_CORE::AllocateCommandBuffers(CommandPool.commandPool,DeviceContext.LogicalDevice,SingleTimeCommandBuffers,)
    
@@ -218,13 +238,10 @@ void RENDERER::RendererContext::Create(bool EnableValidationLayers)
 void RENDERER::RendererContext::Destroy()
 {
     if (IsDestroyed) return;
+    DestroyMeshTextureDescriptors();
+    PipelineManager.Destroy(DeviceContext.LogicalDevice);
+    ShaderManager.Destroy(DeviceContext.LogicalDevice);
 
-    GbufferFragmentShaderModule.Destroy(DeviceContext.LogicalDevice);
-    GbufferVertexShaderModule.Destroy(DeviceContext.LogicalDevice);
-    LightingVertexShaderModule.Destroy(DeviceContext.LogicalDevice);
-    LightingFragmentShaderModule.Destroy(DeviceContext.LogicalDevice);
-    PostProcessingFragmentShaderModule.Destroy(DeviceContext.LogicalDevice);
- 
     SingleTimeCommandFence.Destroy(DeviceContext.LogicalDevice);
    
     LightingPassLayout.Destroy(DeviceContext.LogicalDevice);
@@ -235,17 +252,6 @@ void RENDERER::RendererContext::Destroy()
     IndirectDescriptorSetLayout.Destroy(DeviceContext.LogicalDevice);
     
     HDRIrenderPassDescriptorPool.Destroy(DeviceContext.LogicalDevice);
-    
-    for (auto& [ID, Pipeline] : TextureDescriptorPipelines)
-    {
-        for (uint32_t i = 0; i < 3; i++)
-        {
-            Pipeline[i].Destroy(DeviceContext.LogicalDevice);
-        }
-    }
-    HDRIrenderGraphicsPipeline.Destroy(DeviceContext.LogicalDevice);
-    HDRIconvoluteGraphicsPipeline.Destroy(DeviceContext.LogicalDevice);
-    PostProcessingGraphicsPipeline.Destroy(DeviceContext.LogicalDevice);
     
     QuadVertexBuffer.Destroy(DeviceContext.LogicalDevice);
     CubeVertexBuffer.Destroy(DeviceContext.LogicalDevice);
@@ -263,6 +269,70 @@ void RENDERER::RendererContext::Destroy()
 void RENDERER::RendererContext::WaitDeviceIdle()
 {
     vkDeviceWaitIdle(DeviceContext.LogicalDevice);
+}
+
+bool RENDERER::RendererContext::CreateTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex,bool DestroyPrevious)
+{
+    bool ShouldRewrite = false;
+    auto& CurrentTexturesDescriptor = TexturesDescriptors[FrameIndex];
+    auto& CurrentTextureDescriptorUpperBound = TextureDescriptorUpperBounds[FrameIndex];
+    auto& CurrentDescriptorIndexAllocator = TextureDescriptorIndexAllocators[FrameIndex];
+
+    if (DescriptorCount > CurrentDescriptorIndexAllocator.GetTotalFreeSpace())
+    {
+        std::cout << "CurrentTextureDescriptorUpperBound: " << CurrentTextureDescriptorUpperBound << " DescriptorCount: "
+            << DescriptorCount << " CurrentDescriptorIndexAllocator.GetTotalFreeSpace(): " << CurrentDescriptorIndexAllocator.GetTotalFreeSpace() << std::endl;
+
+        if (CurrentTextureDescriptorUpperBound)
+        {
+            CurrentTexturesDescriptor.Destroy(DeviceContext.LogicalDevice);
+            ShouldRewrite = true;
+        }
+
+        CurrentTextureDescriptorUpperBound = static_cast<uint32_t>(glm::ceil((float)(DescriptorCount + CurrentTextureDescriptorUpperBound) / (float)TextureDescriptorBlockSize)) * TextureDescriptorBlockSize;
+        std::cout << "Creating texture descriptor set with upper bound: " << CurrentTextureDescriptorUpperBound << "\n";
+        CurrentDescriptorIndexAllocator.Allocate(CurrentTextureDescriptorUpperBound - CurrentDescriptorIndexAllocator.GetCapacity());
+
+        CurrentTexturesDescriptor.DescriptorPool.Create(
+            { {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,CurrentTextureDescriptorUpperBound} },
+            1,
+            DeviceContext.LogicalDevice,
+            VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
+        );
+
+        VkDescriptorBindingFlags LayoutFlags[2] = {
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+        };
+        VkDescriptorSetLayoutBindingFlagsCreateInfo BindingFlags{};
+        BindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+        BindingFlags.pBindingFlags = LayoutFlags;
+        BindingFlags.bindingCount = 1;
+
+        CurrentTexturesDescriptor.Layout.AppendLayoutBinding(
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            CurrentTextureDescriptorUpperBound,
+            0,
+            VK_SHADER_STAGE_FRAGMENT_BIT
+        );
+
+        CurrentTexturesDescriptor.Layout.CreateLayout(
+            DeviceContext.LogicalDevice,
+            VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+            &BindingFlags
+        );
+
+        RENDERER_CORE::AllocateDescriptorSets(
+            DeviceContext.LogicalDevice,
+            CurrentTexturesDescriptor.DescriptorSets.size(),
+            CurrentTexturesDescriptor.DescriptorPool.Handle,
+            CurrentTexturesDescriptor.Layout.Handle,
+            CurrentTexturesDescriptor.DescriptorSets.data()
+        );
+
+        CreateTextureDescriptorPipelines(CurrentTexturesDescriptor.Layout, CurrentTextureDescriptorUpperBound, FrameIndex);
+        UpdateCustomPipelines(CurrentTexturesDescriptor.Layout,FrameIndex);
+    }
+    return ShouldRewrite;
 }
 void RENDERER::RendererContext::CreateHDRIrenderPassResources()
 {
@@ -286,22 +356,20 @@ void RENDERER::RendererContext::CreateHDRIrenderPassResources()
     );
 
     ///HDRI render pass vertex shader
-    RENDERER_CORE::ShaderModule HDRIrenderVertexShader;
-    HDRIrenderVertexShader.CompileOrLoadShaderModule(
+    RENDERER_CORE::ShaderModule* HDRIrenderPassVertexShaderPtr = ShaderManager.AppendShaderModule(
+        "HDRIrenderVertexShader",
         "Shaders\\HDRIrenderShader.vert",
         "Shaders\\HDRIrenderVertexShader.spv",
         shaderc_vertex_shader,
-        "HDRIrenderVertexShader",
         DeviceContext.LogicalDevice
     );
 
     ///HDRI render pass fragment shader
-    RENDERER_CORE::ShaderModule HDRIrenderFragmentShader;
-    HDRIrenderFragmentShader.CompileOrLoadShaderModule(
+    RENDERER_CORE::ShaderModule* HDRIrenderPassFragmentShaderPtr = ShaderManager.AppendShaderModule(
+        "HDRIrenderFragmentShader",
         "Shaders\\HDRIrenderShader.frag",
         "Shaders\\HDRIrenderFragmentShader.spv",
         shaderc_fragment_shader,
-        "HDRIrenderFragmentShader",
         DeviceContext.LogicalDevice
     );
 
@@ -317,7 +385,7 @@ void RENDERER::RendererContext::CreateHDRIrenderPassResources()
     PipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
     PipelineCreateInfo.ViewportHeight = static_cast<float>(SwapChain.Extent.height);
     PipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
-    PipelineCreateInfo.ShaderModules = { {&HDRIrenderVertexShader,VK_SHADER_STAGE_VERTEX_BIT} ,{&HDRIrenderFragmentShader,VK_SHADER_STAGE_FRAGMENT_BIT} };
+    PipelineCreateInfo.ShaderModules = { {HDRIrenderPassVertexShaderPtr,VK_SHADER_STAGE_VERTEX_BIT} ,{HDRIrenderPassFragmentShaderPtr,VK_SHADER_STAGE_FRAGMENT_BIT} };
     PipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
     PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R16G16B16A16_SFLOAT };
     PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
@@ -330,54 +398,48 @@ void RENDERER::RendererContext::CreateHDRIrenderPassResources()
     PipelineCreateInfo.ViewportMaxDepth = 1.0f;
     PipelineCreateInfo.AttributeDescriptions = CubeVertexDescription.AttributeDescriptions;
     PipelineCreateInfo.BindingDescription = CubeVertexDescription.BindingDescription;
-    PipelineCreateInfo.DescriptorSetLayouts = { HDRIrenderPassLayout.Handle };
+    PipelineCreateInfo.DescriptorSetLayouts = { HDRIrenderPassLayout };
     PipelineCreateInfo.PushConstantRanges = { HDRIrenderPassPushConstantsRange };
-    HDRIrenderGraphicsPipeline.Create(PipelineCreateInfo, DeviceContext.LogicalDevice);
-
-    HDRIrenderVertexShader.Destroy(DeviceContext.LogicalDevice);
-    HDRIrenderFragmentShader.Destroy(DeviceContext.LogicalDevice);
+    DefaultPipelines.HDRIrender = PipelineManager.AppendGraphicsPipeline(PipelineCreateInfo, DeviceContext.LogicalDevice).second;
 
     ///HDRI convolution pass vertex shader
-    RENDERER_CORE::ShaderModule HDRIconvolutionVertexShader;
-    HDRIconvolutionVertexShader.CompileOrLoadShaderModule(
+    RENDERER_CORE::ShaderModule* HDRIconvolutionVertexShaderPtr = ShaderManager.AppendShaderModule(
+        "HDRIconvolutionVertexShader",
         "shaders\\HDRIconvolutionShader.vert",
         "shaders\\HDRIconvolutionVertexShader.spv",
         shaderc_vertex_shader,
-        "HDRIconvolutionVertexShader",
         DeviceContext.LogicalDevice
     );
 
     ///HDRI convolution pass fragment shader
-    RENDERER_CORE::ShaderModule HDRIconvolutionFragmentShader;
-    HDRIconvolutionFragmentShader.CompileOrLoadShaderModule(
+    RENDERER_CORE::ShaderModule* HDRIconvolutionFragmentShaderPtr = ShaderManager.AppendShaderModule(
+        "HDRIconvolutionFragmentShader",
         "shaders\\HDRIconvolutionShader.frag",
         "shaders\\HDRIconvolutionFragmentShader.spv",
         shaderc_fragment_shader,
-        "HDRIconvolutionFragmentShader",
         DeviceContext.LogicalDevice
     );
 
+  
     ///HDRI convolution pass pipeline
-    PipelineCreateInfo.ShaderModules = { {&HDRIconvolutionVertexShader,VK_SHADER_STAGE_VERTEX_BIT} ,{&HDRIconvolutionFragmentShader,VK_SHADER_STAGE_FRAGMENT_BIT} };
+    PipelineCreateInfo.ShaderModules = { {HDRIconvolutionVertexShaderPtr,VK_SHADER_STAGE_VERTEX_BIT} ,{HDRIconvolutionFragmentShaderPtr,VK_SHADER_STAGE_FRAGMENT_BIT} };
     PipelineCreateInfo.PushConstantRanges = {};
-    HDRIconvoluteGraphicsPipeline.Create(PipelineCreateInfo, DeviceContext.LogicalDevice);
-
-    HDRIconvolutionVertexShader.Destroy(DeviceContext.LogicalDevice);
-    HDRIconvolutionFragmentShader.Destroy(DeviceContext.LogicalDevice);
+    DefaultPipelines.HDRIconvolute = PipelineManager.AppendGraphicsPipeline(PipelineCreateInfo, DeviceContext.LogicalDevice).second;
 }
 
-std::array<RENDERER_CORE::GraphicsPipeline,3>* RENDERER::RendererContext::CreateTextureDescriptorPipelines(VkDescriptorSetLayout Layout, uint32_t MaxTextureCount)
+void RENDERER::RendererContext::CreateTextureDescriptorPipelines(RENDERER_CORE::DescriptorSetLayout& Layout, uint32_t MaxTextureCount,uint32_t FrameIndex)
 {
-    auto& Iterator = TextureDescriptorPipelines.find(MaxTextureCount);
-    if (Iterator != TextureDescriptorPipelines.end())
-    {
-        return &TextureDescriptorPipelines[MaxTextureCount];
-    }
+    PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.GbufferDepthEnabled[FrameIndex], DeviceContext.LogicalDevice);
+    PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.GbufferDepthDisabled[FrameIndex], DeviceContext.LogicalDevice);
+    PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.DeferredShading[FrameIndex], DeviceContext.LogicalDevice);
 
     VkPushConstantRange PushConstantRange{};
     PushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     PushConstantRange.size = 2 * sizeof(glm::mat4);
     PushConstantRange.offset = 0;
+
+    RENDERER_CORE::ShaderModule* GbufferVertexShaderPtr = ShaderManager.GetShaderModule("GbufferVertexShader");
+    RENDERER_CORE::ShaderModule* GbufferFragmentShaderPtr = ShaderManager.GetShaderModule("GbufferFragmentShader");
 
     std::vector<VkFormat> ColorAttachmentsFormats = { GLOBAL_PREFERENCES_HIGH_PRECISION_POSITIONS ? VK_FORMAT_R32G32B32A32_SFLOAT : VK_FORMAT_R16G16B16A16_SFLOAT ,VK_FORMAT_R16G16B16A16_SFLOAT ,VK_FORMAT_R32_SINT, VK_FORMAT_R32G32_SFLOAT };
     //std::vector<VkFormat> ColorAttachmentsFormats = { GLOBAL_PREFERENCES_HIGH_PRECISION_POSITIONS ? VK_FORMAT_R32G32B32A32_SFLOAT : VK_FORMAT_R16G16B16A16_SFLOAT ,VK_FORMAT_R16G16B16A16_SFLOAT ,VK_FORMAT_R8G8B8A8_UNORM , VK_FORMAT_R8G8B8A8_UNORM };
@@ -387,7 +449,7 @@ std::array<RENDERER_CORE::GraphicsPipeline,3>* RENDERER::RendererContext::Create
     PipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
     PipelineCreateInfo.ViewportHeight = static_cast<float>(SwapChain.Extent.height);
     PipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
-    PipelineCreateInfo.ShaderModules = { {&GbufferVertexShaderModule,VK_SHADER_STAGE_VERTEX_BIT} ,{&GbufferFragmentShaderModule,VK_SHADER_STAGE_FRAGMENT_BIT} };
+    PipelineCreateInfo.ShaderModules = { {GbufferVertexShaderPtr,VK_SHADER_STAGE_VERTEX_BIT} ,{GbufferFragmentShaderPtr,VK_SHADER_STAGE_FRAGMENT_BIT} };
     PipelineCreateInfo.DynamicRenderingColorAttachmentCount = static_cast<uint32_t>(ColorAttachmentsFormats.size());
     PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = ColorAttachmentsFormats;
     PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = DepthImageFormat;
@@ -399,52 +461,100 @@ std::array<RENDERER_CORE::GraphicsPipeline,3>* RENDERER::RendererContext::Create
     PipelineCreateInfo.AttributeDescriptions = SCENE::Vertex3D::GetAttributeDescriptions();
     PipelineCreateInfo.BindingDescription = SCENE::Vertex3D::GetBindingDescription();
     PipelineCreateInfo.DescriptorSetLayouts = { 
-        IndirectDescriptorSetLayout.Handle,
+        IndirectDescriptorSetLayout,
         Layout,
-        TextureIndicesDescriptorSetLayout.Handle 
+        TextureIndicesDescriptorSetLayout 
     };
     PipelineCreateInfo.PushConstantRanges = { PushConstantRange };
-    RENDERER_CORE::GraphicsPipeline GbufferGraphicsPipeline(PipelineCreateInfo, DeviceContext.LogicalDevice);
+    auto GbufferPassGraphicsPipelineIterator = PipelineManager.AppendGraphicsPipeline(PipelineCreateInfo, DeviceContext.LogicalDevice);
+    DefaultPipelines.GbufferDepthEnabled[FrameIndex] = GbufferPassGraphicsPipelineIterator.second;
 
     PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
     PipelineCreateInfo.EnableDepthTesting = VK_FALSE;
     PipelineCreateInfo.EnableDepthWriting = VK_FALSE;
-    RENDERER_CORE::GraphicsPipeline GbufferGraphicsPipelineDepthDisabled(PipelineCreateInfo, DeviceContext.LogicalDevice);
+
+    auto GbufferGraphicsPipelineDepthDisabledIterator = PipelineManager.AppendGraphicsPipeline(PipelineCreateInfo, DeviceContext.LogicalDevice);
+    DefaultPipelines.GbufferDepthDisabled[FrameIndex] = GbufferGraphicsPipelineDepthDisabledIterator.second;
  
     VkPushConstantRange LightingPassPushConstantRange{};
     LightingPassPushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     LightingPassPushConstantRange.size = sizeof(LightingPassUBOdata);
     LightingPassPushConstantRange.offset = 0;
 
-    LatestShadingPassPipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
-    LatestShadingPassPipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
-    LatestShadingPassPipelineCreateInfo.ViewportHeight = static_cast<float>(SwapChain.Extent.height);
-    LatestShadingPassPipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
-    LatestShadingPassPipelineCreateInfo.RenderPass = nullptr;
-    LatestShadingPassPipelineCreateInfo.ScissorOffset = { 0,0 };
-    LatestShadingPassPipelineCreateInfo.ScissorExtent = { SwapChain.Extent.width ,SwapChain.Extent.height };
-    LatestShadingPassPipelineCreateInfo.ViewportMinDepth = 0.0f;
-    LatestShadingPassPipelineCreateInfo.ViewportMaxDepth = 1.0f;
-    LatestShadingPassPipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
-    LatestShadingPassPipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R8G8B8A8_SRGB };
-    LatestShadingPassPipelineCreateInfo.ShaderModules = { {&LightingVertexShaderModule,VK_SHADER_STAGE_VERTEX_BIT} ,{&LightingFragmentShaderModule,VK_SHADER_STAGE_FRAGMENT_BIT} };
-    LatestShadingPassPipelineCreateInfo.AttributeDescriptions = QuadVertexDescription.AttributeDescriptions;
-    LatestShadingPassPipelineCreateInfo.BindingDescription = QuadVertexDescription.BindingDescription;
-    LatestShadingPassPipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
-    LatestShadingPassPipelineCreateInfo.EnableDepthTesting = VK_FALSE;
-    LatestShadingPassPipelineCreateInfo.EnableDepthWriting = VK_FALSE;
-    LatestShadingPassPipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    LatestShadingPassPipelineCreateInfo.DescriptorSetLayouts = {
-        LightingPassLayout.Handle,
-        SceneDescriptorSetLayout.Handle,
-        TextureIndicesDescriptorSetLayout.Handle,
+    RENDERER_CORE::ShaderModule* DeferredShadingVertexShaderPtr = ShaderManager.GetShaderModule("DeferredShadingVertexShader");
+    RENDERER_CORE::ShaderModule* DeferredShadingFragmentShaderPtr = ShaderManager.GetShaderModule("DeferredShadingFragmentShader");
+
+    RENDERER_CORE::GraphicsPipelineCreateInfo DeferredShadingPipelineCreateInfo{};
+    DeferredShadingPipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
+    DeferredShadingPipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
+    DeferredShadingPipelineCreateInfo.ViewportHeight = static_cast<float>(SwapChain.Extent.height);
+    DeferredShadingPipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
+    DeferredShadingPipelineCreateInfo.RenderPass = nullptr;
+    DeferredShadingPipelineCreateInfo.ScissorOffset = { 0,0 };
+    DeferredShadingPipelineCreateInfo.ScissorExtent = { SwapChain.Extent.width ,SwapChain.Extent.height };
+    DeferredShadingPipelineCreateInfo.ViewportMinDepth = 0.0f;
+    DeferredShadingPipelineCreateInfo.ViewportMaxDepth = 1.0f;
+    DeferredShadingPipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
+    DeferredShadingPipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R8G8B8A8_SRGB };
+    DeferredShadingPipelineCreateInfo.ShaderModules = { {DeferredShadingVertexShaderPtr,VK_SHADER_STAGE_VERTEX_BIT} ,{DeferredShadingFragmentShaderPtr,VK_SHADER_STAGE_FRAGMENT_BIT} };
+    DeferredShadingPipelineCreateInfo.AttributeDescriptions = QuadVertexDescription.AttributeDescriptions;
+    DeferredShadingPipelineCreateInfo.BindingDescription = QuadVertexDescription.BindingDescription;
+    DeferredShadingPipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
+    DeferredShadingPipelineCreateInfo.EnableDepthTesting = VK_FALSE;
+    DeferredShadingPipelineCreateInfo.EnableDepthWriting = VK_FALSE;
+    DeferredShadingPipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    DeferredShadingPipelineCreateInfo.DescriptorSetLayouts = {
+        LightingPassLayout,
+        SceneDescriptorSetLayout,
+        TextureIndicesDescriptorSetLayout,
         Layout 
     };
-    LatestShadingPassPipelineCreateInfo.PushConstantRanges = { LightingPassPushConstantRange };
-    RENDERER_CORE::GraphicsPipeline ShadingPassGraphicsPipeline(LatestShadingPassPipelineCreateInfo, DeviceContext.LogicalDevice);
-    TextureDescriptorPipelines[MaxTextureCount] = { GbufferGraphicsPipelineDepthDisabled,GbufferGraphicsPipeline , ShadingPassGraphicsPipeline };
+    DeferredShadingPipelineCreateInfo.PushConstantRanges = { LightingPassPushConstantRange };
 
-    return &TextureDescriptorPipelines[MaxTextureCount];
+    auto DeferredShadingGraphicsPipelineIterator = PipelineManager.AppendGraphicsPipeline(DeferredShadingPipelineCreateInfo, DeviceContext.LogicalDevice);
+    DefaultPipelines.DeferredShading[FrameIndex] = DeferredShadingGraphicsPipelineIterator.second;
+}
+
+void RENDERER::RendererContext::DestroyMeshTextureDescriptors()
+{
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        TextureDescriptorIndexAllocators[i].Reset(0);
+        TexturesDescriptors[i].Destroy(DeviceContext.LogicalDevice);
+    }
+}
+
+void RENDERER::RendererContext::UpdateCustomPipelines(RENDERER_CORE::DescriptorSetLayout& Layout,uint32_t FrameIndex)
+{   
+    auto& CurrentCustomPipelines = CustomPipelines[FrameIndex];
+    for (auto& [PipelineHandleID,PipelineIndex] : CurrentCustomPipelines)
+    {
+        RENDERER_CORE::GraphicsPipelineEntry* PipelinePtr = PipelineManager.GetGraphicsPipeline(PipelineIndex);
+        if (PipelinePtr)
+        {
+            //There isn't a two way connection between the custom pipelines and the context so can't convey the 
+            //index of the newly created pipelines back to custom pipeline bodies.
+            //Instead keep the index intact and create on place.
+            size_t PreviousHash = PipelinePtr->Pipeline.GetHash();
+            RENDERER_CORE::GraphicsPipelineCreateInfo& CustomPipelineCreateInfo = PipelinePtr->PipelineCreateInfo;
+            CustomPipelineCreateInfo.DescriptorSetLayouts[3] = Layout;
+            size_t PipelineHash = CustomPipelineCreateInfo.Hash();
+
+            PipelinePtr->Pipeline.Destroy(DeviceContext.LogicalDevice);
+            RENDERER_CORE::GraphicsPipeline NewPipeline;
+            NewPipeline.Create(CustomPipelineCreateInfo, DeviceContext.LogicalDevice);
+
+            PipelineManager.GraphicsPipelineHashTable.erase(PreviousHash);
+            PipelineManager.GraphicsPipelineHashTable.insert({ NewPipeline.GetHash(),PipelineIndex });
+
+            //Construct the new entry.
+            RENDERER_CORE::GraphicsPipelineEntry NewPipelineEntry{};
+            NewPipelineEntry.Pipeline = std::move(NewPipeline);
+            NewPipelineEntry.PipelineCreateInfo = std::move(CustomPipelineCreateInfo);
+            NewPipelineEntry.IncreaseReference();
+            PipelineManager.GraphicPipelines[PipelineIndex] = std::move(NewPipelineEntry);
+        }
+    }
 }
 
 void RENDERER::RendererContext::CreatePostProcessingPassPipeline()
@@ -454,27 +564,31 @@ void RENDERER::RendererContext::CreatePostProcessingPassPipeline()
     PushConstantRange.size = sizeof(PostProcessingPassPushConstantData);
     PushConstantRange.offset = 0;
 
-    LatestPostProcessPassPipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
-    LatestPostProcessPassPipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    LatestPostProcessPassPipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
-    LatestPostProcessPassPipelineCreateInfo.ViewportHeight = static_cast<float>(SwapChain.Extent.height);
-    LatestPostProcessPassPipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
-    LatestPostProcessPassPipelineCreateInfo.ShaderModules = { {&LightingVertexShaderModule,VK_SHADER_STAGE_VERTEX_BIT} ,{&PostProcessingFragmentShaderModule,VK_SHADER_STAGE_FRAGMENT_BIT} };
-    LatestPostProcessPassPipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
-    LatestPostProcessPassPipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R8G8B8A8_SRGB };
-    LatestPostProcessPassPipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
-    LatestPostProcessPassPipelineCreateInfo.RenderPass = nullptr;
-    LatestPostProcessPassPipelineCreateInfo.ScissorOffset = { 0,0 };
-    LatestPostProcessPassPipelineCreateInfo.ScissorExtent = { SwapChain.Extent.width ,SwapChain.Extent.height };
-    LatestPostProcessPassPipelineCreateInfo.ViewportMinDepth = 0.0f;
-    LatestPostProcessPassPipelineCreateInfo.ViewportMaxDepth = 1.0f;
-    LatestPostProcessPassPipelineCreateInfo.AttributeDescriptions = QuadVertexDescription.AttributeDescriptions;
-    LatestPostProcessPassPipelineCreateInfo.BindingDescription = QuadVertexDescription.BindingDescription;
-    LatestPostProcessPassPipelineCreateInfo.EnableDepthTesting = VK_FALSE;
-    LatestPostProcessPassPipelineCreateInfo.EnableDepthWriting = VK_FALSE;
-    LatestPostProcessPassPipelineCreateInfo.DescriptorSetLayouts = {
-        PostProcessDescriptorSetLayout.Handle
+    RENDERER_CORE::ShaderModule* DeferredShadingVertexShaderPtr = ShaderManager.GetShaderModule("DeferredShadingVertexShader");
+    RENDERER_CORE::ShaderModule* PostProcessingFragmentShaderPtr = ShaderManager.GetShaderModule("DefaultPostProcessingFragmentShader");
+
+    RENDERER_CORE::GraphicsPipelineCreateInfo PipelineCreateInfo{};
+    PipelineCreateInfo.EnableDynamicRendering = VK_TRUE;
+    PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    PipelineCreateInfo.ViewportWidth = static_cast<float>(SwapChain.Extent.width);
+    PipelineCreateInfo.ViewportHeight = static_cast<float>(SwapChain.Extent.height);
+    PipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
+    PipelineCreateInfo.ShaderModules = { {DeferredShadingVertexShaderPtr,VK_SHADER_STAGE_VERTEX_BIT} ,{PostProcessingFragmentShaderPtr,VK_SHADER_STAGE_FRAGMENT_BIT} };
+    PipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
+    PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R8G8B8A8_SRGB };
+    PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
+    PipelineCreateInfo.RenderPass = nullptr;
+    PipelineCreateInfo.ScissorOffset = { 0,0 };
+    PipelineCreateInfo.ScissorExtent = { SwapChain.Extent.width ,SwapChain.Extent.height };
+    PipelineCreateInfo.ViewportMinDepth = 0.0f;
+    PipelineCreateInfo.ViewportMaxDepth = 1.0f;
+    PipelineCreateInfo.AttributeDescriptions = QuadVertexDescription.AttributeDescriptions;
+    PipelineCreateInfo.BindingDescription = QuadVertexDescription.BindingDescription;
+    PipelineCreateInfo.EnableDepthTesting = VK_FALSE;
+    PipelineCreateInfo.EnableDepthWriting = VK_FALSE;
+    PipelineCreateInfo.DescriptorSetLayouts = {
+        PostProcessDescriptorSetLayout
     };
-    LatestPostProcessPassPipelineCreateInfo.PushConstantRanges = { PushConstantRange };
-    PostProcessingGraphicsPipeline.Create(LatestPostProcessPassPipelineCreateInfo, DeviceContext.LogicalDevice);
+    PipelineCreateInfo.PushConstantRanges = { PushConstantRange };
+    DefaultPipelines.PostProcessing = PipelineManager.AppendGraphicsPipeline(PipelineCreateInfo, DeviceContext.LogicalDevice).second;
 }

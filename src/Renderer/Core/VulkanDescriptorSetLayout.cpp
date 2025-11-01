@@ -1,8 +1,10 @@
 #include "VulkanDescriptorSetLayout.hpp"
 
+#include <vulkan/vk_enum_string_helper.h>
+
 #include "../../Common/Log.hpp"
 #include "../../Common/CommonDefinitions.hpp"
-#include <vulkan/vk_enum_string_helper.h>
+#include "../../Common/Hash.hpp"
 
 void RENDERER_CORE::DescriptorSetLayout::AppendLayoutBinding(VkDescriptorType DescriptorType, uint32_t DescriptorCount,uint32_t Binding,VkShaderStageFlags ShaderStage)
 {
@@ -31,6 +33,7 @@ void RENDERER_CORE::DescriptorSetLayout::CreateLayout(VkDevice& LogicalDevice,Vk
         throw std::runtime_error("Failed to create descriptor set layout!");
     }
 
+    Hash = CalculateHash(Flags, Next);
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created descriptor layout [binding count(" + std::to_string(Bindings.size()) + ")]."));
     Bindings.clear();
 }
@@ -42,4 +45,19 @@ void RENDERER_CORE::DescriptorSetLayout::Destroy(VkDevice& LogicalDevice)
         vkDestroyDescriptorSetLayout(LogicalDevice, this->Handle, nullptr);
         Handle = VK_NULL_HANDLE;
     }
+}
+
+size_t RENDERER_CORE::DescriptorSetLayout::CalculateHash(VkDescriptorSetLayoutCreateFlags Flags, void* Next)
+{
+    size_t ResultingHash = 17;
+    for (auto& Binding : Bindings)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(Binding.binding));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(Binding.descriptorCount));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkShaderStageFlags>()(Binding.stageFlags));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkDescriptorType>()(Binding.descriptorType));
+    }
+    ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkDescriptorSetLayoutCreateFlags>()(Flags));
+    ResultingHash = COMMON::CombineHash(ResultingHash, COMMON::HashNextPtrChain(Next));
+    return ResultingHash;
 }

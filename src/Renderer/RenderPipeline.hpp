@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
-#include "RendererContext.hpp"
+#include "Core/VulkanCommandBuffer.hpp"
+#include "../Common/Handle.hpp"
 
 namespace SCENE
 {
@@ -10,6 +11,7 @@ namespace SCENE
 namespace RENDERER
 {
 	class Renderer;
+	class RendererContext;
 	class GeometryBuffer;
 
 	enum RenderPipelineType
@@ -19,12 +21,11 @@ namespace RENDERER
 		RENDER_PIPELINE_TYPE_FORWARD_RENDER = 2
 	};
 
-	class RenderPipeline
+	class RenderPipeline : public COMMON::Handle
 	{
 		friend class Renderer;
 	public:
 		RenderPipeline() = default;
-		
 		virtual void Create(RendererContext &RendererContext) = 0;
 	protected:
 		virtual void RenderScene(

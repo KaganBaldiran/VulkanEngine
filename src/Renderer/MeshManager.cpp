@@ -104,7 +104,7 @@ void RENDERER::MeshManager::WaitImportsIdle()
             SCENE::MeshHandle NewMeshHandle{};
             NewMeshHandle.MeshMaterial = GeometryData.MeshMaterial;
             NewMeshHandle.BoundingBox = GeometryData.BoundingBox;
-            NewMeshHandle.GeometryID = SCENE::GenerateResourceID();
+            NewMeshHandle.GeometryID = COMMON::GenerateHandleID();
 
             NewImportResult.GeometryHandles.push_back(NewMeshHandle.GeometryID);
             NewImportResult.ConsumerModel->Meshes.push_back(std::move(NewMeshHandle));
@@ -282,51 +282,38 @@ void RENDERER::MeshManager::CreateGeometryBuffers(
     if (VertexBufferReallocated)
     {
         size_t BufferSize = VertexBuffers[VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator.GetCapacity();
+        size_t BufferSlot = VertexBufferAllocatedFirstTime ? VertexBufferSetBit : !VertexBufferSetBit;
 
         RENDERER::RecreateBuffer(
             RendererContext,
             BufferSize,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            VertexBuffers[VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer
+            VertexBuffers[BufferSlot * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer
         );
 
         //Allocate the second buffer in case copying needed
         if (!VertexBufferAllocatedFirstTime)
         {
-            RENDERER::RecreateBuffer(
-                RendererContext,
-                BufferSize,
-                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                VertexBuffers[!VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer
-            );
-
             VertexBuffers[!VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator = VertexBuffers[VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator;
         }
     }
     if (IndexBufferReallocated)
     {
         size_t BufferSize = IndexBuffers[IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator.GetCapacity();
+        size_t BufferSlot = IndexBufferAllocatedFirstTime ? IndexBufferSetBit : !IndexBufferSetBit;
 
         RENDERER::RecreateBuffer(
             RendererContext,
             BufferSize,
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            IndexBuffers[IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer
+            IndexBuffers[BufferSlot * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer
         );
 
         //Allocate the second buffer in case copying needed
         if (!IndexBufferAllocatedFirstTime)
         {
-            RENDERER::RecreateBuffer(
-                RendererContext,
-                BufferSize,
-                VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                IndexBuffers[!IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Buffer
-            );
             IndexBuffers[!IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator = IndexBuffers[IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex].Allocator;
         }
     }

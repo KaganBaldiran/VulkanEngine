@@ -24,7 +24,7 @@ int main()
             throw std::runtime_error("Unable to initialize GLFW");
         }
 
-        RENDERER::RendererContext RendererContext(true);
+        RENDERER::RendererContext RendererContext(1000,800,"HelloWorld",true);
         RENDERER::Renderer Renderer(RendererContext, false);
 
         SCENE::ModelHandle SponzaModel;
@@ -42,51 +42,66 @@ int main()
 
         SCENE::Texture SomeTexture{};
         SCENE::Texture AnimationSprite{};
-
+        
         RENDERER::ResourceManager ResourceManager(RendererContext);
+
+        ResourceManager.AppendModelImportTask({ &Quad , "Resources\\Quad.fbx" });
+        ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
+
+        //ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
+        //ResourceManager.AppendModelImportTask({ &Quad , "Resources\\Quad.fbx" });
+        ResourceManager.SubmitModelImports();
+        ResourceManager.WaitModelImportsIdle();
+
+        ResourceManager.AppendTextureImportTask({ "Resources\\SpriteAnimation3.jpg",AnimationSprite.GetHandleID()});
+        ResourceManager.SubmitTextureImports();
+        ResourceManager.WaitTextureImportsIdle();
+
+
+
+        SCENE::SceneOptions Options{};
+        Options.UploadMode = SCENE::SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL;
+
+        SCENE::Scene Scene0;
+        Scene0.Create(RendererContext, ResourceManager, Options);
+
+        SCENE::Scene Scene1;
+        Scene1.Create(RendererContext, ResourceManager, Options);
+
+        SCENE::ModelInstance QuadInstance0(Quad);
+        Scene0.LinkModelInstance(QuadInstance0);
+
+        Scene0.FlushPendingUpdates(
+            SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
+            FRAME_INDEX_ALL_FRAMES
+        );
+
         ResourceManager.AppendModelImportTask({ &SponzaModel , "Resources\\sponza.obj" });
         ResourceManager.AppendModelImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
-        ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
-        ResourceManager.AppendModelImportTask({ &Quad , "Resources\\Quad.fbx" });
+        ResourceManager.SubmitModelImports();
+        ResourceManager.WaitModelImportsIdle();
 
-        ResourceManager.AppendTextureImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.ResourceID });
-        ResourceManager.AppendTextureImportTask({ "Resources\\SpriteAnimation3.jpg",AnimationSprite.ResourceID });
-        ResourceManager.SubmitImports();
-        ResourceManager.WaitImportsIdle();
+        ResourceManager.AppendTextureImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.GetHandleID() });
+        ResourceManager.SubmitTextureImports();
+        ResourceManager.WaitTextureImportsIdle();
 
-        
-        /*
-        SCENE::TextureManager TextureImportManager(RendererContext);
-        SCENE::MeshManager Importer(TextureImportManager, RendererContext);
-        Importer.AppendImportTask({ &SponzaModel , "Resources\\sponza.obj" });
-        Importer.AppendImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
-        Importer.AppendImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
-        Importer.AppendImportTask({ &Quad , "Resources\\Quad.fbx" });
-        Importer.SubmitImport();
-        Importer.WaitImportsIdle();
-        
-        TextureImportManager.AppendImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.ResourceID });
-        TextureImportManager.AppendImportTask({ "Resources\\SpriteAnimation3.jpg",AnimationSprite.ResourceID });
-        TextureImportManager.SubmitImport();
-        TextureImportManager.WaitImportsIdle();
-
-        */
         SCENE::ModelInstance Sponza(SponzaModel);
         SCENE::ModelInstance Shovel(ShovelModel);
         SCENE::ModelInstance Shovel1(ShovelModel);
         SCENE::ModelInstance SceneModelInstance(SceneModel);
-        SCENE::ModelInstance QuadInstance0(Quad);
 
         SCENE::ModelInstance SponzaTextured(SponzaModel);
 
         auto ShovelMaterial = Shovel.GetMaterial(0);
         ShovelMaterial->TextureSampleSize = glm::vec2(20);
-        ShovelMaterial->ReferenceTexture(SomeTexture.ResourceID, SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
+        ShovelMaterial->ReferenceTexture(SomeTexture.GetHandleID(), SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
 
         auto QuadMaterial = QuadInstance0.GetMaterial(0);
+        QuadMaterial->ReferenceTexture(AnimationSprite.GetHandleID(), SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
+
         QuadMaterial->TextureSampleSize = glm::vec2(1);
-        QuadMaterial->ReferenceTexture(AnimationSprite.ResourceID, SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
-        QuadInstance0.Transformations.TranslationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,300.0f,0.0f));
+        QuadMaterial->ReferenceTexture(AnimationSprite.GetHandleID(), SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
+        QuadInstance0.Transformations.TranslationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 300.0f, 0.0f));
         QuadInstance0.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
         SCENE::Material NewMaterial{};
@@ -145,21 +160,14 @@ int main()
         Light2.SetIntensity(1.0f);
         Light2.SetDirection(glm::vec4(0.8f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
         Light2.SetType(SCENE::DIRECTIONAL_LIGHT);
-      
-        SCENE::SceneOptions Options{};
-        Options.UploadMode = SCENE::SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL;
 
-        SCENE::Scene Scene0;
-        Scene0.Create(RendererContext,ResourceManager,Options);
-       
-        SCENE::Scene Scene1;
-        Scene1.Create(RendererContext,ResourceManager, Options);
+      
 
         Shovel1.Transformations.TranslationMatrix = glm::translate(glm::mat4(1.0f), { 30,100,40.0f });
-       
+
         Scene0.LinkStaticLight(Light0);
         Scene0.LinkStaticLight(Light1);
-        Scene0.LinkDynamicLight(Light2); 
+        Scene0.LinkDynamicLight(Light2);
 
         Scene1.LinkStaticLight(Light0);
         Scene1.LinkStaticLight(Light1);
@@ -170,7 +178,6 @@ int main()
 
         Scene0.LinkModelInstance(Sponza);
         Scene0.LinkModelInstance(SponzaTextured);
-        Scene0.LinkModelInstance(QuadInstance0);
         Scene0.LinkModelInstance(Shovel);
 
         for (size_t i = 0; i < 100; i++)
@@ -251,16 +258,18 @@ int main()
         PhyContext.DynamicsWorld->setDebugDrawer(&PhysicsDebugDrawer);
         Scene0.DebugDrawer = &PhysicsDebugDrawer;
          */
-        std::string ShadeFunction = 
+      
+
+        std::string ShadeFunction =
             "vec3 ShadePixel(in vec3 CameraPosition,in vec3 CameraDirection,in vec3 Normal, in vec3 Position, in vec3 Albedo, in float Roughness, in float Metallic, in float Time) \n\
             {  \n\
                 \n\
                  return CalculateLighting(Normal,Position,Albedo,Roughness,Metallic);\n\
+                 //return Normal;\n\
             }";
-            
 
         RENDERER::DeferredRenderPipeline DeferredPipeline(RendererContext);
-        DeferredPipeline.CompileCustomPipeline(ShadeFunction,"CustomShader0");
+        DeferredPipeline.CompileCustomPipeline(ShadeFunction, "CustomShader0");
         RENDERER::DeferredRenderPipeline DeferredPipelineNormal(RendererContext);
 
         RENDERER::RenderPassConfiguration PassConfiguration0{};
@@ -276,6 +285,7 @@ int main()
         PassConfiguration1.Scene = &Scene1;
         PassConfiguration1.EnableDepthTesting = true;
         Renderer.AddRenderPass(PassConfiguration1);
+       
 
         float DeltaTime = 0.0f;
         float LastFrame = 0.0f;
@@ -288,7 +298,7 @@ int main()
             LastFrame = CurrentTime;
 
             //std::cout << "Delta time: " << DeltaTime << std::endl;
-            
+
             /*
             glm::vec4 AllowMove = { 1,1,1,1 };
             btVector3 From = { Camera.CameraPosition.x,Camera.CameraPosition.y ,Camera.CameraPosition.z };
@@ -301,7 +311,7 @@ int main()
             btCollisionWorld::ClosestRayResultCallback RayCallBack1(From, To);
             PhyContext.DynamicsWorld->rayTest(From, To, RayCallBack1);
             if (RayCallBack1.hasHit()) AllowMove.y = 0;
-           
+
             To = From + btVector3{ Camera.CameraRight.x, Camera.CameraRight.y, Camera.CameraRight.z };
             btCollisionWorld::ClosestRayResultCallback RayCallBack2(From, To);
             PhyContext.DynamicsWorld->rayTest(From, To, RayCallBack2);
@@ -312,35 +322,35 @@ int main()
             PhyContext.DynamicsWorld->rayTest(From, To, RayCallBack3);
             if (RayCallBack3.hasHit()) AllowMove.w = 0;
           */
-            //Camera.AllowMove = AllowMove;
-            //PhyContext.DynamicsWorld->debugDrawWorld();
-            //PhyContext.DynamicsWorld->debugDrawObject(GroundTransform, StaticMeshShape.get(), { 1.0f,0.0f,0.0f });
+          //Camera.AllowMove = AllowMove;
+          //PhyContext.DynamicsWorld->debugDrawWorld();
+          //PhyContext.DynamicsWorld->debugDrawObject(GroundTransform, StaticMeshShape.get(), { 1.0f,0.0f,0.0f });
             Light2.SetDirection(glm::vec4(1.0f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
             Scene0.MarkResourceChanged(&Light2, SCENE::MARK_CHANGED_TYPE_DYNAMIC_LIGHT, Renderer.CurrentFrame);
             //Scene0.UpdateDynamicFrameLightBuffers(Renderer.CurrentFrame);
-          
+
             //Shovel.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), 10 * (float)glm::max(0.0,glm::cos(glfwGetTime())), glm::vec3(0.0, 1.0, 0.0));
             Shovel.GetTransformations()->Rotate((float)glm::max(0.0, glm::cos(glfwGetTime())), glm::vec3(0.0, 1.0, 0.0));
             Shovel.GetMaterial(0)->TextureSamplePosition = glm::vec2(glm::cos(CurrentTime), glm::sin(CurrentTime));
 
             SCENE::DoSpriteAnimation(QuadInstance0.GetMaterial(0)->TextureSampleSize,
-                QuadInstance0.GetMaterial(0)->TextureSamplePosition, CurrentSpriteFrame, DeltaTime,17.0f, 2, 3);
+                QuadInstance0.GetMaterial(0)->TextureSamplePosition, CurrentSpriteFrame, DeltaTime, 17.0f, 2, 3);
 
             Scene0.MarkResourceChanged(&Shovel, SCENE::MARK_CHANGED_TYPE_MESH_TRANSFORMATION | SCENE::MARK_CHANGED_TYPE_MESH_MATERIAL, Renderer.CurrentFrame);
             Scene0.MarkResourceChanged(&QuadInstance0, SCENE::MARK_CHANGED_TYPE_MESH_MATERIAL, Renderer.CurrentFrame);
-            
+
             Scene0.FlushPendingUpdates(
-                SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS | 
-                SCENE::SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS | 
-                SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS, 
+                SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS |
+                SCENE::SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS |
+                SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS,
                 Renderer.CurrentFrame
             );
-            
-           Camera.Update(
+
+            Camera.Update(
                 RendererContext.Window,
                 50.0f,
                 DeltaTime,
-                { RendererContext.SwapChain.Extent.width,RendererContext.SwapChain.Extent.height }, 
+                { RendererContext.SwapChain.Extent.width,RendererContext.SwapChain.Extent.height },
                 0.1f,
                 2000.0f,
                 45.0f

@@ -1,8 +1,9 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #include <glfw3.h>
-#include "VulkanUtils.hpp" 
 #include <vector>
+
+#include "VulkanUtils.hpp" 
 
 namespace RENDERER_CORE
 {

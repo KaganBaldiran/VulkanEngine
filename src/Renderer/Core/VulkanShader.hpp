@@ -24,6 +24,7 @@ namespace RENDERER_CORE
 		void FromSpirV(const std::vector<uint32_t> &Data);
 		void FromSpirV(const char* FileName);
 		void WriteFileSpirv(const char* FileName);
+		size_t HashShaderData();
 	private:
 		std::vector<uint32_t> SpirvData;
 	};
@@ -31,9 +32,9 @@ namespace RENDERER_CORE
 	class ShaderModule
 	{
 	public:
-		ShaderModule(ShaderData &ShaderData, VkDevice LogicalDevice);
+		ShaderModule(ShaderData& ShaderData, const char* ShaderLabel, VkDevice LogicalDevice);
 		ShaderModule() = default;
-		void Create(ShaderData& ShaderData, VkDevice LogicalDevice);
+		void Create(ShaderData& ShaderData, const char* ShaderLabel, VkDevice LogicalDevice);
 		void CompileOrLoadShaderModule(
 			const char* GLSLSourceFileName,
 			const char* SpirvSourceFileName,
@@ -42,7 +43,11 @@ namespace RENDERER_CORE
 			VkDevice LogicalDevice
 		);
 		void Destroy(VkDevice& LogicalDevice);
-		VkShaderModule Module;
-	};
+		bool operator==(const ShaderModule& Other) const;
 
+		VkShaderModule Handle = VK_NULL_HANDLE;
+		std::string Label;
+		size_t SPIRV_Hash = 0;
+	private:
+	};
 }

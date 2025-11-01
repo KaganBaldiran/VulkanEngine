@@ -95,18 +95,19 @@ namespace SCENE
         glm::mat4 TranslationMatrix = glm::mat4(1.0f);
         glm::mat4 ScalingMatrix = glm::mat4(1.0f);
         glm::mat4 RotationMatrix = glm::mat4(1.0f);
-
+        
         glm::mat4 GetModelMatrix() { return TranslationMatrix * RotationMatrix * ScalingMatrix; };
         void Translate(glm::vec3 TranslationVector);
         void Rotate(float RotationInDegrees, glm::vec3 Axis);
         void Scale(glm::vec3 ScaleCoefficient);
+        glm::vec3 GetPosition();
 
         void SetTranslationMatrix(const glm::mat4& Matrix);
         void SetRotationMatrix(const glm::mat4& Matrix);
         void SetScalingMatrix(const glm::mat4& Matrix);
     };
 
-    struct ModelHandle : public Resource
+    struct ModelHandle : public COMMON::Handle
     {
         std::vector<MeshHandle> Meshes;
     };

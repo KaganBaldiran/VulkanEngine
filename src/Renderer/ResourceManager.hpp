@@ -32,8 +32,10 @@ namespace RENDERER
 
 		void AppendModelImportTask(ModelImportInfo ImportInfo);
 		void AppendTextureImportTask(TextureImportInfo ImportInfo);
-		void WaitImportsIdle();
-		void SubmitImports();
+		void SubmitTextureImports();
+		void SubmitModelImports();
+		void WaitModelImportsIdle();
+		void WaitTextureImportsIdle();
 
 		struct CopyOperationEntry
 		{

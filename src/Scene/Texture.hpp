@@ -1,6 +1,6 @@
 #pragma once
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "SceneResource.hpp"
+#include "../Common/Handle.hpp"
 
 namespace RENDERER
 {
@@ -9,7 +9,7 @@ namespace RENDERER
 
 namespace SCENE
 {
-	class Texture : public Resource
+	class Texture : public COMMON::Handle
 	{
 	public:
 		//RENDERER_CORE::RawImageData ImageData;

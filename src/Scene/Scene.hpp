@@ -18,6 +18,7 @@
 
 #include "../Common/DestructionQueue.hpp"
 #include "../Common/CommonDefinitions.hpp"
+#include "../Common/Handle.hpp"
 
 #include "Mesh.hpp"
 #include "SceneMeshManager.hpp"
@@ -48,7 +49,6 @@ namespace SCENE
 	//Forward Declarations
 	class Camera3D;
 	class Cubemap;
-	class Resource;
 
 	enum SceneDynamicUploadMode
 	{
@@ -153,7 +153,7 @@ namespace SCENE
 
 		void DestroyMeshBuffers();
 
-		void MarkResourceChanged(Resource* Resource, MarkChangedType Type, uint32_t FrameIndex);
+		void MarkResourceChanged(COMMON::Handle* Resource, MarkChangedType Type, uint32_t FrameIndex);
 		void FlushPendingUpdates(SceneUpdateType Type,uint32_t FrameIndex);
 
 		bool DrawCubeMap;

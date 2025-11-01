@@ -159,7 +159,7 @@ void SCENE::Scene::DestroyMeshBuffers()
     MeshBuffers.Destroy(RendererContext->DeviceContext.LogicalDevice);
 }
 
-void SCENE::Scene::MarkResourceChanged(Resource* Resource, MarkChangedType Type, uint32_t FrameIndex)
+void SCENE::Scene::MarkResourceChanged(COMMON::Handle* Resource, MarkChangedType Type, uint32_t FrameIndex)
 {
     bool IsAllFrames = FrameIndex == std::numeric_limits<uint32_t>::max();
     if (!IsAllFrames && FrameIndex >= MAX_FRAMES_IN_FLIGHT) throw std::runtime_error("Given Frame Index is larger than the maximum frames in flight count!");

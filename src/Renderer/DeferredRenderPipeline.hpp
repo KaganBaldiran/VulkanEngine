@@ -1,21 +1,24 @@
 #pragma once
 #include <array>
+#include <chrono>
 
 #include "RenderPipeline.hpp"
 #include "GeometryBuffer.hpp"
 
+#include "../Common/DestructionQueue.hpp"
+#include "../Common/CommonDefinitions.hpp"
 #include "Core/VulkanSynchoronization.hpp"
-#include <chrono>
 
 namespace RENDERER
 {
-	class DeferredRenderPipeline : public RenderPipeline , COMMON::Destructible
+	class DeferredRenderPipeline : public RenderPipeline , public COMMON::Destructible
 	{
 		friend class Renderer;
 	public:
         DeferredRenderPipeline(RendererContext& RendererContext);
 		DeferredRenderPipeline() = default;
 		void Create(RendererContext& RendererContext) override;
+		void Destroy() override;
 
         /// Allows creating the pipeline with custom parameters
         /// <param name="ShadePixelFunction">
@@ -46,7 +49,6 @@ namespace RENDERER
             bool ClearDepth,
             bool ClearColorAttachment
         ) override;
-		void Destroy() override;
 		void OnResize(uint32_t Width, uint32_t Height) override;
 
         void RenderGeometryPass(
@@ -70,7 +72,8 @@ namespace RENDERER
             bool ClearColorAttachment
         );
         glm::mat4 PreviousProjViewMatrix;
-        RENDERER_CORE::GraphicsPipeline Pipeline;
+        std::array<size_t,MAX_FRAMES_IN_FLIGHT> PipelineIndices;
+        std::array<bool, MAX_FRAMES_IN_FLIGHT> HasCustomPipeline;
 
         std::chrono::system_clock::time_point StartingTime;
 

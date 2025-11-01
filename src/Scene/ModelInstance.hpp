@@ -5,14 +5,14 @@
 #include <vector>
 #include <queue>
 
-#include "SceneResource.hpp"
+#include "../Common/Handle.hpp"
 #include "Mesh.hpp"
 
 namespace SCENE
 {
 	class SceneMeshManager;
 
-	class ModelInstance : public Resource
+	class ModelInstance : public COMMON::Handle
 	{
 	public:
 		ModelInstance(ModelHandle& Source);

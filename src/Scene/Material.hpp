@@ -4,7 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
 
-#include "SceneResource.hpp"
+#include "../Common/Handle.hpp"
 
 namespace SCENE
 {
@@ -20,7 +20,7 @@ namespace SCENE
 		MATERIAL_TEXTURE_TYPE_META_DATA_SIZE
 	};
 
-	class Material
+	class Material : COMMON::Handle
 	{
 	public:
 		Material();

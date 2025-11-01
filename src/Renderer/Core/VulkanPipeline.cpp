@@ -1,15 +1,17 @@
 #include "VulkanPipeline.hpp"
+#include "VulkanDescriptorSetLayout.hpp"
 
 #include "../../Common/Log.hpp"
 #include "../../Common/CommonDefinitions.hpp"
+#include "../../Common/Hash.hpp"
 #include <vulkan/vk_enum_string_helper.h>
 
-RENDERER_CORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice)
+RENDERER_CORE::GraphicsPipeline::GraphicsPipeline(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice,bool CalculateHash)
 {
-    Create(CreateInfo, LogicalDevice);
+    Create(CreateInfo, LogicalDevice,CalculateHash);
 }
 
-void RENDERER_CORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice)
+void RENDERER_CORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateInfo, VkDevice& LogicalDevice, bool CalculateHash)
 {
     auto& ShaderModules = CreateInfo.ShaderModules;
     std::vector<VkPipelineShaderStageCreateInfo> ShaderStages;
@@ -20,7 +22,7 @@ void RENDERER_CORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateI
         VkPipelineShaderStageCreateInfo& ShaderStageCreateInfo = ShaderStages[ModuleIndex];
         ShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         ShaderStageCreateInfo.stage = Module.Usage;
-        ShaderStageCreateInfo.module = Module.Module->Module;
+        ShaderStageCreateInfo.module = Module.Module->Handle;
         ShaderStageCreateInfo.pName = "main";
     }
 
@@ -123,10 +125,18 @@ void RENDERER_CORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateI
     ColorBlendStateCreateInfo.blendConstants[2] = 0.0f;
     ColorBlendStateCreateInfo.blendConstants[3] = 0.0f;
 
+    //Extract the descriptor set layout handles
+    std::vector<VkDescriptorSetLayout> Layouts;
+    Layouts.reserve(CreateInfo.DescriptorSetLayouts.size());
+    for (const auto& DescriptorLayout : CreateInfo.DescriptorSetLayouts)
+    {
+        Layouts.push_back(DescriptorLayout.Handle);
+    }
+
     VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo{};
     PipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     PipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(CreateInfo.DescriptorSetLayouts.size());
-    PipelineLayoutCreateInfo.pSetLayouts = CreateInfo.DescriptorSetLayouts.empty() ? nullptr : CreateInfo.DescriptorSetLayouts.data();
+    PipelineLayoutCreateInfo.pSetLayouts = CreateInfo.DescriptorSetLayouts.empty() ? nullptr : Layouts.data();
     PipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(CreateInfo.PushConstantRanges.size());
     PipelineLayoutCreateInfo.pPushConstantRanges = CreateInfo.PushConstantRanges.empty() ? nullptr : CreateInfo.PushConstantRanges.data();
 
@@ -172,47 +182,58 @@ void RENDERER_CORE::GraphicsPipeline::Create(GraphicsPipelineCreateInfo& CreateI
     PipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
     PipelineCreateInfo.basePipelineIndex = -1;
 
-    if (vkCreateGraphicsPipelines(LogicalDevice, VK_NULL_HANDLE, 1, &PipelineCreateInfo, nullptr, &pipeline) != VK_SUCCESS)
+    if (vkCreateGraphicsPipelines(LogicalDevice, VK_NULL_HANDLE, 1, &PipelineCreateInfo, nullptr, &Handle) != VK_SUCCESS)
     {
         LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed creating graphics pipeline."));
         throw std::runtime_error("Error creating the graphics pipeline!");
     }
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
+
+    if (CalculateHash) Hash = CreateInfo.Hash();
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created graphics pipeline [" + std::to_string(Hash) + "]."));
 }
 
 void RENDERER_CORE::GraphicsPipeline::Destroy(VkDevice& LogicalDevice)
 {
-    if (Layout == VK_NULL_HANDLE && pipeline == VK_NULL_HANDLE) return;
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Destroyed graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(pipeline)) + "]."));
+    if (Layout == VK_NULL_HANDLE && Handle == VK_NULL_HANDLE) return;
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Destroyed graphics pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(Handle)) + "]."));
     if (Layout != VK_NULL_HANDLE)
     {
         vkDestroyPipelineLayout(LogicalDevice, this->Layout, nullptr);
         Layout = VK_NULL_HANDLE;
     }
-    if (pipeline != VK_NULL_HANDLE)
+    if (Handle != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(LogicalDevice, this->pipeline, nullptr);
-        pipeline = VK_NULL_HANDLE;
+        vkDestroyPipeline(LogicalDevice, this->Handle, nullptr);
+        Handle = VK_NULL_HANDLE;
     }
+    Hash = 0;
 }
 
-RENDERER_CORE::ComputePipeline::ComputePipeline(const ComputePipelineCreateInfo& Info, const VkDevice& LogicalDevice)
+RENDERER_CORE::ComputePipeline::ComputePipeline(const ComputePipelineCreateInfo& Info, const VkDevice& LogicalDevice, bool CalculateHash)
 {
-    Create(Info, LogicalDevice);
+    Create(Info, LogicalDevice,CalculateHash);
 }
 
-void RENDERER_CORE::ComputePipeline::Create(const ComputePipelineCreateInfo& Info, const VkDevice& LogicalDevice)
+void RENDERER_CORE::ComputePipeline::Create(const ComputePipelineCreateInfo& Info, const VkDevice& LogicalDevice,bool CalculateHash)
 {
     VkPipelineShaderStageCreateInfo StageInfo{};
     StageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     StageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
     StageInfo.pName = "main";
-    StageInfo.module = Info.ComputeShaderModule->Module;
+    StageInfo.module = Info.ComputeShaderModule->Handle;
+
+    //Extract the descriptor set layout handles
+    std::vector<VkDescriptorSetLayout> Layouts;
+    Layouts.reserve(Info.DescriptorSetLayouts.size());
+    for (const auto& DescriptorLayout : Info.DescriptorSetLayouts)
+    {
+        Layouts.push_back(DescriptorLayout.Handle);
+    }
 
     VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo{};
     PipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     PipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(Info.DescriptorSetLayouts.size());
-    PipelineLayoutCreateInfo.pSetLayouts = Info.DescriptorSetLayouts.empty() ? nullptr : Info.DescriptorSetLayouts.data();
+    PipelineLayoutCreateInfo.pSetLayouts = Info.DescriptorSetLayouts.empty() ? nullptr : Layouts.data();
     PipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(Info.PushConstantRanges.size());
     PipelineLayoutCreateInfo.pPushConstantRanges = Info.PushConstantRanges.empty() ? nullptr : Info.PushConstantRanges.data();
 
@@ -227,24 +248,145 @@ void RENDERER_CORE::ComputePipeline::Create(const ComputePipelineCreateInfo& Inf
     PipelineCreateInfo.stage = StageInfo;
     PipelineCreateInfo.layout = Layout;
 
-    if (vkCreateComputePipelines(LogicalDevice,nullptr,1, &PipelineCreateInfo,nullptr,&Pipeline) != VK_SUCCESS)
+    if (vkCreateComputePipelines(LogicalDevice,nullptr,1, &PipelineCreateInfo,nullptr,&Handle) != VK_SUCCESS)
     {
         LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed creating compute pipeline."));
         throw std::runtime_error("Failed creating compute pipeline.");
     }
+    if(CalculateHash) Hash = Info.Hash();
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created compute pipeline [" + std::to_string(Hash) + "]."));
 }
 
 void RENDERER_CORE::ComputePipeline::Destroy(const VkDevice& LogicalDevice)
 {
-    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Destroyed compute pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(Pipeline)) + "]."));
+    if (Layout == VK_NULL_HANDLE && Handle == VK_NULL_HANDLE) return;
+    LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Destroyed compute pipeline [" + std::to_string(reinterpret_cast<uintptr_t>(Handle)) + "]."));
     if (Layout != VK_NULL_HANDLE)
     {
         vkDestroyPipelineLayout(LogicalDevice, this->Layout, nullptr);
         Layout = VK_NULL_HANDLE;
     }
-    if (Pipeline != VK_NULL_HANDLE)
+    if (Handle != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(LogicalDevice, this->Pipeline, nullptr);
-        Pipeline = VK_NULL_HANDLE;
+        vkDestroyPipeline(LogicalDevice, this->Handle, nullptr);
+        Handle = VK_NULL_HANDLE;
     }
+    Hash = 0;
 }
+
+size_t RENDERER_CORE::GraphicsPipelineCreateInfo::Hash() const
+{
+    size_t ResultingHash = 17;
+    bool DynamicViewport = false, DynamicScissor = false;
+    for (auto& DynamicState : DynamicStates)
+    {
+        DynamicViewport |= DynamicState == VK_DYNAMIC_STATE_VIEWPORT;
+        DynamicScissor |= DynamicState == VK_DYNAMIC_STATE_SCISSOR;
+        ResultingHash = COMMON::CombineHash(ResultingHash,std::hash<VkDynamicState>()(DynamicState));
+    }
+    for (auto& ShaderModule : ShaderModules)
+    {
+        if (ShaderModule.Module->SPIRV_Hash)
+        {
+            ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(ShaderModule.Module->SPIRV_Hash));
+        }
+        else
+        {
+            ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<std::string>()(ShaderModule.Module->Label));
+        }
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkShaderStageFlagBits>()(ShaderModule.Usage));
+    }
+    for (auto& SetLayout : DescriptorSetLayouts)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<size_t>()(SetLayout.GetHash()));
+    }
+    for (auto& AttributeDescription : AttributeDescriptions)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(AttributeDescription.binding));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(AttributeDescription.location));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(AttributeDescription.offset));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkFormat>()(AttributeDescription.format));
+    }
+    for (auto& PushConstantRange : PushConstantRanges)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(PushConstantRange.offset));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(PushConstantRange.size));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkShaderStageFlags>()(PushConstantRange.stageFlags));
+    }
+    ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(BindingDescription.binding));
+    ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(BindingDescription.stride));
+    ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkVertexInputRate>()(BindingDescription.inputRate));
+    ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkBool32>()(EnableDynamicRendering));
+    if (EnableDynamicRendering)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(DynamicRenderingColorAttachmentCount));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkFormat>()(DynamicRenderingDepthAttachmentFormat));
+        for (auto& ColorAttachmentFormat : DynamicRenderingColorAttachmentsFormats)
+        {
+            ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkFormat>()(ColorAttachmentFormat));
+        }
+    }
+    else  ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkRenderPass*>()(RenderPass));
+    ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkBool32>()(EnableDepthWriting));
+    ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkBool32>()(EnableDepthTesting));
+    ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkPrimitiveTopology>()(Topology));
+    if (!DynamicScissor)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<int32_t>()(ScissorOffset.x));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<int32_t>()(ScissorOffset.y));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<int32_t>()(ScissorExtent.width));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<int32_t>()(ScissorExtent.height));
+    }
+    if (!DynamicViewport)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<float>()(ViewportMinDepth));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<float>()(ViewportMaxDepth));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(static_cast<uint32_t>(ViewportWidth)));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(static_cast<uint32_t>(ViewportHeight)));
+    }
+    return ResultingHash;
+}
+
+/*
+bool RENDERER_CORE::GraphicsPipelineCreateInfo::operator==(const GraphicsPipelineCreateInfo& Other) const
+{
+    if (Other.DynamicStates != DynamicStates) return false;
+    if (Other.DynamicStates != DynamicStates) return false;
+    if (Other.DynamicStates != DynamicStates) return false;
+
+    if (Other.ShaderModules.size() != ShaderModules.size()) return false;
+    bool DynamicViewport = false, DynamicScissor = false;
+    for (auto& DynamicState : DynamicStates)
+    {
+        DynamicViewport |= DynamicState == VK_DYNAMIC_STATE_VIEWPORT;
+        DynamicScissor |= DynamicState == VK_DYNAMIC_STATE_SCISSOR;
+    }
+
+    return true;
+}
+*/
+size_t RENDERER_CORE::ComputePipelineCreateInfo::Hash() const
+{
+    size_t ResultingHash = 17;
+    if (ComputeShaderModule->SPIRV_Hash)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(ComputeShaderModule->SPIRV_Hash));
+    }
+    else
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<std::string>()(ComputeShaderModule->Label));
+    }
+    for (auto& SetLayout : DescriptorSetLayouts)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<size_t>()(SetLayout.GetHash()));
+    }
+    for (auto& PushConstantRange : PushConstantRanges)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(PushConstantRange.offset));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(PushConstantRange.size));
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<VkShaderStageFlags>()(PushConstantRange.stageFlags));
+    }
+    return ResultingHash;
+}
+
+

@@ -19,7 +19,11 @@ namespace RENDERER_CORE
 		void CreateLayout(VkDevice& LogicalDevice, VkDescriptorSetLayoutCreateFlags Flags = 0, void* Next = nullptr);
 		void Destroy(VkDevice& LogicalDevice);
 		VkDescriptorSetLayout Handle = VK_NULL_HANDLE;
+
+		size_t GetHash() const { return Hash; };
 	private:
+		size_t CalculateHash(VkDescriptorSetLayoutCreateFlags Flags, void* Next);
+		size_t Hash = 0;
 		std::vector<VkDescriptorSetLayoutBinding> Bindings;
 	};
 }

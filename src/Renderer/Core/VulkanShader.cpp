@@ -4,7 +4,7 @@
 
 #include "../../Common/Log.hpp"
 #include "../../Common/CommonDefinitions.hpp"
-
+#include "../../Common/Hash.hpp"
 
 VkShaderModule RENDERER_CORE::CreateModule(const std::vector<uint32_t>& CodeSource,VkDevice& LogicalDevice)
 {
@@ -48,6 +48,12 @@ void RENDERER_CORE::ShaderModule::CompileOrLoadShaderModule(
     VkDevice LogicalDevice
 )
 {
+    if (!ShaderLabel)
+    {
+        throw std::runtime_error("Invalid shader label!");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Given shader label is invalid. Each shader module must have a unique label!");
+    }
+
     RENDERER_CORE::ShaderData ShaderData;
     if (VKCORE_GLOBAL_PREFERENCES_COMPILE_SHADERS)
     {
@@ -55,7 +61,9 @@ void RENDERER_CORE::ShaderModule::CompileOrLoadShaderModule(
         ShaderData.WriteFileSpirv(SpirvSourceFileName);
     }
     else ShaderData.FromSpirV(SpirvSourceFileName);
-    this->Module = CreateModule(ShaderData.SpirvData, LogicalDevice);
+    this->Handle = CreateModule(ShaderData.SpirvData, LogicalDevice);
+    Label = ShaderLabel;
+    SPIRV_Hash = ShaderData.HashShaderData();
 }
 
 std::vector<char> RENDERER_CORE::ReadFile(const char* FileName)
@@ -63,7 +71,7 @@ std::vector<char> RENDERER_CORE::ReadFile(const char* FileName)
     std::ifstream File(FileName, std::ios::ate | std::ios::binary);
 
     if (!File.is_open()) {
-        throw std::runtime_error("Failed to open file!");
+        throw std::runtime_error("Failed to open file (" + std::string(FileName) + ").");
     }
 
     size_t FileSize = static_cast<size_t>(File.tellg());
@@ -86,7 +94,7 @@ std::string RENDERER_CORE::ReadFileStr(const char* FileName)
     }
     else
     {
-        throw std::runtime_error("Failed to open file!");
+        throw std::runtime_error("Failed to open file (" + std::string(FileName) + ").");
     }
     return Buffer.str();
 }
@@ -110,7 +118,7 @@ void RENDERER_CORE::WriteFileSpirv(const char* FileName, std::vector<uint32_t> S
 {
     std::ofstream File(FileName, std::ofstream::binary);
     if (!File.is_open()) {
-        throw std::runtime_error("Failed to open file!");
+        throw std::runtime_error("Failed to open file (" + std::string(FileName) + ").");
     }
 
     File.write(reinterpret_cast<const char*>(SpirvData.data()), SpirvData.size() * sizeof(uint32_t));
@@ -135,19 +143,33 @@ std::vector<uint32_t> RENDERER_CORE::CompileGLSL(const std::string& Source,shade
     return { Result.cbegin(), Result.cend() };
 }
 
-RENDERER_CORE::ShaderModule::ShaderModule(ShaderData& ShaderData, VkDevice LogicalDevice)
+RENDERER_CORE::ShaderModule::ShaderModule(ShaderData& ShaderData, const char* ShaderLabel, VkDevice LogicalDevice)
 {
-    Create(ShaderData, LogicalDevice);
+    Create(ShaderData, ShaderLabel, LogicalDevice);
 }
 
-void RENDERER_CORE::ShaderModule::Create(ShaderData& ShaderData,VkDevice LogicalDevice)
+void RENDERER_CORE::ShaderModule::Create(ShaderData& ShaderData, const char* ShaderLabel, VkDevice LogicalDevice)
 {
-    this->Module = CreateModule(ShaderData.SpirvData, LogicalDevice);
+    if (!ShaderLabel)
+    {
+        throw std::runtime_error("Invalid shader label!");
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Given shader label is invalid. Each shader module must have a unique label!");
+    }
+    this->Handle = CreateModule(ShaderData.SpirvData, LogicalDevice);
+    SPIRV_Hash = ShaderData.HashShaderData();
+    Label = ShaderLabel;
 }
 
 void RENDERER_CORE::ShaderModule::Destroy(VkDevice& LogicalDevice)
 {
-    vkDestroyShaderModule(LogicalDevice, Module, nullptr);
+    if (Handle == VK_NULL_HANDLE) return;
+    vkDestroyShaderModule(LogicalDevice, Handle, nullptr);
+    Handle = VK_NULL_HANDLE;
+}
+
+bool RENDERER_CORE::ShaderModule::operator==(const ShaderModule& Other) const
+{
+    return Other.Label == Label && Other.SPIRV_Hash == SPIRV_Hash;
 }
 
 void RENDERER_CORE::ShaderData::FromGLSL(const char* FileName, shaderc_shader_kind ShaderKind, const char* Label)
@@ -183,4 +205,14 @@ void RENDERER_CORE::ShaderData::WriteFileSpirv(const char* FileName)
 {
     if (SpirvData.empty()) return;
     RENDERER_CORE::WriteFileSpirv(FileName,SpirvData);
+}
+
+size_t RENDERER_CORE::ShaderData::HashShaderData()
+{
+    size_t ResultingHash = 17;
+    for (auto& Instruction : SpirvData)
+    {
+        ResultingHash = COMMON::CombineHash(ResultingHash, std::hash<uint32_t>()(Instruction));
+    }
+    return ResultingHash;
 }

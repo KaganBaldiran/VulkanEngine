@@ -468,7 +468,7 @@ void RENDERER::Renderer::RenderPhysicsDebugPass(SCENE::Scene& Scene, SCENE::Came
 
     RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)rendererContext->SwapChain.Extent.width, (uint32_t)rendererContext->SwapChain.Extent.height} });
 
-    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PhysicsDebugGraphicsPipeline.pipeline);
+    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PhysicsDebugGraphicsPipeline.Handle);
 
     VkBuffer VertexBuffers[] = { PhysicsDebugLineVertexBuffers[CurrentFrame].Buffer.BufferObject };
     VkDeviceSize Offsets[] = { 0 };
@@ -512,8 +512,12 @@ void RENDERER::Renderer::RenderPostProcessPass(
 
     RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)rendererContext->SwapChain.Extent.width, (uint32_t)rendererContext->SwapChain.Extent.height} });
 
-    RENDERER_CORE::GraphicsPipeline& CurrentPipeline = rendererContext->PostProcessingGraphicsPipeline;
-    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.pipeline);
+    size_t CurrentPipelineIndex = rendererContext->DefaultPipelines.PostProcessing;
+    RENDERER_CORE::GraphicsPipelineEntry* CurrentPipelineEntry = rendererContext->PipelineManager.GetGraphicsPipeline(CurrentPipelineIndex);
+    assert(CurrentPipelineEntry);
+    RENDERER_CORE::GraphicsPipeline CurrentPipeline = CurrentPipelineEntry->Pipeline;
+
+    vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Handle);
 
     VkBuffer VertexBuffers[] = { rendererContext->QuadVertexBuffer.BufferObject };
     VkDeviceSize Offsets[] = { 0 };
@@ -590,7 +594,7 @@ void RENDERER::Renderer::InitializePipelines()
     PipelineCreateInfo.EnableDepthTesting = VK_FALSE;
     PipelineCreateInfo.EnableDepthWriting = VK_FALSE;
     PipelineCreateInfo.Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    PipelineCreateInfo.DescriptorSetLayouts = { rendererContext->LightingPassLayout.Handle,rendererContext->SceneDescriptorSetLayout.Handle };
+    PipelineCreateInfo.DescriptorSetLayouts = { rendererContext->LightingPassLayout,rendererContext->SceneDescriptorSetLayout };
     PipelineCreateInfo.PushConstantRanges = { LightingPassPushConstantRange };
 //    LightingPassGraphicsPipeline.Create(PipelineCreateInfo, LogicalDevice);
 

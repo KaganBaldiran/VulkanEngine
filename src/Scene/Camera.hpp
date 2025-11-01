@@ -1,13 +1,13 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #include <glfw3.h>
+#include <functional>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "SceneResource.hpp"
-#include <functional>
+#include "../Common/Handle.hpp"
 
 namespace RENDERER_CORE
 {
@@ -66,7 +66,7 @@ namespace SCENE
 		CameraModeInfo* CameraModeInfo = nullptr;
 	};
 
-	class Camera3D : public Resource
+	class Camera3D : public COMMON::Handle
 	{
 	public:
 		Camera3D(RENDERER_CORE::Window &window,CameraSettingsInfo Settings);

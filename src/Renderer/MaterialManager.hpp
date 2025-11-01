@@ -15,6 +15,7 @@
 #include "../Renderer/Core/VulkanImage.hpp"
 #include "../Renderer/Core/VulkanDescriptor.hpp"
 #include "../Renderer/Core/VulkanPipeline.hpp"
+#include "Renderer/RendererContext.hpp"
 
 namespace SCENE
 {
@@ -64,17 +65,16 @@ namespace RENDERER
 		std::mutex Mutex;
 		double StartingTime;
 		RendererContext* RendererContextPtr = nullptr;
-		bool CreateMeshTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex);
-		void DestroyMeshTextureDescriptors();
+		//bool CreateMeshTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex);
+		//void DestroyMeshTextureDescriptors();
 		void UpdateDescriptors(uint32_t FrameIndex);
 
 		std::array<std::vector<uint32_t>, MAX_FRAMES_IN_FLIGHT> DescriptorWriteQueue;
 		// 0: VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER - Texture array
+		/*
 		std::array<RENDERER_CORE::Descriptor<1>, MAX_FRAMES_IN_FLIGHT> TexturesDescriptors;
 		std::array<uint32_t, MAX_FRAMES_IN_FLIGHT> TextureDescriptorUpperBounds;
 		std::array<RENDERER_CORE::VirtualArenaAllocator, MAX_FRAMES_IN_FLIGHT> TextureDescriptorIndexAllocators;
-
-		std::array<RENDERER_CORE::GraphicsPipeline, 3>* TextureDescriptorsPipelines = nullptr;
-		RENDERER_CORE::GraphicsPipeline* CurrentShadingPassPipeline = nullptr;
+		*/
 	};
 }
