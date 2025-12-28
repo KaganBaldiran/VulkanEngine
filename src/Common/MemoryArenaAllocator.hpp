@@ -21,7 +21,7 @@ namespace RENDERER_CORE
 		VirtualArenaAllocator() = default;
 		void Create(size_t InitialCapacityInBytes = MEMORY_SIZE_KILOBYTE, size_t AllocationChunkSize = MEMORY_SIZE_KILOBYTE);
 
-		MemoryRegion Suballocate(size_t SizeInBytes);
+		MemoryRegion Suballocate(size_t SizeInBytes,bool AutoAllocate = true);
 		void Allocate(size_t SizeInBytes);
 		void Free(const MemoryRegion& RegionToFree);
 		void Defragment(std::vector<MemoryRegion> &Regions);

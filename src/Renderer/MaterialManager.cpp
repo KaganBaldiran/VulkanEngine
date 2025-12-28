@@ -109,10 +109,10 @@ void RENDERER::TextureManager::WaitImportsIdle()
 void RENDERER::TextureManager::UpdateDescriptors(uint32_t FrameIndex)
 {
     auto& CurrentDescriptorWriteList = this->DescriptorWriteQueue[FrameIndex];
+    bool ShouldRewrite = RendererContextPtr->CreateTextureDescriptors(CurrentDescriptorWriteList.size(), FrameIndex,true);
+
     auto& CurrentTexturesDescriptor = RendererContextPtr->TexturesDescriptors[FrameIndex];
     auto& CurrentTextureDescriptorIndexAllocator = RendererContextPtr->TextureDescriptorIndexAllocators[FrameIndex];
-
-    bool ShouldRewrite = RendererContextPtr->CreateTextureDescriptors(CurrentDescriptorWriteList.size(), FrameIndex,true);
     std::vector<RENDERER_CORE::DescriptorSetWriteImage> ImageWrites;
     if (ShouldRewrite)
     {
@@ -132,33 +132,31 @@ void RENDERER::TextureManager::UpdateDescriptors(uint32_t FrameIndex)
             ImageWrites.push_back(std::move(NewTextureWrite));
         }
     }
-    else
+    for (size_t i = 0; i < CurrentDescriptorWriteList.size(); i++)
     {
-        for (size_t i = 0; i < CurrentDescriptorWriteList.size(); i++)
-        {
-            auto TextureDataIterator = TextureDatas.find(CurrentDescriptorWriteList[i]);
-            if (TextureDataIterator == TextureDatas.end()) continue;
+        auto TextureDataIterator = TextureDatas.find(CurrentDescriptorWriteList[i]);
+        if (TextureDataIterator == TextureDatas.end()) continue;
 
-            auto& Data = TextureDataIterator->second.Data;
-            auto& DescriptorSlots = TextureDataIterator->second.DescriptorSlots;
+        auto& Data = TextureDataIterator->second.Data;
+        auto& DescriptorSlots = TextureDataIterator->second.DescriptorSlots;
 
-            auto AllocatedIndex = CurrentTextureDescriptorIndexAllocator.Suballocate(1);
-            DescriptorSlots[FrameIndex] = AllocatedIndex.Offset;
+        auto AllocatedRegion = CurrentTextureDescriptorIndexAllocator.Suballocate(1,false);
+        if (!AllocatedRegion.Size) break;
+        DescriptorSlots[FrameIndex] = AllocatedRegion.Offset;
 
-            RENDERER_CORE::DescriptorSetWriteImage NewTextureWrite(
-                Data.ImageView,
-                Data.Sampler,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                0,
-                CurrentTexturesDescriptor.DescriptorSets[0],
-                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                AllocatedIndex.Offset,
-                1
-            );
-            ImageWrites.push_back(std::move(NewTextureWrite));
-        }
+        RENDERER_CORE::DescriptorSetWriteImage NewTextureWrite(
+            Data.ImageView,
+            Data.Sampler,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            0,
+            CurrentTexturesDescriptor.DescriptorSets[0],
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            AllocatedRegion.Offset,
+            1
+        );
+        ImageWrites.push_back(std::move(NewTextureWrite));
     }
-
+    
     RENDERER_CORE::WriteDescriptorSets(
         RendererContextPtr->DeviceContext.LogicalDevice,
         {},

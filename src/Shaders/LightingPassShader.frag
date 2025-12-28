@@ -290,5 +290,5 @@ void main() {
     float FogAmount = clamp(exp(-NormalizedDistance * FogIntensity),0.0f,1.0f);
 
     outColor = vec4(mix(vec3(0.6f,0.7f,0.6f),ShadedPixel,FogAmount),1.0f);
-    //outColor = vec4(UV,0.0f,1.0f);
+    //outColor = vec4(vec3(MaterialData.AlbedoTextureIndex / 100.0f),1.0f);
 }

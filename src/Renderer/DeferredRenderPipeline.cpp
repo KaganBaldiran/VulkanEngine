@@ -236,7 +236,7 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
     RenderingPass.BeginRendering(CommandBuffer, VkRect2D{ {0, 0}, {(uint32_t)RendererContextPtr->SwapChain.Extent.width, (uint32_t)RendererContextPtr->SwapChain.Extent.height} });
     RENDERER::MeshManager& MeshManager = Scene.ResourceManagerPtr->MeshManager;
 
-    const size_t &CurrentPipelineIndex = EnableDepthTesting ? RendererContextPtr->DefaultPipelines.GbufferDepthEnabled[CurrentFrame] :
+    const size_t CurrentPipelineIndex = EnableDepthTesting ? RendererContextPtr->DefaultPipelines.GbufferDepthEnabled[CurrentFrame] :
                                                               RendererContextPtr->DefaultPipelines.GbufferDepthDisabled[CurrentFrame];
     RENDERER_CORE::GraphicsPipelineEntry* CurrentPipelineEntry = RendererContextPtr->PipelineManager.GetGraphicsPipeline(CurrentPipelineIndex);
     assert(CurrentPipelineEntry);
@@ -323,7 +323,6 @@ void RENDERER::DeferredRenderPipeline::RenderLightingPass(
 
     size_t CurrentPipelineIndex = HasCustomPipeline[CurrentFrame] ? PipelineIndices[CurrentFrame] : RendererContextPtr->DefaultPipelines.DeferredShading[CurrentFrame];
     RENDERER_CORE::GraphicsPipelineEntry* CurrentPipelineEntry = RendererContextPtr->PipelineManager.GetGraphicsPipeline(CurrentPipelineIndex);
-    assert(CurrentPipelineEntry);
     RENDERER_CORE::GraphicsPipeline& CurrentPipeline = CurrentPipelineEntry->Pipeline;
     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Handle);
 
@@ -357,6 +356,5 @@ void RENDERER::DeferredRenderPipeline::RenderLightingPass(
     );
 
     vkCmdDraw(CommandBuffer, 4, 1, 0, 0);
-
     RenderingPass.EndRendering(CommandBuffer);
 }

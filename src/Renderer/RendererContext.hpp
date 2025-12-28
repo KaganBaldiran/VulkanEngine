@@ -63,6 +63,13 @@ namespace RENDERER
         float Time;
     };
 
+    struct GPUmemoryStats
+    {
+        size_t TotalBudgetBytes = 0;
+        size_t TotalUsedBytes = 0;
+        float UsageRate = 0.0f;
+    };
+
 	class RendererContext : COMMON::Destructible
 	{
         friend class SCENE::Scene;
@@ -85,6 +92,7 @@ namespace RENDERER
         );
 		void Destroy() override;
         void WaitDeviceIdle();
+        GPUmemoryStats QueryMemoryStats();
 
         RENDERER_CORE::Window Window;
         RENDERER_CORE::Instance Instance;
@@ -157,6 +165,16 @@ namespace RENDERER
             std::array<size_t,MAX_FRAMES_IN_FLIGHT> GbufferDepthDisabled;
             std::array<size_t, MAX_FRAMES_IN_FLIGHT> GbufferDepthEnabled;
             std::array<size_t, MAX_FRAMES_IN_FLIGHT> DeferredShading;
+
+            DefaultPipelineIndices()
+            {
+                HDRIrender = std::numeric_limits<size_t>::max();
+                HDRIconvolute = std::numeric_limits<size_t>::max();
+                PostProcessing = std::numeric_limits<size_t>::max();
+                GbufferDepthDisabled.fill(std::numeric_limits<size_t>::max());
+                GbufferDepthEnabled.fill(std::numeric_limits<size_t>::max());
+                DeferredShading.fill(std::numeric_limits<size_t>::max());
+            }
         };
         DefaultPipelineIndices DefaultPipelines;
 	private:

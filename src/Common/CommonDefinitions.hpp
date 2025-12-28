@@ -13,9 +13,9 @@
 //Max count of frames in flight
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 //Internal texture descriptor growth step 
-constexpr size_t TextureDescriptorBlockSize = 1;
+constexpr size_t TextureDescriptorBlockSize = 250;
 //Initial texture descriptor limit used during initial descriptor creation
-constexpr size_t InitialTextureDescriptorSize = 1;
+constexpr size_t InitialTextureDescriptorSize = 1000;
 
 #ifndef GLOBAL_LOG_FILE_PATH 
 #define GLOBAL_LOG_FILE_PATH "Log.txt" 

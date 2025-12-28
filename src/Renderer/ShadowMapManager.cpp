@@ -1,5 +1,5 @@
 #include "ShadowMapManager.hpp"
-#include "Light.hpp"
+#include "../Scene/Light.hpp"
 
 #include <array>
 #include <string>
@@ -8,8 +8,9 @@
 #include "../Common/CommonDefinitions.hpp"
 
 #include "../Renderer/RendererContext.hpp"
+#include "../Renderer/MeshManager.hpp"
 
-std::array<glm::vec3, 8> SCENE::GetCameraFrustum(glm::mat4 InverseProjectMatrix, glm::mat4 InverseViewMatrix)
+std::array<glm::vec3, 8> RENDERER::GetCameraFrustum(glm::mat4 InverseProjectMatrix, glm::mat4 InverseViewMatrix)
 {
     glm::mat4 InvCameraMatrix = InverseProjectMatrix * InverseViewMatrix;
     std::array<glm::vec3,8> NDCCorners = {
@@ -31,7 +32,7 @@ std::array<glm::vec3, 8> SCENE::GetCameraFrustum(glm::mat4 InverseProjectMatrix,
     return NDCCorners;
 }
 
-glm::mat4 SCENE::GetLightSpaceMatrix(glm::vec3 LightDirection,std::array<glm::vec3, 8>& Frustum)
+glm::mat4 RENDERER::GetLightSpaceMatrix(glm::vec3 LightDirection,std::array<glm::vec3, 8>& Frustum)
 {
     glm::vec3 Center = glm::vec3(0.0f);
     for (auto& Corner : Frustum)
@@ -68,12 +69,12 @@ glm::mat4 SCENE::GetLightSpaceMatrix(glm::vec3 LightDirection,std::array<glm::ve
     return LightProjection * LightViewMatrix;
 }
 
-SCENE::TexturePacker3D::TexturePacker3D(glm::ivec2 PageSize)
+RENDERER::TexturePacker3D::TexturePacker3D(glm::ivec2 PageSize)
 {
     Create(PageSize);
 }
 
-void SCENE::TexturePacker3D::Create(glm::ivec2 PageSize)
+void RENDERER::TexturePacker3D::Create(glm::ivec2 PageSize)
 {
     this->PageSize = PageSize;
     Pages.reserve(100);
@@ -83,7 +84,7 @@ void SCENE::TexturePacker3D::Create(glm::ivec2 PageSize)
     Pages.push_back(Layer);
 }
 
-SCENE::MemoryRegion3D SCENE::TexturePacker3D::Insert(glm::ivec2 Size)
+RENDERER::MemoryRegion3D RENDERER::TexturePacker3D::Insert(glm::ivec2 Size)
 {
     if (Size.x > PageSize.x || Size.y > PageSize.y) return MemoryRegion3D();
     for (size_t PageIndex = 0; PageIndex < Pages.size(); PageIndex++)
@@ -143,7 +144,7 @@ SCENE::MemoryRegion3D SCENE::TexturePacker3D::Insert(glm::ivec2 Size)
     return MemoryRegion3D();
 }
 
-void SCENE::TexturePacker3D::Erase(const MemoryRegion3D& Region)
+void RENDERER::TexturePacker3D::Erase(const MemoryRegion3D& Region)
 {
     if (Region.Layer >= Pages.size()) return;
     auto& Page = Pages[Region.Layer];
@@ -159,7 +160,7 @@ void SCENE::TexturePacker3D::Erase(const MemoryRegion3D& Region)
     Page.Regions.erase(Region.Region);
 }
 
-const SCENE::MemoryRegion2D* SCENE::TextureLayer::DoesOverlap(
+const RENDERER::MemoryRegion2D* RENDERER::TextureLayer::DoesOverlap(
     const std::vector<const MemoryRegion2D*>& Regions,
     float Min_x, 
     float Min_y, 
@@ -178,7 +179,7 @@ const SCENE::MemoryRegion2D* SCENE::TextureLayer::DoesOverlap(
     return nullptr;
 }
 
-size_t SCENE::MemoryRegion2DHasher::operator()(const MemoryRegion2D& Region) const
+size_t RENDERER::MemoryRegion2DHasher::operator()(const MemoryRegion2D& Region) const
 {
     size_t seed = 0;
     size_t Hash0 = std::hash<int>()(Region.Size.x);
@@ -192,58 +193,23 @@ size_t SCENE::MemoryRegion2DHasher::operator()(const MemoryRegion2D& Region) con
     return seed;
 }
 
-SCENE::ShadowMapManager::ShadowMapManager(RENDERER::RendererContext& RendererContext, glm::ivec2 PageSize)
+RENDERER::ShadowMapManager::ShadowMapManager(RENDERER::RendererContext& RendererContext, glm::ivec2 PageSize)
 {
     Create(RendererContext,PageSize);
 }
 
-void SCENE::ShadowMapManager::Create(RENDERER::RendererContext& RendererContext, glm::ivec2 PageSize)
+void RENDERER::ShadowMapManager::Create(RENDERER::RendererContext& RendererContext, glm::ivec2 PageSize)
 {
     this->RendererContext = &RendererContext;
     this->PageSize = PageSize;
-    this->LayerCount = 10;
-
-    /*
-    ShadowMapImageFormat = RENDERER_CORE::FindSupportedFormat(RendererContext.DeviceContext.physicalDevice, { VK_FORMAT_D32_SFLOAT,VK_FORMAT_D16_UNORM },
-        VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-    RENDERER_CORE::CreateImage(
-        RendererContext.DeviceContext.physicalDevice, 
-        RendererContext.DeviceContext.logicalDevice,
-        PageSize.x,
-        PageSize.y,
-        VK_IMAGE_TILING_OPTIMAL,
-        ShadowMapImageFormat,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        this->ShadowMapTexture.Image,
-        ShadowMapTexture.ImageMemory,
-        LayerCount
-    );
-
-    for (size_t i = 0; i < LayerCount; i++)
+    this->LayerCount.fill(10);
+    for (auto& CurrentShadowMapTextures : ShadowMapTextures)
     {
-        RENDERER_CORE::CreateImageView(
-            this->ShadowMapTexture.Image,
-            ShadowMapImageFormat,
-            VK_IMAGE_VIEW_TYPE_2D,
-            VK_IMAGE_ASPECT_DEPTH_BIT, 
-            RendererContext.DeviceContext.logicalDevice
-        );
+        CurrentShadowMapTextures.Samplers.emplace_back();
     }
-   
-    ShadowMapTexture.Samplers.emplace_back();
-    RENDERER_CORE::CreateTextureSampler(
-        RendererContext.DeviceContext.physicalDevice, 
-        RendererContext.DeviceContext.logicalDevice, 
-        ShadowMapTexture.Samplers[0], 
-        VK_FILTER_LINEAR, 
-        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
-    );
-    */
 }
 
-void SCENE::ShadowMapManager::Destroy()
+void RENDERER::ShadowMapManager::Destroy()
 {
     /*
     ShadowMapTexture.Destroy(RendererContext->DeviceContext.logicalDevice);
@@ -251,9 +217,8 @@ void SCENE::ShadowMapManager::Destroy()
     */
 }
 
-void SCENE::ShadowMapManager::AppendCascadedShadowMap(CascadedShadowMapAppendInfo Info)
+void RENDERER::ShadowMapManager::AppendCascadedShadowMap(CascadedShadowMapAppendInfo Info)
 {
-    /*
     auto& InputInfos = Info.Infos;
     const auto& FrameIndex = Info.FrameIndex;
 
@@ -262,30 +227,107 @@ void SCENE::ShadowMapManager::AppendCascadedShadowMap(CascadedShadowMapAppendInf
     auto& CurrentMetaDataBufferAllocator = CurrentMetaDataBuffer.Allocator;
     auto& CurrentDataBufferAllocator = CurrentDataBuffer.Allocator;
 
+    TexturePacker3D& CurrentTexturePacker = TexturePackers[FrameIndex];
+    size_t InitialPageCount = CurrentTexturePacker.GetPageCount();
+
     auto& CurrentShadowMapEntries = this->CascadedShadowMapEntries[FrameIndex];
     size_t SizeOfMetaData = sizeof(CascadedMapMetaData), SizeOfData = sizeof(CascadedMapData);
+    size_t InitialCascadeDataBufferCapacity = CurrentTexturePacker.GetPageCount();
+    size_t InitialPageCount = CurrentTexturePacker.GetPageCount();
 
     for (auto& InputInfo : InputInfos)
     {
         if (!InputInfo.SourceLight) continue;
 
-        auto Iterator = CurrentShadowMapEntries.find(InputInfo.SourceLight);
+        auto Iterator = CurrentShadowMapEntries.find(InputInfo.SourceLight->GetHandleID());
         if (Iterator != CurrentShadowMapEntries.end()) continue;
 
-        Iterator->second.MetaDataMemoryRegion = CurrentMetaDataBufferAllocator.Allocate(SizeOfMetaData);
-        RENDERER_CORE::MemoryRegion DataBatchRegion = CurrentDataBufferAllocator.Allocate(SizeOfData * InputInfo.CascadeCount);
+        RENDERER_CORE::MemoryRegion DataBatchRegion = CurrentDataBufferAllocator.Suballocate(SizeOfData * InputInfo.CascadeCount);
 
         CascadedMapMetaData MetaData{};
         MetaData.CascadeCount = InputInfo.CascadeCount;
         MetaData.Offset = DataBatchRegion.Offset / SizeOfMetaData;
+
+        CascadedShadowMapEntry NewShadowMapEntry{};
+        NewShadowMapEntry.MetaDataMemoryRegion = CurrentMetaDataBufferAllocator.Suballocate(SizeOfMetaData);
+        NewShadowMapEntry.MetaData = MetaData;
+        NewShadowMapEntry.CascadeEntries.reserve(InputInfo.CascadeCount);
         for (size_t i = 0; i < InputInfo.CascadeCount; i++)
         {
-            CascadeEntry NewEntry{};
-            NewEntry.TextureRegion = TexturePacker.Insert()
-            Iterator->second.CascadeEntries.push_back()
-        }
+            MemoryRegion3D NewTextureRegion = CurrentTexturePacker.Insert({ 1024,1024 });
 
-        
+            CascadedMapData NewCascadeData{};
+            NewCascadeData.TextureSize = NewTextureRegion.Region.Size.x;
+            NewCascadeData.TexturePosition = NewTextureRegion.Region.Offset;
+            NewCascadeData.TextureLayer = NewTextureRegion.Layer;
+
+            CascadeEntry NewEntry{};
+            NewEntry.TextureRegion = NewTextureRegion;
+            NewEntry.MemoryRegion = { DataBatchRegion.Offset + i * SizeOfData,SizeOfData };
+            NewEntry.Data = NewCascadeData;
+            NewShadowMapEntry.CascadeEntries.push_back(NewEntry);
+        }
     }
+    
+    if()
+}
+
+void RENDERER::ShadowMapManager::CreateShadowMapTextures(size_t RequestedPageCount, size_t FrameIndex)
+{
+   auto& CurrentShadowMapTextures = ShadowMapTextures[FrameIndex];
+   auto& CurrentLayerCount = LayerCount[FrameIndex];
+
+   if (RequestedPageCount > CurrentLayerCount)
+   {
+       if (CurrentLayerCount) CurrentShadowMapTextures.Destroy(RendererContext->DeviceContext.LogicalDevice);
+       ShadowMapImageFormat = RENDERER_CORE::FindSupportedFormat(RendererContext->DeviceContext.PhysicalDevice, { VK_FORMAT_D32_SFLOAT,VK_FORMAT_D16_UNORM },
+           VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+       RENDERER_CORE::CreateImage(
+           RendererContext->DeviceContext.PhysicalDevice,
+           RendererContext->DeviceContext.LogicalDevice,
+           PageSize.x,
+           PageSize.y,
+           VK_IMAGE_TILING_OPTIMAL,
+           ShadowMapImageFormat,
+           VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+           CurrentShadowMapTextures.Image,
+           CurrentShadowMapTextures.ImageMemory,
+           CurrentLayerCount
+       );
+
+       for (size_t i = 0; i < CurrentLayerCount; i++)
+       {
+           RENDERER_CORE::CreateImageView(
+               CurrentShadowMapTextures.Image,
+               ShadowMapImageFormat,
+               VK_IMAGE_VIEW_TYPE_2D,
+               VK_IMAGE_ASPECT_DEPTH_BIT,
+               RendererContext->DeviceContext.LogicalDevice
+           );
+       }
+
+       RENDERER_CORE::CreateTextureSampler(
+           RendererContext->DeviceContext.PhysicalDevice,
+           RendererContext->DeviceContext.LogicalDevice,
+           CurrentShadowMapTextures.Samplers[0],
+           VK_FILTER_LINEAR,
+           VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
+       );
+       CurrentLayerCount = RequestedPageCount;
+   }
+}
+
+void RENDERER::ShadowMapManager::CreateShadowMapBuffers()
+{
+    /*
+    RENDERER::RecreateBuffer(
+        RendererContext,
+        ModelMatricesBuffer.Allocator.GetCapacity(),
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        ModelMatricesBuffer.Buffer.Buffer
+    );
     */
 }

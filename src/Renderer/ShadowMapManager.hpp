@@ -11,15 +11,15 @@
 #include <array>
 #include <map>
 
-namespace RENDERER
-{
-	class RendererContext;
-}
-
 namespace SCENE
 {
-	//Forward Declarations 
 	class Light;
+}
+
+namespace RENDERER
+{
+	//Forward Declarations 
+	class RendererContext;
 
 	std::array<glm::vec3, 8> GetCameraFrustum(glm::mat4 InverseProjectMatrix, glm::mat4 InverseViewMatrix);
 	glm::mat4 GetLightSpaceMatrix(glm::vec3 LightDirection, std::array<glm::vec3, 8>& Frustum);
@@ -75,6 +75,7 @@ namespace SCENE
 
 		MemoryRegion3D Insert(glm::ivec2 Size);
 		void Erase(const MemoryRegion3D& Region);
+		size_t GetPageCount() const { return Pages.size(); };
 	private:
 		std::vector<TextureLayer> Pages;
 		glm::ivec2 PageSize;
@@ -119,7 +120,7 @@ namespace SCENE
 
 	struct CascadedShadowMapInfo
 	{
-		Light* SourceLight = nullptr;
+		SCENE::Light* SourceLight = nullptr;
 		uint32_t CascadeCount = 5;
 		CascadedShadowMapDistanceFunction DistanceFunction = CASCADED_SHADOW_MAP_DISTANCE_FUNCTION_LOGARITHMIC;
 	};
@@ -140,15 +141,20 @@ namespace SCENE
 		void Destroy();
 
 		void AppendCascadedShadowMap(CascadedShadowMapAppendInfo Info);
+		void RenderShadowMaps();
 	private:
+		void CreateShadowMapTextures(size_t RequestedPageCount,size_t FrameIndex);
+		void CreateShadowMapBuffers();
+
 		std::array<RENDERER_CORE::TextureDataMultipleSamplerViews,MAX_FRAMES_IN_FLIGHT> ShadowMapTextures;
 		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> CascadedShadowMapsMetaDataBuffers;
 		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> CascadedShadowMapsDataBuffers;
 		glm::ivec2 PageSize;
-		uint32_t LayerCount;
-		std::array<std::map<Light*, CascadedShadowMapEntry,std::less<Light*>>,MAX_FRAMES_IN_FLIGHT> CascadedShadowMapEntries;
+		std::array<uint32_t, MAX_FRAMES_IN_FLIGHT> LayerCount;
+		std::array<std::map<size_t, CascadedShadowMapEntry,std::less<SCENE::Light*>>,MAX_FRAMES_IN_FLIGHT> CascadedShadowMapEntries;
+		std::array<uint32_t, MAX_FRAMES_IN_FLIGHT> CopyInfoIndices;
 
-		TexturePacker3D TexturePacker;
+		std::array<TexturePacker3D, MAX_FRAMES_IN_FLIGHT> TexturePackers;
 		VkFormat ShadowMapImageFormat;
 		RENDERER::RendererContext* RendererContext;
 	};

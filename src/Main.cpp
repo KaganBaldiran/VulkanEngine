@@ -10,7 +10,7 @@
 
 #include "Physics/PhysicsContext.hpp"
 #include "Common/MemoryArenaAllocator.hpp"
-#include "Scene/ShadowMapManager.hpp"
+#include "Renderer/ShadowMapManager.hpp"
 
 #include <random>
 #include <chrono>
@@ -47,7 +47,8 @@ int main()
 
         ResourceManager.AppendModelImportTask({ &Quad , "Resources\\Quad.fbx" });
         ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
-
+       // ResourceManager.AppendModelImportTask({ &SponzaModel , "Resources\\sponza.obj" });
+        //ResourceManager.AppendModelImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
         //ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
         //ResourceManager.AppendModelImportTask({ &Quad , "Resources\\Quad.fbx" });
         ResourceManager.SubmitModelImports();
@@ -56,7 +57,6 @@ int main()
         ResourceManager.AppendTextureImportTask({ "Resources\\SpriteAnimation3.jpg",AnimationSprite.GetHandleID()});
         ResourceManager.SubmitTextureImports();
         ResourceManager.WaitTextureImportsIdle();
-
 
 
         SCENE::SceneOptions Options{};
@@ -71,6 +71,7 @@ int main()
         SCENE::ModelInstance QuadInstance0(Quad);
         Scene0.LinkModelInstance(QuadInstance0);
 
+
         Scene0.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
             FRAME_INDEX_ALL_FRAMES
@@ -84,7 +85,7 @@ int main()
         ResourceManager.AppendTextureImportTask({ "C:\\Users\\kbald\\Downloads\\wallhaven-lmmeqq_2560x1080.png",SomeTexture.GetHandleID() });
         ResourceManager.SubmitTextureImports();
         ResourceManager.WaitTextureImportsIdle();
-
+        
         SCENE::ModelInstance Sponza(SponzaModel);
         SCENE::ModelInstance Shovel(ShovelModel);
         SCENE::ModelInstance Shovel1(ShovelModel);
@@ -161,8 +162,6 @@ int main()
         Light2.SetDirection(glm::vec4(0.8f * glm::cos(glfwGetTime()), 0.4f, 1.0f * glm::sin(glfwGetTime()), 0.0f));
         Light2.SetType(SCENE::DIRECTIONAL_LIGHT);
 
-      
-
         Shovel1.Transformations.TranslationMatrix = glm::translate(glm::mat4(1.0f), { 30,100,40.0f });
 
         Scene0.LinkStaticLight(Light0);
@@ -185,10 +184,12 @@ int main()
             Scene0.LinkModelInstance(Shovels[i]);
         }
 
+        /*
         Scene0.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
             FRAME_INDEX_ALL_FRAMES
         );
+        */
 
         for (size_t i = 101; i < 200; i++)
         {
@@ -355,6 +356,9 @@ int main()
                 2000.0f,
                 45.0f
             );
+
+            auto Stats = RendererContext.QueryMemoryStats();
+            std::cout << "Memory usage is " << Stats.TotalUsedBytes / (1024.0f * 1024.0f) << "/" << Stats.TotalBudgetBytes / (1024.0f * 1024.0f) << "(" << Stats.UsageRate << "%)." << std::endl;
 
             Renderer.RenderFrame();
             glfwPollEvents();

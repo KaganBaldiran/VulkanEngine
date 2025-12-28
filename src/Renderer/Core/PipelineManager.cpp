@@ -19,11 +19,14 @@ void RENDERER_CORE::PipelineManager::Create(size_t ReserveCount)
 std::pair<RENDERER_CORE::GraphicsPipelineEntry*, size_t> RENDERER_CORE::PipelineManager::AppendGraphicsPipeline(RENDERER_CORE::GraphicsPipelineCreateInfo& CreateInfo, VkDevice LogicalDevice)
 {
 	const size_t Hash = CreateInfo.Hash();
+	std::cout << "Hash: " << Hash << std::endl;
+
 	auto PipelineIterator = GraphicsPipelineHashTable.find(Hash);
 	if (PipelineIterator != GraphicsPipelineHashTable.end())
 	{
 		auto& PipelineEntry = GraphicPipelines[PipelineIterator->second];
 		PipelineEntry.IncreaseReference();
+		std::cout << "SAME PIPELINE FOUND!" << std::endl;
 		return { &PipelineEntry,PipelineIterator->second};
 	}	
 	GraphicsPipeline NewPipeline(CreateInfo,LogicalDevice);
@@ -94,9 +97,9 @@ void RENDERER_CORE::PipelineManager::EraseGraphicsPipelineByHash(size_t HashValu
 	auto& PipelineEntry = GraphicPipelines[PipelineIterator->second];
 	if (!PipelineEntry.DecreaseReference())
 	{
+		GraphicsPipelineHashTable.erase(PipelineIterator);
 		GraphicPipelines[PipelineIterator->second].Pipeline.Destroy(LogicalDevice);
 		GraphicPipelines.erase(PipelineIterator->second);
-		GraphicsPipelineHashTable.erase(PipelineIterator);
 	}
 }
 
@@ -109,9 +112,10 @@ void RENDERER_CORE::PipelineManager::EraseGraphicsPipelineByIndex(size_t Index, 
 	}
 	if (!PipelineIterator->DecreaseReference())
 	{
+		GraphicsPipelineHashTable.erase(PipelineIterator->Pipeline.GetHash());
 		PipelineIterator->Pipeline.Destroy(LogicalDevice);
 		GraphicPipelines.erase(Index);
-		GraphicsPipelineHashTable.erase(PipelineIterator->Pipeline.GetHash());
+		std::cout << "Graphics pipeline destroyed (id:" << Index << ")" << std::endl;
 	}
 }
 
@@ -125,9 +129,9 @@ void RENDERER_CORE::PipelineManager::EraseComputePipelineByHash(size_t HashValue
 	auto& PipelineEntry = ComputePipelines[PipelineIterator->second];
 	if (!PipelineEntry.DecreaseReference())
 	{
+		ComputePipelinesHashTable.erase(PipelineIterator);
 		ComputePipelines[PipelineIterator->second].Pipeline.Destroy(LogicalDevice);
 		ComputePipelines.erase(PipelineIterator->second);
-		ComputePipelinesHashTable.erase(PipelineIterator);
 	}
 }
 
@@ -140,9 +144,9 @@ void RENDERER_CORE::PipelineManager::EraseComputePipelineByIndex(size_t Index, V
 	}
 	if (!PipelineIterator->DecreaseReference())
 	{
+		ComputePipelinesHashTable.erase(PipelineIterator->Pipeline.GetHash());
 		PipelineIterator->Pipeline.Destroy(LogicalDevice);
 		ComputePipelines.erase(Index);
-		ComputePipelinesHashTable.erase(PipelineIterator->Pipeline.GetHash());
 	}
 }
 
@@ -152,15 +156,15 @@ void RENDERER_CORE::PipelineManager::Destroy(VkDevice LogicalDevice)
 	{
 		GraphicPipelines[PipelineIndex].Pipeline.Destroy(LogicalDevice);
 	}
-	GraphicPipelines.clear();
 	GraphicsPipelineHashTable.clear();
+	GraphicPipelines.clear();
 
 	for (auto& [Hash, PipelineIndex] : ComputePipelinesHashTable)
 	{
 		ComputePipelines[PipelineIndex].Pipeline.Destroy(LogicalDevice);
 	}
-	ComputePipelines.clear();
 	ComputePipelinesHashTable.clear();
+	ComputePipelines.clear();
 }
 
 

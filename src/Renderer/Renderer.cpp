@@ -220,41 +220,6 @@ void RENDERER::Renderer::RemoveRenderPass(std::string RenderPassName)
     if (RenderPassIterator != RenderPasses.end()) RenderPasses.erase(RenderPassIterator);
 }
 
-struct MemoryBufferBarrierInfo
-{
-    VkPipelineStageFlags2 SrcStageMask;
-    VkPipelineStageFlags2 DstStageMask;
-    VkAccessFlags2 SrcAccessMask;
-    VkAccessFlags2 DstAccessMask;
-};
-
-constexpr MemoryBufferBarrierInfo SceneBuffersBarrierInfos[] = {
-    {   
-        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
-        VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT 
-    },
-    {
-        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
-        VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_ACCESS_2_SHADER_READ_BIT
-    },
-    {
-        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_ACCESS_2_SHADER_READ_BIT
-    },
-    {
-        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
-        VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_ACCESS_2_SHADER_READ_BIT
-    },
-};
-
 void RENDERER::Renderer::RenderFrame()
 {
     auto RenderTask = [&](VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame) {
@@ -320,36 +285,6 @@ void RENDERER::Renderer::RenderFrame()
             bool IsFirstOne = i == 0;
             RenderPassConfiguration& RenderPass = RenderPasses[i];
             //auto& SceneCopyInfos = RenderPass.Scene->SceneCopyInfos[CurrentFrame];
-
-            /*
-            //Handle copy operations from respective scenes.
-            for (int CopySlot = 0; CopySlot < static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE); CopySlot++)
-            {
-                if (!SceneCopyInfos[CopySlot].CopyRegions.empty())
-                {
-                    vkCmdCopyBuffer(
-                        CommandBuffer, 
-                        RenderPass.Scene->ResourceManagerPtr->StagingBuffers[CurrentFrame].StagingBuffer.Buffer.Buffer.BufferObject, //Man it's way too many redirections. Should do something about this.
-                        SceneCopyInfos[CopySlot].DestinationBuffer, 
-                        static_cast<uint32_t>(SceneCopyInfos[CopySlot].CopyRegions.size()), 
-                        SceneCopyInfos[CopySlot].CopyRegions.data()
-                    );
-                    //Buffer memory barrier to make it visible
-                    PipelineBarrier2.AppendBufferMemoryBarrier(
-                        SceneCopyInfos[CopySlot].DestinationBuffer,
-                        0,
-                        VK_WHOLE_SIZE,
-                        SceneBuffersBarrierInfos[CopySlot].SrcStageMask,
-                        SceneBuffersBarrierInfos[CopySlot].DstStageMask,
-                        SceneBuffersBarrierInfos[CopySlot].SrcAccessMask,
-                        SceneBuffersBarrierInfos[CopySlot].DstAccessMask
-                    );
-                    SceneCopyInfos[CopySlot].CopyRegions.clear();
-                }
-            }
-            */
-            
-
             PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
             RenderPass.Scene->ResourceManagerPtr->HandleCopyOperations(CommandBuffer,CurrentFrame,PipelineBarrier2);
            /* auto& SceneStagingBufferAllocator = RenderPass.Scene->ResourceManagerPtr->StagingBuffers[CurrentFrame].StagingBuffer.Allocator;

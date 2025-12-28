@@ -16,6 +16,7 @@ namespace COMMON
 
         size_t push_back(T Input) {
             if (!FreeIndices.empty()) {
+                std::swap(FreeIndices.back(), FreeIndices.front());
                 size_t Index = FreeIndices.back();
                 FreeIndices.pop_back();
                 Data[Index] = std::move(Input);

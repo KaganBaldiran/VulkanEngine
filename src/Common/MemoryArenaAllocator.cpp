@@ -16,7 +16,7 @@ void RENDERER_CORE::VirtualArenaAllocator::Create(size_t InitialCapacityInBytes,
     TotalFreeSpace = InitialCapacityInBytes;
 }
 
-RENDERER_CORE::MemoryRegion RENDERER_CORE::VirtualArenaAllocator::Suballocate(size_t SizeInBytes)
+RENDERER_CORE::MemoryRegion RENDERER_CORE::VirtualArenaAllocator::Suballocate(size_t SizeInBytes,bool AutoAllocate)
 {
     if(SizeInBytes == 0) return { 0,0 };
     while (true)
@@ -40,8 +40,8 @@ RENDERER_CORE::MemoryRegion RENDERER_CORE::VirtualArenaAllocator::Suballocate(si
                 return { AllocatedOffset, SizeInBytes };
             }
         }
-
-        Allocate(SizeInBytes);
+        if (AutoAllocate) Allocate(SizeInBytes);
+        else break;
     }
     return {0,0};
 }

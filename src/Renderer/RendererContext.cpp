@@ -1,5 +1,7 @@
 #include "RendererContext.hpp"
 #include "../Scene/Mesh.hpp"
+#include "../Common/Log.hpp"
+
 #include <vulkan/vk_enum_string_helper.h>
 
 static float QuadVertices[] = {
@@ -271,6 +273,29 @@ void RENDERER::RendererContext::WaitDeviceIdle()
     vkDeviceWaitIdle(DeviceContext.LogicalDevice);
 }
 
+RENDERER::GPUmemoryStats RENDERER::RendererContext::QueryMemoryStats()
+{
+    VkPhysicalDeviceMemoryBudgetPropertiesEXT BudgetProperties{};
+    BudgetProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+
+    VkPhysicalDeviceMemoryProperties2 MemoryProperties{};
+    MemoryProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+    MemoryProperties.pNext = &BudgetProperties;
+    vkGetPhysicalDeviceMemoryProperties2(DeviceContext.PhysicalDevice, &MemoryProperties);
+
+    GPUmemoryStats Stats{};
+    for (size_t i = 0; i < MemoryProperties.memoryProperties.memoryHeapCount; i++)
+    {
+        if (MemoryProperties.memoryProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+        {
+            Stats.TotalUsedBytes += BudgetProperties.heapUsage[i];
+            Stats.TotalBudgetBytes += BudgetProperties.heapBudget[i];
+        }
+    }
+    Stats.UsageRate = static_cast<float>(Stats.TotalUsedBytes) / Stats.TotalBudgetBytes;
+    return Stats;
+}
+
 bool RENDERER::RendererContext::CreateTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex,bool DestroyPrevious)
 {
     bool ShouldRewrite = false;
@@ -290,8 +315,8 @@ bool RENDERER::RendererContext::CreateTextureDescriptors(uint32_t DescriptorCoun
         }
 
         CurrentTextureDescriptorUpperBound = static_cast<uint32_t>(glm::ceil((float)(DescriptorCount + CurrentTextureDescriptorUpperBound) / (float)TextureDescriptorBlockSize)) * TextureDescriptorBlockSize;
-        std::cout << "Creating texture descriptor set with upper bound: " << CurrentTextureDescriptorUpperBound << "\n";
         CurrentDescriptorIndexAllocator.Allocate(CurrentTextureDescriptorUpperBound - CurrentDescriptorIndexAllocator.GetCapacity());
+        std::cout << "Creating texture descriptor set with upper bound: " << CurrentTextureDescriptorUpperBound << " CurrentDescriptorIndexAllocator.GetCapacity(): " << CurrentDescriptorIndexAllocator.GetCapacity() << "\n";
 
         CurrentTexturesDescriptor.DescriptorPool.Create(
             { {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,CurrentTextureDescriptorUpperBound} },
@@ -420,7 +445,6 @@ void RENDERER::RendererContext::CreateHDRIrenderPassResources()
         DeviceContext.LogicalDevice
     );
 
-  
     ///HDRI convolution pass pipeline
     PipelineCreateInfo.ShaderModules = { {HDRIconvolutionVertexShaderPtr,VK_SHADER_STAGE_VERTEX_BIT} ,{HDRIconvolutionFragmentShaderPtr,VK_SHADER_STAGE_FRAGMENT_BIT} };
     PipelineCreateInfo.PushConstantRanges = {};
@@ -429,9 +453,15 @@ void RENDERER::RendererContext::CreateHDRIrenderPassResources()
 
 void RENDERER::RendererContext::CreateTextureDescriptorPipelines(RENDERER_CORE::DescriptorSetLayout& Layout, uint32_t MaxTextureCount,uint32_t FrameIndex)
 {
-    PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.GbufferDepthEnabled[FrameIndex], DeviceContext.LogicalDevice);
-    PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.GbufferDepthDisabled[FrameIndex], DeviceContext.LogicalDevice);
-    PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.DeferredShading[FrameIndex], DeviceContext.LogicalDevice);
+    std::cout << "Deleted indices: " << DefaultPipelines.GbufferDepthEnabled[FrameIndex] << " "
+            << DefaultPipelines.GbufferDepthDisabled[FrameIndex] << " "
+            << DefaultPipelines.DeferredShading[FrameIndex] << " "
+            << FrameIndex
+            << std::endl;
+
+    //PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.GbufferDepthEnabled[FrameIndex], DeviceContext.LogicalDevice);
+    //PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.GbufferDepthDisabled[FrameIndex], DeviceContext.LogicalDevice);
+    //PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.DeferredShading[FrameIndex], DeviceContext.LogicalDevice);
 
     VkPushConstantRange PushConstantRange{};
     PushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -513,6 +543,12 @@ void RENDERER::RendererContext::CreateTextureDescriptorPipelines(RENDERER_CORE::
 
     auto DeferredShadingGraphicsPipelineIterator = PipelineManager.AppendGraphicsPipeline(DeferredShadingPipelineCreateInfo, DeviceContext.LogicalDevice);
     DefaultPipelines.DeferredShading[FrameIndex] = DeferredShadingGraphicsPipelineIterator.second;
+
+    std::cout << "Appended indices: " << DefaultPipelines.GbufferDepthEnabled[FrameIndex] << " "
+        << DefaultPipelines.GbufferDepthDisabled[FrameIndex] << " "
+        << DefaultPipelines.DeferredShading[FrameIndex] << " "
+        << FrameIndex
+        << std::endl;
 }
 
 void RENDERER::RendererContext::DestroyMeshTextureDescriptors()
