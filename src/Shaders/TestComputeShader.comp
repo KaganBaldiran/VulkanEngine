@@ -1,0 +1,16 @@
+#version 460 core
+
+layout(std430, binding = 0) buffer TestData
+{
+    int Data[];
+};
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+   Data[0] = 35;
+   Data[1] = 95;
+   Data[2] = 15;
+   Data[3] = 45;
+   Data[4] = 25;
+}

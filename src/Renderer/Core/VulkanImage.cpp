@@ -168,7 +168,7 @@ void RENDERER_CORE::TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkI
         , 0, 0, nullptr, 0, nullptr, 1, &ImageBarrier);
 }
 
-void RENDERER_CORE::CreateTextureSampler(VkPhysicalDevice& PhysicalDevice,VkDevice &LogicalDevice,VkSampler &DestinationSampler,VkFilter Filter,VkSamplerAddressMode AddressMode)
+void RENDERER_CORE::CreateTextureSampler(VkPhysicalDevice& PhysicalDevice,VkDevice &LogicalDevice,VkSampler &DestinationSampler,VkFilter Filter,VkSamplerAddressMode AddressMode, VkSamplerMipmapMode MipmapMode)
 {
     VkPhysicalDeviceProperties DeviceProperties;
     vkGetPhysicalDeviceProperties(PhysicalDevice, &DeviceProperties);
@@ -186,7 +186,7 @@ void RENDERER_CORE::CreateTextureSampler(VkPhysicalDevice& PhysicalDevice,VkDevi
     SamplerCreateInfo.anisotropyEnable = VK_TRUE;
     SamplerCreateInfo.compareEnable = VK_FALSE;
     SamplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    SamplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    SamplerCreateInfo.mipmapMode = MipmapMode;
     SamplerCreateInfo.mipLodBias = 0.0f;
     SamplerCreateInfo.minLod = 0.0f;
     SamplerCreateInfo.maxLod = 0.0f;

@@ -42,7 +42,6 @@ namespace SCENE
 		struct MaterialTextureIndexData
 		{
 			std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
-
 			bool operator==(const MaterialTextureIndexData& Data0) const { return this->TextureIndexes == Data0.TextureIndexes; }
 		};
 
@@ -86,29 +85,23 @@ namespace SCENE
 			}
 		};
 
-		
 		template<uint32_t BufferSetCount>
 		struct MeshFrustumCullBuffers
 		{
-			std::array<RENDERER_CORE::Buffer, BufferSetCount> CulledIndirectBuffers;
-			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> MeshVisibilityCountBuffers;
-			std::array<RENDERER_CORE::Buffer, BufferSetCount> CulledDrawMetaDataBuffer;
+			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> VisibilityIndexBuffers;
 
-			inline void Create()
+			inline void Create(size_t BufferAllocationStep)
 			{
 				for (size_t i = 0; i < BufferSetCount; i++)
 				{
-					MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE);
+					VisibilityIndexBuffers[i].Allocator.Create(0, BufferAllocationStep);
 				}
 			}
-
 			inline void Destroy(VkDevice& LogicalDevice)
 			{
 				for (size_t i = 0; i < BufferSetCount; i++)
 				{
-					MeshVisibilityCountBuffers[i].Buffer.Destroy(LogicalDevice);
-					CulledIndirectBuffers[i].Buffer.Destroy(LogicalDevice);
-					CulledDrawMetaDataBuffer[i].Buffer.Destroy(LogicalDevice);
+					VisibilityIndexBuffers[i].Buffer.Destroy(LogicalDevice);
 				}
 			}
 		};
@@ -117,7 +110,7 @@ namespace SCENE
 		struct MeshDrawArenaBufferGroup
 		{
 			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> IndirectBuffers;
-			//MeshFrustumCullBuffers<BufferSetCount> CullBuffers;
+			MeshFrustumCullBuffers<BufferSetCount> CullBuffers;
 			std::array<RENDERER_CORE::PersistentBufferAllocator, BufferSetCount> ModelMatricesBuffers;
 			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> DrawMetaDataBuffer;
 			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> TexturesIndexBuffers;
@@ -136,6 +129,7 @@ namespace SCENE
 					TexturesIndexBuffers[i].Allocator.Create(0, BufferAllocationStep);
 					//CullBuffers.MeshVisibilityCountBuffers[i].Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE);
 				}
+				CullBuffers.Create(BufferAllocationStep);
 			}
 
 			inline void Destroy(VkDevice& LogicalDevice)
@@ -150,10 +144,10 @@ namespace SCENE
 					//CullBuffers.CulledIndirectBuffers[i].Destroy(LogicalDevice);
 					//CullBuffers.CulledDrawMetaDataBuffer[i].Destroy(LogicalDevice);
 				}
+				CullBuffers.Destroy(LogicalDevice);
 			}
 		};
 
-	
 		struct InstanceMeshLink
 		{
 			size_t ResourceID;
@@ -199,6 +193,7 @@ namespace SCENE
 		};
 
 		struct DrawMetadata {
+			int MaterialID;
 			int MeshID;
 			int ModelMatrixIndex;
 		};
@@ -213,12 +208,12 @@ namespace SCENE
 
 	struct ExtendedIndirectCommand
 	{
-		int IndexCount;
-		int InstanceCount;
-		int FirstIndex;
-		int VertexOffset;
-		int FirstInstance;
-		//BoundingBoxAABB BoundingBox;
+		uint32_t IndexCount;
+		uint32_t InstanceCount;
+		uint32_t FirstIndex;
+		int32_t VertexOffset;
+		uint32_t FirstInstance;
+		BoundingBoxAABB BoundingBox;
 	};
 
 	
@@ -243,7 +238,7 @@ namespace SCENE
 		void UpdateMeshTransformationsDeviceLocal(
 			std::vector<ModelInstance*>& UpdateList,
 			uint32_t CurrentFrame,
-			std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
+			std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
 			SCENE::PersistentStagingBuffer& StagingBuffer
 		);
 
@@ -255,7 +250,7 @@ namespace SCENE
 			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> &TargetDescriptorSets,
 			PersistentStagingBuffer &StagingBuffer,
 			SceneOptions SceneOptions,
-			std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+			std::array<RENDERER::CopyOperationEntry*, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 		);
 		void EraseModels(MeshEraseInfo Info);
 		void UpdateMaterials(
@@ -263,7 +258,7 @@ namespace SCENE
 			uint32_t FrameIndex,
 			VkDescriptorSet& TargetDescriptorSet,
 			PersistentStagingBuffer& StagingBuffer,
-			std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+			std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 		);
 	private:
 		RENDERER::ResourceManager* ResourceManagerPtr = nullptr;

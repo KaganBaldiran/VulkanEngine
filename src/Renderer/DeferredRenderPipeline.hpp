@@ -50,7 +50,6 @@ namespace RENDERER
             bool ClearColorAttachment
         ) override;
 		void OnResize(uint32_t Width, uint32_t Height) override;
-
         void RenderGeometryPass(
             SCENE::Scene& Scene,
             VkCommandBuffer& CommandBuffer,
@@ -61,7 +60,6 @@ namespace RENDERER
             bool EnableDepthTesting,
             bool ClearDepth
         );
-
         void RenderLightingPass(
             SCENE::Scene& Scene,
             VkCommandBuffer& CommandBuffer,
@@ -77,6 +75,10 @@ namespace RENDERER
 
         std::chrono::system_clock::time_point StartingTime;
 
+        bool IsCamera1 = true;
+        bool AllowPress = true;
+        glm::vec3 CameraPosition = glm::vec3(0.0f, 150.0f, 0.0f);
+        glm::vec3 CameraDirection = glm::vec3(1.0f, 0.0f, 0.5f);
         //References
         VkDevice LogicalDevice;
         VkPhysicalDevice PhysicalDevice;

@@ -58,7 +58,6 @@ int main()
         ResourceManager.SubmitTextureImports();
         ResourceManager.WaitTextureImportsIdle();
 
-
         SCENE::SceneOptions Options{};
         Options.UploadMode = SCENE::SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL;
 
@@ -357,8 +356,8 @@ int main()
                 45.0f
             );
 
-            auto Stats = RendererContext.QueryMemoryStats();
-            std::cout << "Memory usage is " << Stats.TotalUsedBytes / (1024.0f * 1024.0f) << "/" << Stats.TotalBudgetBytes / (1024.0f * 1024.0f) << "(" << Stats.UsageRate << "%)." << std::endl;
+            //auto Stats = RendererContext.QueryMemoryStats();
+            //std::cout << "Memory usage is " << Stats.TotalUsedBytes / (1024.0f * 1024.0f) << "/" << Stats.TotalBudgetBytes / (1024.0f * 1024.0f) << "(" << Stats.UsageRate << "%)." << std::endl;
 
             Renderer.RenderFrame();
             glfwPollEvents();

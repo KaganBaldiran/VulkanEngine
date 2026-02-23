@@ -27,6 +27,8 @@ namespace RENDERER_CORE
 
 		DescriptorSetWriteBuffer(const DescriptorSetWriteBuffer& Other);
 		DescriptorSetWriteBuffer(DescriptorSetWriteBuffer&& Other) noexcept;
+		DescriptorSetWriteBuffer& operator=(const DescriptorSetWriteBuffer& Other);
+		DescriptorSetWriteBuffer& operator=(const DescriptorSetWriteBuffer&& Other);
 	private:
 		VkDescriptorBufferInfo DescriptorBufferInfo{};
 		VkWriteDescriptorSet DescriptorWrite{};

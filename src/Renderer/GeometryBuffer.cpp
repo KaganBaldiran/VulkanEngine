@@ -49,7 +49,14 @@ void RENDERER::GeometryBuffer::Create(VkPhysicalDevice& PhysicalDevice, VkDevice
         AlbedoAttachment.ImageMemory
     );
     AlbedoAttachment.ImageView = RENDERER_CORE::CreateImageView(AlbedoAttachment.Image, VK_FORMAT_R32_SINT, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, LogicalDevice);
-    RENDERER_CORE::CreateTextureSampler(PhysicalDevice, LogicalDevice, AlbedoAttachment.Sampler, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    RENDERER_CORE::CreateTextureSampler(
+        PhysicalDevice, 
+        LogicalDevice, 
+        AlbedoAttachment.Sampler, 
+        VK_FILTER_NEAREST, 
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        VK_SAMPLER_MIPMAP_MODE_NEAREST
+    );
 
     RENDERER_CORE::CreateImage(
         PhysicalDevice,

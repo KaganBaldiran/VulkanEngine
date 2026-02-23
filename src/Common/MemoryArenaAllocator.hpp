@@ -29,8 +29,9 @@ namespace RENDERER_CORE
 		void Reset(size_t Capacity = 0);
 
 		double GetFragmentationPercent();
-		inline size_t GetCapacity() noexcept { return Capacity; };
-		inline size_t GetTotalFreeSpace() noexcept { return TotalFreeSpace; };
+		inline size_t GetCapacity() const noexcept { return Capacity; };
+		inline size_t GetTotalFreeSpace() const noexcept { return TotalFreeSpace; };
+		inline size_t GetUsedSpace() const noexcept { return Capacity - TotalFreeSpace; };
 		inline const std::vector<MemoryRegion>& GetFreeRegions() { return FreeRegions; };
 	private:
 		size_t Capacity = 0,ChunkSize = MEMORY_SIZE_KILOBYTE,TotalFreeSpace = 0;

@@ -20,7 +20,8 @@ layout(push_constant) uniform Matrixes{
 };
 
 struct DrawMetadata {
-	int MeshID;       
+    int MaterialID;
+	int MeshID;
 	int ModelMatrixIndex;
 };
 
@@ -32,10 +33,15 @@ layout(std430,binding = 2,set = 0) readonly buffer DrawMetaDataBuffer{
     DrawMetadata DrawDatas[];
 };
 
+layout(std430,binding = 3,set = 0) readonly buffer VisibleDataBuffer{
+    uint VisibleIndices[];
+};
+
 void main() {
-    DrawMetadata DrawData = DrawDatas[gl_InstanceIndex];
+    uint InstanceIndex = VisibleIndices[gl_InstanceIndex];
+    DrawMetadata DrawData = DrawDatas[InstanceIndex];
     mat4 ModelMatrix = ModelMatrixes[DrawData.ModelMatrixIndex];
-    MeshIndex = DrawData.MeshID;
+    MeshIndex = DrawData.MaterialID;
 
     vec3 GlobalPosition = vec3(ModelMatrix * vec4(InPosition.xyz, 1.0));
     vec4 PreviousPos = PreviousProjViewMatrix * vec4(GlobalPosition.xyz, 1.0);

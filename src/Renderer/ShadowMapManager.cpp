@@ -9,6 +9,8 @@
 
 #include "../Renderer/RendererContext.hpp"
 #include "../Renderer/MeshManager.hpp"
+#include "../Renderer/Core/VulkanDescriptorSet.hpp"
+#include "../Renderer/ResourceManager.hpp"
 
 std::array<glm::vec3, 8> RENDERER::GetCameraFrustum(glm::mat4 InverseProjectMatrix, glm::mat4 InverseViewMatrix)
 {
@@ -211,21 +213,27 @@ void RENDERER::ShadowMapManager::Create(RENDERER::RendererContext& RendererConte
 
 void RENDERER::ShadowMapManager::Destroy()
 {
-    /*
-    ShadowMapTexture.Destroy(RendererContext->DeviceContext.logicalDevice);
-    CascadedShadowMapsMetaDataBuffer.Buffer.Destroy(RendererContext->DeviceContext.logicalDevice);
-    */
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        CascadedShadowMapsDataBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+        CascadedShadowMapsMetaDataBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+        ShadowMapTextures[i].Destroy(RendererContext->DeviceContext.LogicalDevice);
+    }
 }
 
-void RENDERER::ShadowMapManager::AppendCascadedShadowMap(CascadedShadowMapAppendInfo Info)
+void RENDERER::ShadowMapManager::AppendCascadedShadowMap(
+    std::vector<CascadedShadowMapInfo>& Infos,
+    uint32_t FrameIndex,
+    std::array<RENDERER::CopyOperationEntry*, 2>& CopyInfos,
+    std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>& TargetDescriptorSets,
+    SCENE::PersistentStagingBuffer& StagingBuffer
+)
 {
-    auto& InputInfos = Info.Infos;
-    const auto& FrameIndex = Info.FrameIndex;
-
     auto& CurrentMetaDataBuffer = CascadedShadowMapsMetaDataBuffers[FrameIndex];
     auto& CurrentDataBuffer = CascadedShadowMapsDataBuffers[FrameIndex];
     auto& CurrentMetaDataBufferAllocator = CurrentMetaDataBuffer.Allocator;
     auto& CurrentDataBufferAllocator = CurrentDataBuffer.Allocator;
+    auto& TargetDescriptorSet = TargetDescriptorSets[FrameIndex];
 
     TexturePacker3D& CurrentTexturePacker = TexturePackers[FrameIndex];
     size_t InitialPageCount = CurrentTexturePacker.GetPageCount();
@@ -233,33 +241,45 @@ void RENDERER::ShadowMapManager::AppendCascadedShadowMap(CascadedShadowMapAppend
     auto& CurrentShadowMapEntries = this->CascadedShadowMapEntries[FrameIndex];
     size_t SizeOfMetaData = sizeof(CascadedMapMetaData), SizeOfData = sizeof(CascadedMapData);
     size_t InitialCascadeDataBufferCapacity = CurrentTexturePacker.GetPageCount();
-    size_t InitialPageCount = CurrentTexturePacker.GetPageCount();
 
-    for (auto& InputInfo : InputInfos)
+    size_t InitialMetaDataBufferCapacity = CurrentMetaDataBufferAllocator.GetCapacity();
+    size_t InitialMetaDataBufferUsedSpace = CurrentMetaDataBufferAllocator.GetUsedSpace();
+    size_t InitialDataBufferCapacity = CurrentDataBufferAllocator.GetCapacity();
+    size_t InitialDataBufferUsedSpace = CurrentDataBufferAllocator.GetUsedSpace();
+
+    for (auto& InputInfo : Infos)
     {
         if (!InputInfo.SourceLight) continue;
 
         auto Iterator = CurrentShadowMapEntries.find(InputInfo.SourceLight->GetHandleID());
-        if (Iterator != CurrentShadowMapEntries.end()) continue;
+        if (Iterator != CurrentShadowMapEntries.end())
+        {
+            continue;
+        }
 
-        RENDERER_CORE::MemoryRegion DataBatchRegion = CurrentDataBufferAllocator.Suballocate(SizeOfData * InputInfo.CascadeCount);
+        size_t CascadeCount = InputInfo.Cascades.size();
+        RENDERER_CORE::MemoryRegion DataBatchRegion = CurrentDataBufferAllocator.Suballocate(SizeOfData * CascadeCount);
 
         CascadedMapMetaData MetaData{};
-        MetaData.CascadeCount = InputInfo.CascadeCount;
+        MetaData.CascadeCount = CascadeCount;
         MetaData.Offset = DataBatchRegion.Offset / SizeOfMetaData;
+        MetaData.LightDirection = InputInfo.SourceLight->Data.PositionOrDirection;
 
         CascadedShadowMapEntry NewShadowMapEntry{};
         NewShadowMapEntry.MetaDataMemoryRegion = CurrentMetaDataBufferAllocator.Suballocate(SizeOfMetaData);
         NewShadowMapEntry.MetaData = MetaData;
-        NewShadowMapEntry.CascadeEntries.reserve(InputInfo.CascadeCount);
-        for (size_t i = 0; i < InputInfo.CascadeCount; i++)
+        NewShadowMapEntry.CascadeEntries.reserve(CascadeCount);
+        for (size_t i = 0; i < CascadeCount; i++)
         {
-            MemoryRegion3D NewTextureRegion = CurrentTexturePacker.Insert({ 1024,1024 });
+            const ShadowMapCascade& Cascade = InputInfo.Cascades[i];
 
+            MemoryRegion3D NewTextureRegion = CurrentTexturePacker.Insert(Cascade.TextureSize);
             CascadedMapData NewCascadeData{};
             NewCascadeData.TextureSize = NewTextureRegion.Region.Size.x;
             NewCascadeData.TexturePosition = NewTextureRegion.Region.Offset;
             NewCascadeData.TextureLayer = NewTextureRegion.Layer;
+            NewCascadeData.Distance = Cascade.Distance;
+            NewCascadeData.ShadowCascadeLevel = i;
 
             CascadeEntry NewEntry{};
             NewEntry.TextureRegion = NewTextureRegion;
@@ -267,12 +287,125 @@ void RENDERER::ShadowMapManager::AppendCascadedShadowMap(CascadedShadowMapAppend
             NewEntry.Data = NewCascadeData;
             NewShadowMapEntry.CascadeEntries.push_back(NewEntry);
         }
+        auto EntryReference = CurrentShadowMapEntries.insert({ InputInfo.SourceLight->GetHandleID() ,std::move(NewShadowMapEntry) });
     }
-    
-    if()
+    bool MetaDataBufferReallocated = CurrentMetaDataBufferAllocator.GetCapacity() > InitialMetaDataBufferCapacity;
+    bool DataBufferReallocated = CurrentDataBufferAllocator.GetCapacity() > InitialDataBufferCapacity;
+
+    size_t MetaDataStagingBufferSize = MetaDataBufferReallocated ? CurrentMetaDataBufferAllocator.GetUsedSpace() :
+        (CurrentMetaDataBufferAllocator.GetUsedSpace() - InitialMetaDataBufferUsedSpace);
+    size_t DataStagingBufferSize = DataBufferReallocated ? CurrentDataBufferAllocator.GetCapacity() :
+        (CurrentDataBufferAllocator.GetUsedSpace() - InitialDataBufferUsedSpace);
+    size_t TotalStagingBufferSize = MetaDataStagingBufferSize + DataStagingBufferSize;
+
+    CreateShadowMapBuffers(
+        MetaDataBufferReallocated,
+        DataBufferReallocated,
+        CurrentMetaDataBuffer,
+        CurrentDataBuffer,
+        TargetDescriptorSet
+    );
+    StagingBuffer.AllocateSceneStagingBuffer(TotalStagingBufferSize, RendererContext);
+    CreateShadowMapTextures(CurrentTexturePacker.GetPageCount(), FrameIndex, TargetDescriptorSet);
+
+    bool IsThereMetaDataCopyInfos = CopyInfos[0]->CopyInfo.CopyRegions.empty();
+    bool IsThereDataCopyInfos = CopyInfos[1]->CopyInfo.CopyRegions.empty();
+
+    if (!IsThereMetaDataCopyInfos && MetaDataBufferReallocated) CopyInfos[0]->CopyInfo.CopyRegions.clear();
+    if (!IsThereDataCopyInfos && DataBufferReallocated) CopyInfos[1]->CopyInfo.CopyRegions.clear();
+
+    uint8_t* StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.StagingBuffer.Buffer.MappedMemory);
+    if (!StagingBufferPtr) throw std::runtime_error("Unable to map the staging buffer! exitting...");
+
+    if (MetaDataBufferReallocated || DataBufferReallocated)
+    {
+        for (auto& ShadowMapEntry : CurrentShadowMapEntries)
+        {
+            RENDERER::CascadedShadowMapEntry& Entry = ShadowMapEntry.second;
+            if (MetaDataBufferReallocated || Entry.RequiresUpload)
+            {
+                //Should allocate a region from the staging buffer
+                if (!IsThereMetaDataCopyInfos || !Entry.StagingMetaDataMemoryRegion.Size)
+                {
+                    Entry.StagingMetaDataMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMetaData);
+                }
+                memcpy(StagingBufferPtr + Entry.StagingMetaDataMemoryRegion.Offset, &Entry.MetaData, Entry.MetaDataMemoryRegion.Size);
+
+                VkBufferCopy CopyRegion{};
+                CopyRegion.dstOffset = Entry.MetaDataMemoryRegion.Offset;
+                CopyRegion.size = Entry.MetaDataMemoryRegion.Size;
+                CopyRegion.srcOffset = Entry.StagingMetaDataMemoryRegion.Offset;
+                CopyInfos[0]->CopyInfo.CopyRegions.push_back(std::move(CopyRegion));
+            }
+            if (DataBufferReallocated || Entry.RequiresUpload)
+            {
+                for (auto& CascadeEntry : Entry.CascadeEntries)
+                {
+                    //Should allocate a region from the staging buffer
+                    if (!IsThereDataCopyInfos || !CascadeEntry.StagingMemoryRegion.Size)
+                    {
+                        CascadeEntry.StagingMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfData);
+                    }
+                    memcpy(StagingBufferPtr + CascadeEntry.StagingMemoryRegion.Offset, &CascadeEntry.Data, CascadeEntry.StagingMemoryRegion.Size);
+
+                    VkBufferCopy CopyRegion{};
+                    CopyRegion.dstOffset = CascadeEntry.MemoryRegion.Offset;
+                    CopyRegion.size = CascadeEntry.StagingMemoryRegion.Size;
+                    CopyRegion.srcOffset = CascadeEntry.StagingMemoryRegion.Offset;
+                    CopyInfos[1]->CopyInfo.CopyRegions.push_back(std::move(CopyRegion));
+                }
+            } 
+            Entry.RequiresUpload = false;
+        }
+    }
+    else
+    {
+        for (auto& InputInfo : Infos)
+        {
+            auto Iterator = CurrentShadowMapEntries.find(InputInfo.SourceLight->GetHandleID());
+            if (Iterator != CurrentShadowMapEntries.end()) continue;
+
+            RENDERER::CascadedShadowMapEntry& Entry = Iterator->second;
+            if (MetaDataBufferReallocated || Entry.RequiresUpload)
+            {
+                //Should allocate a region from the staging buffer
+                if (!IsThereMetaDataCopyInfos || !Entry.StagingMetaDataMemoryRegion.Size)
+                {
+                    Entry.StagingMetaDataMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMetaData);
+                }
+                memcpy(StagingBufferPtr + Entry.StagingMetaDataMemoryRegion.Offset, &Entry.MetaData, Entry.MetaDataMemoryRegion.Size);
+
+                VkBufferCopy CopyRegion{};
+                CopyRegion.dstOffset = Entry.MetaDataMemoryRegion.Offset;
+                CopyRegion.size = Entry.MetaDataMemoryRegion.Size;
+                CopyRegion.srcOffset = Entry.StagingMetaDataMemoryRegion.Offset;
+                CopyInfos[0]->CopyInfo.CopyRegions.push_back(std::move(CopyRegion));
+            }
+            for (auto& CascadeEntry : Entry.CascadeEntries)
+            {
+                //Should allocate a region from the staging buffer
+                if (!IsThereDataCopyInfos || !CascadeEntry.StagingMemoryRegion.Size)
+                {
+                    CascadeEntry.StagingMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfData);
+                }
+                memcpy(StagingBufferPtr + CascadeEntry.StagingMemoryRegion.Offset, &CascadeEntry.Data, CascadeEntry.StagingMemoryRegion.Size);
+
+                VkBufferCopy CopyRegion{};
+                CopyRegion.dstOffset = CascadeEntry.MemoryRegion.Offset;
+                CopyRegion.size = CascadeEntry.StagingMemoryRegion.Size;
+                CopyRegion.srcOffset = CascadeEntry.StagingMemoryRegion.Offset;
+                CopyInfos[1]->CopyInfo.CopyRegions.push_back(std::move(CopyRegion));
+            }
+            Entry.RequiresUpload = false; 
+        }
+    }
 }
 
-void RENDERER::ShadowMapManager::CreateShadowMapTextures(size_t RequestedPageCount, size_t FrameIndex)
+void RENDERER::ShadowMapManager::CreateShadowMapTextures(
+    size_t RequestedPageCount, 
+    size_t FrameIndex, 
+    VkDescriptorSet TargetDescriptorSet
+)
 {
    auto& CurrentShadowMapTextures = ShadowMapTextures[FrameIndex];
    auto& CurrentLayerCount = LayerCount[FrameIndex];
@@ -294,20 +427,29 @@ void RENDERER::ShadowMapManager::CreateShadowMapTextures(size_t RequestedPageCou
            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
            CurrentShadowMapTextures.Image,
            CurrentShadowMapTextures.ImageMemory,
-           CurrentLayerCount
+           RequestedPageCount
        );
 
-       for (size_t i = 0; i < CurrentLayerCount; i++)
+       CurrentShadowMapTextures.ImageViews.push_back(RENDERER_CORE::CreateImageView(
+           CurrentShadowMapTextures.Image,
+           ShadowMapImageFormat,
+           VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+           VK_IMAGE_ASPECT_DEPTH_BIT,
+           RendererContext->DeviceContext.LogicalDevice,
+           RequestedPageCount
+       ));
+       for (size_t i = 0; i < RequestedPageCount; i++)
        {
-           RENDERER_CORE::CreateImageView(
+           CurrentShadowMapTextures.ImageViews.push_back(RENDERER_CORE::CreateImageView(
                CurrentShadowMapTextures.Image,
                ShadowMapImageFormat,
                VK_IMAGE_VIEW_TYPE_2D,
                VK_IMAGE_ASPECT_DEPTH_BIT,
-               RendererContext->DeviceContext.LogicalDevice
-           );
+               RendererContext->DeviceContext.LogicalDevice,
+               1,
+               i
+           ));
        }
-
        RENDERER_CORE::CreateTextureSampler(
            RendererContext->DeviceContext.PhysicalDevice,
            RendererContext->DeviceContext.LogicalDevice,
@@ -315,19 +457,66 @@ void RENDERER::ShadowMapManager::CreateShadowMapTextures(size_t RequestedPageCou
            VK_FILTER_LINEAR,
            VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
        );
+
+       RENDERER_CORE::DescriptorSetWriteImage ImageWrite(CurrentShadowMapTextures.ImageViews[0],
+           CurrentShadowMapTextures.Samplers[0],
+           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+           0,
+           TargetDescriptorSet,
+           VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+       );
+       RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.LogicalDevice, {}, { ImageWrite });
        CurrentLayerCount = RequestedPageCount;
    }
 }
 
-void RENDERER::ShadowMapManager::CreateShadowMapBuffers()
+void RENDERER::ShadowMapManager::CreateShadowMapBuffers(
+    bool MetaDataBufferReallocated,
+    bool DataBufferReallocated,
+    RENDERER_CORE::BufferAllocator &CurrentMetaDataBuffer,
+    RENDERER_CORE::BufferAllocator &CurrentDataBuffer,
+    VkDescriptorSet TargetDescriptorSet
+)
 {
-    /*
-    RENDERER::RecreateBuffer(
-        RendererContext,
-        ModelMatricesBuffer.Allocator.GetCapacity(),
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-        ModelMatricesBuffer.Buffer.Buffer
-    );
-    */
+    std::vector<RENDERER_CORE::DescriptorSetWriteBuffer> BufferWrites;
+    BufferWrites.reserve(2);
+    if (MetaDataBufferReallocated)
+    {
+        RENDERER::RecreateBuffer(
+            RendererContext,
+            CurrentMetaDataBuffer.Allocator.GetCapacity(),
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            CurrentMetaDataBuffer.Buffer
+        );
+        RENDERER_CORE::DescriptorSetWriteBuffer MetaDataBufferWrite(
+            CurrentMetaDataBuffer.Buffer,
+            CurrentMetaDataBuffer.Allocator.GetCapacity(),
+            1,
+            TargetDescriptorSet,
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+        );
+        BufferWrites.push_back(std::move(MetaDataBufferWrite));
+    }
+
+    if (DataBufferReallocated)
+    {
+        RENDERER::RecreateBuffer(
+            RendererContext,
+            CurrentDataBuffer.Allocator.GetCapacity(),
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            CurrentDataBuffer.Buffer
+        );
+
+        RENDERER_CORE::DescriptorSetWriteBuffer DataBufferWrite(
+            CurrentDataBuffer.Buffer,
+            CurrentDataBuffer.Allocator.GetCapacity(),
+            2,
+            TargetDescriptorSet,
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+        );
+        BufferWrites.push_back(std::move(DataBufferWrite));
+    }
+    RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.LogicalDevice, BufferWrites, {});
 }

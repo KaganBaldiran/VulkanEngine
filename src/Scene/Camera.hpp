@@ -2,6 +2,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <glfw3.h>
 #include <functional>
+#include <array>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -75,6 +76,9 @@ namespace SCENE
 		void SetCameraSettings(CameraSettingsInfo Settings);
 		void Update(RENDERER_CORE::Window &window,float Sensitivity,float DeltaTime, glm::vec2 Extent, float Near, float Far,float FOV = 45.0F);
 		void Update(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime, float Zoom, glm::vec2 Extent, float Near, float Far);
+		//Gribb-Hartmann plane extraction method 
+		void ExtractFrustumPlanes(std::array<glm::vec4, 6>& Planes);
+
 		glm::vec3 CameraPosition;
 		glm::vec3 CameraDirection;
 		glm::vec3 Up;

@@ -115,12 +115,10 @@ void RENDERER::RendererContext::Create(
     SceneDescriptorSetLayouts.resize(MAX_FRAMES_IN_FLIGHT, SceneDescriptorSetLayout.Handle);
 
     //Layout needed for the indirect descriptor sets
-    IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 0, VK_SHADER_STAGE_VERTEX_BIT);
-    IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 1, VK_SHADER_STAGE_VERTEX_BIT);
-    IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 2, VK_SHADER_STAGE_VERTEX_BIT);
-    //IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 3, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
-    //IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 4, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
-    //IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 5, VK_SHADER_STAGE_VERTEX_BIT);
+    IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
+    IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
+    IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 2, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
+    IndirectDescriptorSetLayout.AppendLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, 3, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
     IndirectDescriptorSetLayout.CreateLayout(DeviceContext.LogicalDevice);
     IndirectDescriptorSetLayouts.resize(MAX_FRAMES_IN_FLIGHT, IndirectDescriptorSetLayout.Handle);
 
@@ -231,6 +229,7 @@ void RENDERER::RendererContext::Create(
    
     CreateHDRIrenderPassResources();
     CreatePostProcessingPassPipeline();
+    CreateComputePipelines();
 
     this->IsDestroyed = false;
     this->DestructionPriority = 0;
@@ -447,7 +446,7 @@ void RENDERER::RendererContext::CreateHDRIrenderPassResources()
 
     ///HDRI convolution pass pipeline
     PipelineCreateInfo.ShaderModules = { {HDRIconvolutionVertexShaderPtr,VK_SHADER_STAGE_VERTEX_BIT} ,{HDRIconvolutionFragmentShaderPtr,VK_SHADER_STAGE_FRAGMENT_BIT} };
-    PipelineCreateInfo.PushConstantRanges = {};
+    //PipelineCreateInfo.PushConstantRanges = {};
     DefaultPipelines.HDRIconvolute = PipelineManager.AppendGraphicsPipeline(PipelineCreateInfo, DeviceContext.LogicalDevice).second;
 }
 
@@ -525,7 +524,7 @@ void RENDERER::RendererContext::CreateTextureDescriptorPipelines(RENDERER_CORE::
     DeferredShadingPipelineCreateInfo.ViewportMinDepth = 0.0f;
     DeferredShadingPipelineCreateInfo.ViewportMaxDepth = 1.0f;
     DeferredShadingPipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
-    DeferredShadingPipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R8G8B8A8_SRGB };
+    DeferredShadingPipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { this->SwapChain.SurfaceFormat.format };
     DeferredShadingPipelineCreateInfo.ShaderModules = { {DeferredShadingVertexShaderPtr,VK_SHADER_STAGE_VERTEX_BIT} ,{DeferredShadingFragmentShaderPtr,VK_SHADER_STAGE_FRAGMENT_BIT} };
     DeferredShadingPipelineCreateInfo.AttributeDescriptions = QuadVertexDescription.AttributeDescriptions;
     DeferredShadingPipelineCreateInfo.BindingDescription = QuadVertexDescription.BindingDescription;
@@ -558,6 +557,56 @@ void RENDERER::RendererContext::DestroyMeshTextureDescriptors()
         TextureDescriptorIndexAllocators[i].Reset(0);
         TexturesDescriptors[i].Destroy(DeviceContext.LogicalDevice);
     }
+}
+
+void RENDERER::RendererContext::CreateComputePipelines()
+{
+    //Culling compute shader
+    ShaderManager.AppendShaderModule(
+        "CullingShader",
+        "Shaders\\CullingShader.comp.glsl",
+        "Shaders\\CullingShader.spv",
+        shaderc_compute_shader,
+        DeviceContext.LogicalDevice
+    );
+
+    size_t CullingPushConstantSize = sizeof(glm::vec4) * 7;
+    VkPushConstantRange CullingPushConstantRange{};
+    CullingPushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    CullingPushConstantRange.size = CullingPushConstantSize;
+    CullingPushConstantRange.offset = 0;
+
+    //Culling compute pipeline
+    RENDERER_CORE::ComputePipelineCreateInfo CullingPipelineCreateInfo{};
+    CullingPipelineCreateInfo.DescriptorSetLayouts = { IndirectDescriptorSetLayout };
+    CullingPipelineCreateInfo.PushConstantRanges = { CullingPushConstantRange };
+    CullingPipelineCreateInfo.ComputeShaderModule = ShaderManager.GetShaderModule("CullingShader");
+    auto CullingComputePipelineIterator = PipelineManager.AppendComputePipeline(CullingPipelineCreateInfo, DeviceContext.LogicalDevice);
+    DefaultPipelines.CullingCompute = CullingComputePipelineIterator.second;
+
+    //////////                                   //////////                                      //////////
+   
+    //Culling reset compute shader
+    ShaderManager.AppendShaderModule(
+        "CullingResetShader",
+        "Shaders\\CullingResetShader.comp.glsl",
+        "Shaders\\CullingResetShader.spv",
+        shaderc_compute_shader,
+        DeviceContext.LogicalDevice
+    );
+
+    VkPushConstantRange CullingResetPushConstantRange{};
+    CullingResetPushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    CullingResetPushConstantRange.size = sizeof(unsigned int);
+    CullingResetPushConstantRange.offset = 0;
+
+    //Culling reset compute pipeline
+    RENDERER_CORE::ComputePipelineCreateInfo CullingResetPipelineCreateInfo{};
+    CullingResetPipelineCreateInfo.DescriptorSetLayouts = { IndirectDescriptorSetLayout };
+    CullingResetPipelineCreateInfo.PushConstantRanges = { CullingResetPushConstantRange };
+    CullingResetPipelineCreateInfo.ComputeShaderModule = ShaderManager.GetShaderModule("CullingResetShader");
+    auto CullingResetComputePipelineIterator = PipelineManager.AppendComputePipeline(CullingResetPipelineCreateInfo, DeviceContext.LogicalDevice);
+    DefaultPipelines.CullingResetCompute = CullingResetComputePipelineIterator.second;
 }
 
 void RENDERER::RendererContext::UpdateCustomPipelines(RENDERER_CORE::DescriptorSetLayout& Layout,uint32_t FrameIndex)
@@ -611,7 +660,7 @@ void RENDERER::RendererContext::CreatePostProcessingPassPipeline()
     PipelineCreateInfo.DynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR };
     PipelineCreateInfo.ShaderModules = { {DeferredShadingVertexShaderPtr,VK_SHADER_STAGE_VERTEX_BIT} ,{PostProcessingFragmentShaderPtr,VK_SHADER_STAGE_FRAGMENT_BIT} };
     PipelineCreateInfo.DynamicRenderingColorAttachmentCount = 1;
-    PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { VK_FORMAT_R8G8B8A8_SRGB };
+    PipelineCreateInfo.DynamicRenderingColorAttachmentsFormats = { this->SwapChain.SurfaceFormat.format};
     PipelineCreateInfo.DynamicRenderingDepthAttachmentFormat = VK_FORMAT_UNDEFINED;
     PipelineCreateInfo.RenderPass = nullptr;
     PipelineCreateInfo.ScissorOffset = { 0,0 };

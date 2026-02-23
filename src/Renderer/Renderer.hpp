@@ -95,6 +95,19 @@ namespace RENDERER
 
         std::vector<RENDERER_CORE::FrameSyncObjects> SyncObjects;
         uint32_t CurrentFrame = 0;
+
+        RENDERER_CORE::ComputePipeline TestPipeline;
+        RENDERER_CORE::PersistentBuffer TestBuffer;
+        RENDERER_CORE::Descriptor<1> TestDescriptor;
+        bool ShouldTest = true;
+
+        void CreateTestResources();
+        void DestroyTestResources();
+        void DispatchComputeTest(
+            VkCommandBuffer& CommandBuffer,
+            uint32_t CurrentImageIndex,
+            uint32_t CurrentFrame
+        );  
     private:
         void InitializePipelines();
         void OnRecreateSwapChain();
@@ -106,12 +119,29 @@ namespace RENDERER
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame
         );
-
         void RenderPostProcessPass(
             SCENE::Camera3D& Camera,
             VkCommandBuffer& CommandBuffer,
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame
+        );
+        void DispatchComputeCulling(
+            SCENE::Scene& Scene,
+            SCENE::Camera3D& Camera,
+            VkCommandBuffer& CommandBuffer,
+            uint32_t CurrentImageIndex,
+            uint32_t CurrentFrame,
+            RENDERER_CORE::PipelineBarrier2& PipelineBarrier2,
+            bool EnableCulling = true
+        );
+        void DispatchComputeResetCulling(
+            SCENE::Scene& Scene,
+            SCENE::Camera3D& Camera,
+            VkCommandBuffer& CommandBuffer,
+            uint32_t CurrentImageIndex,
+            uint32_t CurrentFrame,
+            RENDERER_CORE::PipelineBarrier2& PipelineBarrier2,
+            bool EnableCulling = true
         );
 
         std::vector<RenderPassConfiguration> RenderPasses;

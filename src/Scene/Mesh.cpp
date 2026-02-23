@@ -174,8 +174,8 @@ std::vector<SCENE::GeometryData> SCENE::Import3DGeometry(const char* FilePath, R
             aiMaterial* material = scene->mMaterials[aiMesh->mMaterialIndex];
             ProcessMeshMaterial(MeshDirectory, ImportManager, material, NewMesh.MeshMaterial);
 
-            NewMesh.BoundingBox.Center = (glm::vec3(maxX, maxY, maxZ) + glm::vec3(minX, minY, minZ)) * 0.5f;
-            NewMesh.BoundingBox.Extends = (glm::vec3(maxX, maxY, maxZ) - glm::vec3(minX, minY, minZ)) * 0.5f;
+            NewMesh.BoundingBox.Center = glm::vec4((glm::vec3(maxX, maxY, maxZ) + glm::vec3(minX, minY, minZ)) * 0.5f,0.0f);
+            NewMesh.BoundingBox.Extends = glm::vec4((glm::vec3(maxX, maxY, maxZ) - glm::vec3(minX, minY, minZ)) * 0.5f,0.0f);
             GeometryDatas.push_back(NewMesh);
         }
 
@@ -184,7 +184,7 @@ std::vector<SCENE::GeometryData> SCENE::Import3DGeometry(const char* FilePath, R
             NodesToProcess.push(*(Node->mChildren + i));
         }
     }
-    return std::move(GeometryDatas);
+    return GeometryDatas;
 }
 
 

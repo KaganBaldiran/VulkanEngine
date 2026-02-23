@@ -71,7 +71,7 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsHostVisible(std::vector<M
 void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
     std::vector<ModelInstance*>& UpdateList, 
     uint32_t CurrentFrame,
-    std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
+    std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
     SCENE::PersistentStagingBuffer& StagingBuffer
 )
 {
@@ -254,31 +254,36 @@ void ProcessAppendList(
             CurrentFrameEntries.MeshEntries.Insert( Mesh.GeometryID,NewMeshEntry);
             IndirectBufferSize += SizeOfIndirectCommand;
 
-            EnabledMeshCount++;
+            //EnabledMeshCount++;
         }
         CurrentFrameEntries.InstanceEntries.Insert(ModelInstance->GetHandleID(), NewInstanceEntry);
         //Inserted total instance per mesh count
         InsertedMeshInstanceCount += ModelInstance->Source->Meshes.size();
+        EnabledMeshCount += ModelInstance->Source->Meshes.size();
     }
 }
 
 //Allocates or reallocates required scene buffers and writes them in descriptors
 void AllocateSceneBuffers(
     RENDERER::RendererContext* RendererContext,
-    std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
+    std::array<RENDERER::CopyOperationEntry*, static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
     RENDERER_CORE::BufferAllocator &IndirectBuffer,
     RENDERER_CORE::BufferAllocator &DrawMetaDataBuffer,
     RENDERER_CORE::PersistentBufferAllocator &ModelMatricesBuffer,
+    RENDERER_CORE::BufferAllocator &VisibilityBuffer,
     SCENE::SceneOptions SceneOptions,
     VkDescriptorSet TargetDescriptorSet,
     bool IsIndirectBufferReallocated,
     bool IsModelMatrixesBufferReallocated,
     size_t InitialModelMatrixBufferCapacity,
     bool IsDrawMetaDataBufferReallocated,
-    bool TexturesIndexBufferReallocated
+    bool TexturesIndexBufferReallocated,
+    bool IsVisibilityBufferReallocated
 )
 {
-    if (IsIndirectBufferReallocated || IsModelMatrixesBufferReallocated || IsDrawMetaDataBufferReallocated || TexturesIndexBufferReallocated)
+    if (IsIndirectBufferReallocated || IsModelMatrixesBufferReallocated ||
+        IsDrawMetaDataBufferReallocated || TexturesIndexBufferReallocated || 
+        IsVisibilityBufferReallocated)
     {
         std::vector<RENDERER_CORE::DescriptorSetWriteBuffer> WriteInfos;
         WriteInfos.reserve(3);
@@ -289,7 +294,7 @@ void AllocateSceneBuffers(
             RENDERER::RecreateBuffer(
                 RendererContext,
                 IndirectBuffer.Allocator.GetCapacity(),
-                VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 IndirectBuffer.Buffer
             );
@@ -392,12 +397,32 @@ void AllocateSceneBuffers(
             WriteInfos.push_back(std::move(DrawMetaDataBufferWrite));
             CopyOperations[SCENE::DRAWMETA_COPY]->CopyInfo.DestinationBuffer = DrawMetaDataBuffer.Buffer.BufferObject;
         }
+        if (IsVisibilityBufferReallocated)
+        {
+            RENDERER::RecreateBuffer(
+                RendererContext,
+                VisibilityBuffer.Allocator.GetCapacity(),
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                VisibilityBuffer.Buffer
+            );
+
+            RENDERER_CORE::DescriptorSetWriteBuffer VisibilityBufferWrite(
+                VisibilityBuffer.Buffer,
+                VisibilityBuffer.Allocator.GetCapacity(),
+                3,
+                TargetDescriptorSet,
+                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+            );
+
+            WriteInfos.push_back(std::move(VisibilityBufferWrite));
+        }
         RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.LogicalDevice, WriteInfos, {});
     }
 }
 
 void CreateAppendCopyInfos(
-    std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
+    std::array<RENDERER::CopyOperationEntry*, static_cast<int>(SCENE::BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
     SCENE::INTERNAL::EntryManager &CurrentFrameEntries,
     RENDERER_CORE::BufferAllocator& IndirectBuffer,
     RENDERER_CORE::BufferAllocator& DrawMetaDataBuffer,
@@ -444,7 +469,8 @@ void CreateAppendCopyInfos(
             auto& MaterialDataIterator = InstanceIterator->second.Materials.find(Handle);
 
             SCENE::INTERNAL::DrawMetadata NewDrawMetaData{};
-            NewDrawMetaData.MeshID = MaterialDataIterator->second.TextureIndexMemoryRegion.Offset / sizeof(SCENE::INTERNAL::MaterialData);
+            NewDrawMetaData.MaterialID = MaterialDataIterator->second.TextureIndexMemoryRegion.Offset / sizeof(SCENE::INTERNAL::MaterialData);
+            NewDrawMetaData.MeshID = MeshIterator;
             NewDrawMetaData.ModelMatrixIndex = InstanceIterator->second.TransformationMatrixMemoryRegion.Offset / SizeOfMat4;
 
             InstanceLink.DrawDataMemoryRegion = DrawMetaDataBuffer.Allocator.Suballocate(SizeOfDrawMetaData);
@@ -469,10 +495,11 @@ void CreateAppendCopyInfos(
 
             NewIndirectCommand.IndexCount = MeshEntry.Info.IndexCount;
             NewIndirectCommand.FirstIndex = MeshEntry.Info.FirstIndex;
-            NewIndirectCommand.InstanceCount = MeshEntry.ReferenceCount;
+            //NewIndirectCommand.InstanceCount = MeshEntry.ReferenceCount;
+            NewIndirectCommand.InstanceCount = 0;
             NewIndirectCommand.VertexOffset = MeshEntry.Info.VertexOffset;
             NewIndirectCommand.FirstInstance = DrawIndexIterator;
-            //NewIndirectCommand.BoundingBox = MeshEntry.BoundingBox;
+            NewIndirectCommand.BoundingBox = MeshEntry.BoundingBox;
             
             //Should allocate a region from the staging buffer
             if (!IsThereIndirectCopyInfos || !MeshEntry.StagingIndirectBufferMemoryRegion.Size)
@@ -506,7 +533,7 @@ void SCENE::SceneMeshManager::AppendModels(
     std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>& TargetDescriptorSets,
     PersistentStagingBuffer& StagingBuffer,
     SCENE::SceneOptions SceneOptions,
-    std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+    std::array<RENDERER::CopyOperationEntry*, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 )
 {
     auto Start = std::chrono::high_resolution_clock::now();
@@ -518,6 +545,7 @@ void SCENE::SceneMeshManager::AppendModels(
     auto& TexturesIndexBuffer = SceneBuffers.TexturesIndexBuffers[FrameIndex];
     auto& DrawMetaDataBuffer = SceneBuffers.DrawMetaDataBuffer[FrameIndex];
     auto& ModelMatricesBuffer = SceneBuffers.ModelMatricesBuffers[FrameIndex];
+    auto& VisibilityIndexBuffer = SceneBuffers.CullBuffers.VisibilityIndexBuffers[FrameIndex];
 
     auto& IndirectBufferAllocator = IndirectBuffer.Allocator;
     auto& ModelMatricesBufferAllocator = ModelMatricesBuffer.Allocator;
@@ -533,7 +561,8 @@ void SCENE::SceneMeshManager::AppendModels(
     size_t  IndirectBufferCapacity = IndirectBufferAllocator.GetCapacity(),
             ModelMatricesBufferCapacity = ModelMatricesBufferAllocator.GetCapacity(),
             TexturesIndexBufferCapacity = TexturesIndexBufferAllocator.GetCapacity(),
-            DrawMetaDataBufferCapacity = DrawMetaDataBufferAllocator.GetCapacity();
+            DrawMetaDataBufferCapacity = DrawMetaDataBufferAllocator.GetCapacity(),
+            VisibilityIndexBufferCapacity = VisibilityIndexBuffer.Allocator.GetCapacity();
 
     size_t InsertedMeshInstanceCount = 0;
 
@@ -557,12 +586,14 @@ void SCENE::SceneMeshManager::AppendModels(
         InsertedMeshInstanceCount
     );
     DrawMetaDataBufferAllocator.Suballocate(InsertedMeshInstanceCount * SizeOfDrawMetaData);
+    VisibilityIndexBuffer.Allocator.Suballocate(InsertedMeshInstanceCount * sizeof(size_t));
 
     //Check whether the allocator allocated extra virtual memory
     bool IsIndirectBufferReallocated = IndirectBufferCapacity < IndirectBufferAllocator.GetCapacity();
     bool IsModelMatrixesBufferReallocated = ModelMatricesBufferCapacity < ModelMatricesBufferAllocator.GetCapacity();
     //bool IsMeshVisibilityCountBufferReallocated = MeshVisibilityCountBufferCapacity < MeshVisibilityCountBufferAllocator.GetCapacity();
     bool IsDrawMetaDataBufferReallocated = DrawMetaDataBufferCapacity < DrawMetaDataBufferAllocator.GetCapacity();
+    bool IsVisibilityBufferReallocated = VisibilityIndexBufferCapacity < VisibilityIndexBuffer.Allocator.GetCapacity();
 
     //Flag the other update functions 
     TexturesIndexBufferReallocated = TexturesIndexBufferCapacity < TexturesIndexBufferAllocator.GetCapacity();
@@ -583,18 +614,20 @@ void SCENE::SceneMeshManager::AppendModels(
         IndirectBuffer,
         DrawMetaDataBuffer, 
         ModelMatricesBuffer,
+        VisibilityIndexBuffer,
         SceneOptions,
         TargetDescriptorSets[FrameIndex],
         IsIndirectBufferReallocated, 
         IsModelMatrixesBufferReallocated, 
         ModelMatricesBufferCapacity,
         IsDrawMetaDataBufferReallocated, 
-        TexturesIndexBufferReallocated
+        TexturesIndexBufferReallocated,
+        IsVisibilityBufferReallocated
     );
       
     //Calculate the needed staging buffer size
-    size_t IndirectStagingBufferSize = IsIndirectBufferReallocated ? IndirectBufferAllocator.GetCapacity() : IndirectBufferSize;
-    size_t DrawMetaDataBufferSize = IsThereDrawMetaCopyInfos ? (InsertedMeshInstanceCount * SizeOfDrawMetaData) : DrawMetaDataBufferAllocator.GetCapacity();
+    size_t IndirectStagingBufferSize = IsIndirectBufferReallocated ? IndirectBufferAllocator.GetUsedSpace() : IndirectBufferSize;
+    size_t DrawMetaDataBufferSize = IsThereDrawMetaCopyInfos ? (InsertedMeshInstanceCount * SizeOfDrawMetaData) : DrawMetaDataBufferAllocator.GetUsedSpace();
     size_t TotalStagingBufferSize = IndirectStagingBufferSize + DrawMetaDataBufferSize;
 
     //Nothing else to do. Return
@@ -922,7 +955,7 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     uint32_t FrameIndex,
     VkDescriptorSet& TargetDescriptorSet,
     PersistentStagingBuffer& StagingBuffer,
-    std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations
+    std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations
 )
 {
     this->ResourceManagerPtr->TextureManager.UpdateDescriptors(FrameIndex);

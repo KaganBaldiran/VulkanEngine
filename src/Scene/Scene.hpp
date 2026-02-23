@@ -136,7 +136,7 @@ namespace SCENE
 		void UnlinkModelInstance(std::vector<ModelInstance*>& Instances);
 		void UpdateMeshTransformations(
 			uint32_t CurrentFrame,
-			std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations
+			std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations
 		);
 
 		void LinkDynamicLight(Light& DynamicLight);

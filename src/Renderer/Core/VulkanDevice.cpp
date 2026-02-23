@@ -212,9 +212,14 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
     DeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(CreateInfo.DeviceExtensionsToEnable.size());
     DeviceCreateInfo.ppEnabledExtensionNames = CreateInfo.DeviceExtensionsToEnable.data();
 
+    VkPhysicalDeviceSynchronization2Features Synchronization2Features{};
+    Synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+    Synchronization2Features.synchronization2 = VK_TRUE;
+
     VkPhysicalDeviceTimelineSemaphoreFeatures TimelineFeatures{};
     TimelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
     TimelineFeatures.timelineSemaphore = VK_TRUE;
+    TimelineFeatures.pNext = &Synchronization2Features;
 
     VkPhysicalDeviceDescriptorIndexingFeatures PhysicalDeviceDescriptorIndexingFeatures{};
     PhysicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;

@@ -119,6 +119,26 @@ RENDERER_CORE::DescriptorSetWriteBuffer::DescriptorSetWriteBuffer(DescriptorSetW
     DescriptorWrite.pTexelBufferView = nullptr;
 }
 
+RENDERER_CORE::DescriptorSetWriteBuffer& RENDERER_CORE::DescriptorSetWriteBuffer::operator=(const DescriptorSetWriteBuffer& Other)
+{
+    DescriptorBufferInfo = Other.DescriptorBufferInfo;
+    this->DescriptorWrite = Other.DescriptorWrite;
+    DescriptorWrite.pImageInfo = nullptr;
+    DescriptorWrite.pBufferInfo = &DescriptorBufferInfo;
+    DescriptorWrite.pTexelBufferView = nullptr;
+    return *this;
+}
+
+RENDERER_CORE::DescriptorSetWriteBuffer& RENDERER_CORE::DescriptorSetWriteBuffer::operator=(const DescriptorSetWriteBuffer&& Other)
+{
+    DescriptorBufferInfo = std::move(Other.DescriptorBufferInfo);
+    this->DescriptorWrite = std::move(Other.DescriptorWrite);
+    DescriptorWrite.pImageInfo = nullptr;
+    DescriptorWrite.pBufferInfo = &DescriptorBufferInfo;
+    DescriptorWrite.pTexelBufferView = nullptr;
+    return *this;
+}
+
 RENDERER_CORE::DescriptorSetWriteImage::DescriptorSetWriteImage(
     VkImageView TextureImageView,
     VkSampler TextureSampler, 

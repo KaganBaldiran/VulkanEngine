@@ -71,7 +71,8 @@ namespace SCENE
 
     struct BoundingBoxAABB
     {
-        glm::vec3 Center, Extends;
+        glm::vec3 Center;
+        glm::vec4 Extends;
     };
 
     struct GeometryData

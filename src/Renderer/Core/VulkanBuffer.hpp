@@ -124,8 +124,7 @@ namespace RENDERER_CORE
 	{
 		RENDERER_CORE::Buffer Buffer;
 		RENDERER_CORE::VirtualArenaAllocator Allocator;
-		inline void Create() { Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10); };
-		void 
+		inline void Create() { Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10); }; 
 	};
 
 	//Persistent Buffer with a virtual allocator plugged into it

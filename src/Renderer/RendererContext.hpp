@@ -128,9 +128,7 @@ namespace RENDERER
         // 0: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Model matrixes to be used in the G-buffer pass vertex shader
         // 1: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Indirect command buffers accessed from culling compute shader
         // 2: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Draw meta data buffers accessed from culling compute shader
-        //TODO 3: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Culled Indirect command buffers accessed from G-buffer pass vertex shader and culling compute shader
-        //TODO 4: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Culled Draw meta data buffers accessed from G-buffer pass vertex shader and culling compute shader
-        //TODO 5: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Mesh visibility data buffers accessed from culling compute shader
+        // 3: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER - Mesh visibility index data buffers accessed from culling compute shader
         RENDERER_CORE::DescriptorSetLayout IndirectDescriptorSetLayout;
         std::vector<VkDescriptorSetLayout> IndirectDescriptorSetLayouts;
 
@@ -162,6 +160,8 @@ namespace RENDERER
             size_t HDRIrender;
             size_t HDRIconvolute;
             size_t PostProcessing;
+            size_t CullingCompute;
+            size_t CullingResetCompute;
             std::array<size_t,MAX_FRAMES_IN_FLIGHT> GbufferDepthDisabled;
             std::array<size_t, MAX_FRAMES_IN_FLIGHT> GbufferDepthEnabled;
             std::array<size_t, MAX_FRAMES_IN_FLIGHT> DeferredShading;
@@ -171,6 +171,7 @@ namespace RENDERER
                 HDRIrender = std::numeric_limits<size_t>::max();
                 HDRIconvolute = std::numeric_limits<size_t>::max();
                 PostProcessing = std::numeric_limits<size_t>::max();
+                CullingCompute = std::numeric_limits<size_t>::max();
                 GbufferDepthDisabled.fill(std::numeric_limits<size_t>::max());
                 GbufferDepthEnabled.fill(std::numeric_limits<size_t>::max());
                 DeferredShading.fill(std::numeric_limits<size_t>::max());
@@ -182,6 +183,7 @@ namespace RENDERER
         //In case the descriptors are recreated then the pipelines that reference the prior descriptors are also recreated.
         bool CreateTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex,bool DestroyPrevious = false);
         void DestroyMeshTextureDescriptors();
+        void CreateComputePipelines();
 
         void CreateHDRIrenderPassResources();
         void CreateTextureDescriptorPipelines(RENDERER_CORE::DescriptorSetLayout& Layout, uint32_t MaxTextureCount, uint32_t FrameIndex);

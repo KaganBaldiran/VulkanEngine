@@ -97,6 +97,19 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
         return;
     };
 
+    if (glfwGetKey(RendererContextPtr->Window.window, GLFW_KEY_P) == GLFW_RELEASE) AllowPress = true;
+    if (glfwGetKey(RendererContextPtr->Window.window, GLFW_KEY_P) == GLFW_PRESS && AllowPress)
+    {
+        IsCamera1 = !IsCamera1;
+        AllowPress = false;
+    }
+
+    if (glfwGetKey(RendererContextPtr->Window.window, GLFW_KEY_L) == GLFW_PRESS)
+    {
+        CameraDirection = Scene.Camera->CameraDirection;
+        CameraPosition = Scene.Camera->CameraPosition;
+    }
+
     std::array<RENDERER_CORE::TextureData*, 4> GbufferAttachments = {
         &FrameGbuffer.NormalAttachment,
         &FrameGbuffer.PositionAttachment,
@@ -181,7 +194,7 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
     bool ClearDepth
 )
 {
-    const size_t PerformanceModeEnabledMeshCount = Scene.MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame];
+    const size_t PerformanceModeEnabledMeshCount = Scene.MeshBuffers.Entries[CurrentFrame].MeshEntries.Size();
     if (!(PerformanceModeEnabledMeshCount)) return;
 
     std::array<VkClearValue, 4> ClearColors{};
@@ -256,7 +269,28 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
     VkDeviceSize IndexOffset = 0;
     vkCmdBindIndexBuffer(CommandBuffer, MeshManager.GetCurrentIndexBuffer(CurrentFrame).Buffer.BufferObject, IndexOffset, VK_INDEX_TYPE_UINT32);
 
-    glm::mat4 ProjViewMatrix = Scene.Camera->ProjectionMatrix * Scene.Camera->ViewMatrix;
+    glm::mat4 ProjViewMatrix;
+
+    if (IsCamera1)
+    {
+        ProjViewMatrix = Scene.Camera->ProjectionMatrix * Scene.Camera->ViewMatrix;
+    }
+    else
+    {
+        glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
+        float FOV = 45.0f;
+        glm::ivec2 Extent = { RendererContextPtr->SwapChain.Extent.width,RendererContextPtr->SwapChain.Extent.height };
+        float Near = 0.1f;
+        float Far = 2000.0f;
+
+        glm::mat4 ViewMatrix = glm::lookAt(CameraPosition, CameraPosition + CameraDirection, Up);
+        glm::mat4 ProjectionMatrix = glm::perspective(glm::radians((float)FOV), (float)Extent.x / (float)Extent.y, Near, Far);
+        ProjectionMatrix[1][1] *= -1;
+
+        ProjViewMatrix = ProjectionMatrix * ViewMatrix;
+    }
+    //glm::mat4 ProjViewMatrix = Scene.Camera->ProjectionMatrix * Scene.Camera->ViewMatrix;
+    
     //glm::mat4 Matrices[2] = { Scene.Camera->ViewMatrix , Scene.Camera->ProjectionMatrix };
     glm::mat4 Matrices[2] = { ProjViewMatrix , PreviousProjViewMatrix };
     PreviousProjViewMatrix = ProjViewMatrix;
@@ -337,13 +371,32 @@ void RENDERER::DeferredRenderPipeline::RenderLightingPass(
     };
     vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Layout, 0, 4, DescriptorSets, 0, nullptr);
     
+    glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
+    float FOV = 45.0f;
+    glm::ivec2 Extent = { RendererContextPtr->SwapChain.Extent.width,RendererContextPtr->SwapChain.Extent.height };
+    float Near = 0.1f;
+    float Far = 2000.0f;
+
     LightingPassUBOdata lightingPassUboData{};
-    lightingPassUboData.CameraDirection = Scene.Camera->CameraDirection;
-    lightingPassUboData.CameraPosition = Scene.Camera->CameraPosition;
+    //lightingPassUboData.CameraDirection = Scene.Camera->CameraDirection;
+    //lightingPassUboData.CameraPosition = Scene.Camera->CameraPosition;
+
+    if (IsCamera1)
+    {
+       lightingPassUboData.CameraDirection = Scene.Camera->CameraDirection;
+       lightingPassUboData.CameraPosition = Scene.Camera->CameraPosition;
+    }
+    else
+    {
+       lightingPassUboData.CameraPosition = CameraPosition;
+       lightingPassUboData.CameraDirection = CameraDirection;
+    }
+
     lightingPassUboData.FogIntensity = 0.4f;
     lightingPassUboData.StaticLightCount = static_cast<int>(Scene.LightManager.LightEntries[CurrentFrame].StaticLightLights.size());
     lightingPassUboData.DynamicLightCount = static_cast<int>(Scene.LightManager.LightEntries[CurrentFrame].DynamicLights.size());
-    lightingPassUboData.CameraFrustumLength = Scene.Camera->FarPlane - Scene.Camera->NearPlane;
+    //lightingPassUboData.CameraFrustumLength = Scene.Camera->FarPlane - Scene.Camera->NearPlane;
+    lightingPassUboData.CameraFrustumLength = Far - Near;
     lightingPassUboData.Time = std::chrono::duration<float>(std::chrono::system_clock::now() - StartingTime).count();
 
     vkCmdPushConstants(

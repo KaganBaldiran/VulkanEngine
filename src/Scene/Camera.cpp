@@ -124,6 +124,52 @@ void SCENE::Camera3D::Update(RENDERER_CORE::Window& window, float Sensitivity, f
     ProjectionMatrix[1][1] *= -1;
 }
 
+void SCENE::Camera3D::ExtractFrustumPlanes(std::array<glm::vec4, 6>& Planes)
+{
+    glm::mat4 ViewProjection = ProjectionMatrix * ViewMatrix;
+    Planes[0] = glm::vec4(
+        ViewProjection[0][3] + ViewProjection[0][0],
+        ViewProjection[1][3] + ViewProjection[1][0],
+        ViewProjection[2][3] + ViewProjection[2][0],
+        ViewProjection[3][3] + ViewProjection[3][0]
+    );
+    Planes[1] = glm::vec4(
+        ViewProjection[0][3] - ViewProjection[0][0],
+        ViewProjection[1][3] - ViewProjection[1][0],
+        ViewProjection[2][3] - ViewProjection[2][0],
+        ViewProjection[3][3] - ViewProjection[3][0]
+    );
+    Planes[2] = glm::vec4(
+        ViewProjection[0][3] + ViewProjection[0][1],
+        ViewProjection[1][3] + ViewProjection[1][1],
+        ViewProjection[2][3] + ViewProjection[2][1],
+        ViewProjection[3][3] + ViewProjection[3][1]
+    );
+    Planes[3] = glm::vec4(
+        ViewProjection[0][3] - ViewProjection[0][1],
+        ViewProjection[1][3] - ViewProjection[1][1],
+        ViewProjection[2][3] - ViewProjection[2][1],
+        ViewProjection[3][3] - ViewProjection[3][1]
+    );
+    Planes[4] = glm::vec4(
+        ViewProjection[0][2],
+        ViewProjection[1][2],
+        ViewProjection[2][2],
+        ViewProjection[3][2]
+    );
+    Planes[5] = glm::vec4(
+        ViewProjection[0][3] - ViewProjection[0][2],
+        ViewProjection[1][3] - ViewProjection[1][2],
+        ViewProjection[2][3] - ViewProjection[2][2],
+        ViewProjection[3][3] - ViewProjection[3][2]
+    );
+    for (size_t i = 0; i < Planes.size(); i++)
+    {
+        float Length = glm::length(glm::vec3(Planes[i]));
+        Planes[i] /= Length;
+    }
+}
+
 void SCENE::Camera3D::UpdateFreeCameraMode(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime)
 {
     if (FirstTurn)

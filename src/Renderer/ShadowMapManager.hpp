@@ -6,6 +6,7 @@
 #include "../Renderer/Core/VulkanBuffer.hpp"
 #include "../Renderer/Core/VulkanImage.hpp"
 #include "../Common/CommonDefinitions.hpp"
+#include "../Scene/PersistentSceneStagingBuffer.hpp"
 
 #include <unordered_set>
 #include <array>
@@ -20,6 +21,7 @@ namespace RENDERER
 {
 	//Forward Declarations 
 	class RendererContext;
+	struct CopyOperationEntry;
 
 	std::array<glm::vec3, 8> GetCameraFrustum(glm::mat4 InverseProjectMatrix, glm::mat4 InverseViewMatrix);
 	glm::mat4 GetLightSpaceMatrix(glm::vec3 LightDirection, std::array<glm::vec3, 8>& Frustum);
@@ -84,24 +86,26 @@ namespace RENDERER
 	//Meta data needed for cascaded shadow maps
 	struct CascadedMapData
 	{
-		glm::mat4 LightMatrix;
 		glm::vec2 TexturePosition;
 		float TextureSize;
 		float TextureLayer;
-		//glm::vec4 LightDirection;
-		//float ShadowCascadeLevel;
+		float Distance;
+		float ShadowCascadeLevel;
+		glm::mat4 LightMatrix;
 	};
 
 	struct CascadedMapMetaData
 	{
 		float CascadeCount;
 		float Offset;
+		glm::vec4 LightDirection;
 	};
 
 	struct CascadeEntry
 	{
 		CascadedMapData Data;
 		RENDERER_CORE::MemoryRegion MemoryRegion;
+		RENDERER_CORE::MemoryRegion StagingMemoryRegion;
 		MemoryRegion3D TextureRegion;
 	};
 
@@ -109,7 +113,9 @@ namespace RENDERER
 	{
 		CascadedMapMetaData MetaData;
 		RENDERER_CORE::MemoryRegion MetaDataMemoryRegion;
+		RENDERER_CORE::MemoryRegion StagingMetaDataMemoryRegion;
 		std::vector<CascadeEntry> CascadeEntries;
+		bool RequiresUpload = true;
 	};
 
 	enum CascadedShadowMapDistanceFunction
@@ -118,17 +124,17 @@ namespace RENDERER
 		CASCADED_SHADOW_MAP_DISTANCE_FUNCTION_LOGARITHMIC = 2
 	};
 
+	struct ShadowMapCascade
+	{
+		glm::ivec2 TextureSize = { 1024,1024 };
+		float Distance;
+	};
+
 	struct CascadedShadowMapInfo
 	{
 		SCENE::Light* SourceLight = nullptr;
-		uint32_t CascadeCount = 5;
+		std::vector<ShadowMapCascade> Cascades;
 		CascadedShadowMapDistanceFunction DistanceFunction = CASCADED_SHADOW_MAP_DISTANCE_FUNCTION_LOGARITHMIC;
-	};
-
-	struct CascadedShadowMapAppendInfo
-	{
-		std::vector<CascadedShadowMapInfo> Infos;
-		uint32_t FrameIndex;
 	};
 
 	//Centralized manager responsible for storing and managing shadow maps 
@@ -140,18 +146,34 @@ namespace RENDERER
 		void Create(RENDERER::RendererContext& RendererContext,glm::ivec2 PageSize);
 		void Destroy();
 
-		void AppendCascadedShadowMap(CascadedShadowMapAppendInfo Info);
+		void AppendCascadedShadowMap(
+			std::vector<CascadedShadowMapInfo>& Infos,
+			uint32_t FrameIndex,
+			std::array<CopyOperationEntry*, 2>& CopyInfos,
+			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>& TargetDescriptorSets,
+			SCENE::PersistentStagingBuffer& StagingBuffer
+		);
 		void RenderShadowMaps();
 	private:
-		void CreateShadowMapTextures(size_t RequestedPageCount,size_t FrameIndex);
-		void CreateShadowMapBuffers();
+		void CreateShadowMapTextures(
+			size_t RequestedPageCount,
+			size_t FrameIndex, 
+			VkDescriptorSet TargetDescriptorSet
+		);
+		void CreateShadowMapBuffers(
+			bool MetaDataBufferReallocated,
+			bool DataBufferReallocated,
+			RENDERER_CORE::BufferAllocator& CurrentMetaDataBuffer,
+			RENDERER_CORE::BufferAllocator& CurrentDataBuffer,
+			VkDescriptorSet TargetDescriptorSet
+		);
 
 		std::array<RENDERER_CORE::TextureDataMultipleSamplerViews,MAX_FRAMES_IN_FLIGHT> ShadowMapTextures;
 		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> CascadedShadowMapsMetaDataBuffers;
 		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> CascadedShadowMapsDataBuffers;
 		glm::ivec2 PageSize;
 		std::array<uint32_t, MAX_FRAMES_IN_FLIGHT> LayerCount;
-		std::array<std::map<size_t, CascadedShadowMapEntry,std::less<SCENE::Light*>>,MAX_FRAMES_IN_FLIGHT> CascadedShadowMapEntries;
+		std::array<std::map<size_t, CascadedShadowMapEntry>,MAX_FRAMES_IN_FLIGHT> CascadedShadowMapEntries;
 		std::array<uint32_t, MAX_FRAMES_IN_FLIGHT> CopyInfoIndices;
 
 		std::array<TexturePacker3D, MAX_FRAMES_IN_FLIGHT> TexturePackers;

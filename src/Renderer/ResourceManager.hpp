@@ -18,6 +18,13 @@ namespace RENDERER
 	class DeferredRenderPipeline;
 	class Renderer;
 
+	struct CopyOperationEntry
+	{
+		RENDERER_CORE::BufferCopyInfo CopyInfo;
+		RENDERER_CORE::MemoryBufferBarrierState BufferState;
+	};
+	using CopyOperationList = COMMON::StableVector<CopyOperationEntry>;
+
 	class ResourceManager : COMMON::Destructible
 	{
 		friend class SCENE::SceneMeshManager;
@@ -37,15 +44,9 @@ namespace RENDERER
 		void WaitModelImportsIdle();
 		void WaitTextureImportsIdle();
 
-		struct CopyOperationEntry
-		{
-			RENDERER_CORE::BufferCopyInfo CopyInfo;
-			RENDERER_CORE::MemoryBufferBarrierState BufferState;
-		};
+		
 	private:
 		std::array<SCENE::PersistentStagingBuffer,MAX_FRAMES_IN_FLIGHT> StagingBuffers;
-
-		using CopyOperationList = COMMON::StableVector<CopyOperationEntry>;
 		std::array<CopyOperationList,MAX_FRAMES_IN_FLIGHT> CopyInfos;
 		std::array<std::vector<uint32_t>,MAX_FRAMES_IN_FLIGHT> PendingCopyOperations;
 

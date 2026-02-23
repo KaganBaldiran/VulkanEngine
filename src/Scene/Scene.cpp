@@ -47,16 +47,16 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,RENDERER::R
             MeshBuffers.SceneBuffers.IndirectBuffers[i].Buffer.BufferObject,
             i,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
             VK_ACCESS_2_TRANSFER_WRITE_BIT,
-            VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT
+            VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT
         );
 
         CurrentCopyOperationIndices[DRAWMETA_COPY] = ResourceManager.RequestCopyOperation(
             MeshBuffers.SceneBuffers.DrawMetaDataBuffer[i].Buffer.BufferObject,
             i,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
             VK_ACCESS_2_TRANSFER_WRITE_BIT,
             VK_ACCESS_2_SHADER_READ_BIT
         );
@@ -74,7 +74,7 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,RENDERER::R
             MeshBuffers.SceneBuffers.ModelMatricesBuffers[i].Buffer.Buffer.BufferObject,
             i,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
             VK_ACCESS_2_TRANSFER_WRITE_BIT,
             VK_ACCESS_2_SHADER_READ_BIT
         );
@@ -203,7 +203,7 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
     for (uint32_t i = (IsAllFrames ? 0 : FrameIndex); i < (IsAllFrames ? MAX_FRAMES_IN_FLIGHT : (FrameIndex + 1)); i++)
     {
         //Construct the array that points to the copy operations related to this scene
-        std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)> CopyOperations = {
+        std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)> CopyOperations = {
             ResourceManagerPtr->GetCopyOperationEntry(SceneCopyInfoIndices[i][INDIRECT_COPY],i),
             ResourceManagerPtr->GetCopyOperationEntry(SceneCopyInfoIndices[i][DRAWMETA_COPY],i),
             ResourceManagerPtr->GetCopyOperationEntry(SceneCopyInfoIndices[i][TEXTUREINDEX_COPY],i),
@@ -280,7 +280,7 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
 
 void SCENE::Scene::UpdateMeshTransformations(
     uint32_t CurrentFrame,
-    std::array<RENDERER::ResourceManager::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations
+    std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations
 )
 {
     switch (Options.UploadMode)

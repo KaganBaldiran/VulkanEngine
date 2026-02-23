@@ -74,7 +74,6 @@ size_t RENDERER::ResourceManager::RequestCopyOperation(
 )
 {
 	auto& CurrentCopyInfoList = CopyInfos[FrameIndex];
-
 	auto &Iterator = CurrentCopyInfoList.end();
 	if (DestinationBuffer != VK_NULL_HANDLE)
 	{
@@ -103,7 +102,7 @@ size_t RENDERER::ResourceManager::RequestCopyOperation(
 	return std::distance(CurrentCopyInfoList.begin(), Iterator);
 }
 
-RENDERER::ResourceManager::CopyOperationEntry* RENDERER::ResourceManager::GetCopyOperationEntry(const size_t &Index,const uint32_t &FrameIndex)
+RENDERER::CopyOperationEntry* RENDERER::ResourceManager::GetCopyOperationEntry(const size_t &Index,const uint32_t &FrameIndex)
 {
 	return &CopyInfos[FrameIndex][Index];
 }
