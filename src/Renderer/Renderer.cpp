@@ -20,6 +20,12 @@
 #include "MeshManager.hpp"
 #include "ResourceManager.hpp"
 
+struct CullingPushConstants {
+    uint32_t TotalInstanceCount;
+    uint32_t Padding[3];
+    glm::vec4 FrustumPlanes[6];
+};
+
 RENDERER::Renderer::Renderer(RendererContext& DestinationRendererContext, bool EnablePhysicsDebugDrawing)
 {
     Create(DestinationRendererContext, EnablePhysicsDebugDrawing);
@@ -287,6 +293,7 @@ void RENDERER::Renderer::RenderFrame()
         }
         PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
 
+        bool EnableCulling = true;
         //Passes that reset the culled buffers
         for (uint32_t i = 0; i < RenderPasses.size(); i++)
         {
@@ -298,7 +305,7 @@ void RENDERER::Renderer::RenderFrame()
                 CurrentImageIndex,
                 CurrentFrame,
                 PipelineBarrier2,
-                true
+                EnableCulling
             );
         }
         PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
@@ -314,7 +321,7 @@ void RENDERER::Renderer::RenderFrame()
                 CurrentImageIndex,
                 CurrentFrame,
                 PipelineBarrier2,
-                true
+                EnableCulling
             );
         }
         PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
@@ -605,8 +612,8 @@ void RENDERER::Renderer::DispatchComputeCulling(
 )
 {
     auto& MeshBuffers = Scene.MeshBuffers;
-    size_t EnabledMeshCount = MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame];
-    size_t IndirectCommandCount = MeshBuffers.Entries[CurrentFrame].MeshEntries.Size();
+    uint32_t EnabledMeshCount = MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame];
+    uint32_t IndirectCommandCount = MeshBuffers.Entries[CurrentFrame].MeshEntries.Size();
     if (!IndirectCommandCount || !EnabledMeshCount || !EnableCulling) return;
     //std::cout << "CurrentFrame: " << CurrentFrame << " EnabledMeshCount: " << EnabledMeshCount << " IndirectCommandCount: " << IndirectCommandCount << std::endl;
     int WorkGroupSize = 64;
@@ -651,20 +658,36 @@ void RENDERER::Renderer::DispatchComputeCulling(
     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, CullingPipeline.Handle);
     vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, CullingPipeline.Layout, 0, 1, &Scene.IndirectDescriptorSets[CurrentFrame], 0, nullptr);
 
-    std::array<glm::vec4, 7> CullingPushData;
+    /*std::array<glm::vec4, 7> CullingPushData;
     std::array<glm::vec4, 6> FrustumPlanes;
     Camera.ExtractFrustumPlanes(FrustumPlanes);
     memcpy(CullingPushData.data() + 1, FrustumPlanes.data(), sizeof(glm::vec4) * 6);
-    CullingPushData[0].x = EnabledMeshCount;
+    CullingPushData[0].x = EnabledMeshCount;*/
+
+    CullingPushConstants PushData{};
+    PushData.TotalInstanceCount = static_cast<uint32_t>(EnabledMeshCount);
+
+    std::array<glm::vec4, 6> Planes;
+    Camera.ExtractFrustumPlanes(Planes);
+    memcpy(PushData.FrustumPlanes, Planes.data(), sizeof(glm::vec4) * 6);
 
     vkCmdPushConstants(
+        CommandBuffer, 
+        CullingPipeline.Layout,
+        VK_SHADER_STAGE_COMPUTE_BIT,
+        0, 
+        sizeof(CullingPushConstants), 
+        &PushData
+    );
+
+   /* vkCmdPushConstants(
         CommandBuffer,
         CullingPipeline.Layout,
         VK_SHADER_STAGE_COMPUTE_BIT,
         0,
         sizeof(glm::vec4) * 7,
         CullingPushData.data()
-    );
+    );*/
 
     vkCmdDispatch(CommandBuffer, CullingWorkGroupCount, 1, 1);
 
@@ -710,8 +733,8 @@ void RENDERER::Renderer::DispatchComputeCulling(
 void RENDERER::Renderer::DispatchComputeResetCulling(SCENE::Scene& Scene, SCENE::Camera3D& Camera, VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame, RENDERER_CORE::PipelineBarrier2& PipelineBarrier2, bool EnableCulling)
 {
     auto& MeshBuffers = Scene.MeshBuffers;
-    size_t EnabledMeshCount = MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame];
-    size_t IndirectCommandCount = MeshBuffers.Entries[CurrentFrame].MeshEntries.Size();
+    uint32_t EnabledMeshCount = MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame];
+    uint32_t IndirectCommandCount = MeshBuffers.Entries[CurrentFrame].MeshEntries.Size();
     if (!IndirectCommandCount || !EnabledMeshCount || !EnableCulling) return;
     //std::cout << "CurrentFrame: " << CurrentFrame << " EnabledMeshCount: " << EnabledMeshCount << " IndirectCommandCount: " << IndirectCommandCount << std::endl;
     int WorkGroupSize = 64;

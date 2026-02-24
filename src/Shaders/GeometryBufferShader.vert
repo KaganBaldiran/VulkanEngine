@@ -25,8 +25,14 @@ struct DrawMetadata {
 	int ModelMatrixIndex;
 };
 
-layout(std430,binding = 0,set = 0) readonly buffer ModelMatrixesBuffer{
-    mat4 ModelMatrixes[];
+struct ModelTransformMatrixes
+{
+    mat4 ModelMatrix;
+    mat4 NormalMatrix;
+};
+
+layout(std430,binding = 0,set = 0) readonly buffer ModelTransformMatricesBuffer{
+    ModelTransformMatrixes TransformMatrixesData[];
 };
 
 layout(std430,binding = 2,set = 0) readonly buffer DrawMetaDataBuffer{
@@ -40,10 +46,10 @@ layout(std430,binding = 3,set = 0) readonly buffer VisibleDataBuffer{
 void main() {
     uint InstanceIndex = VisibleIndices[gl_InstanceIndex];
     DrawMetadata DrawData = DrawDatas[InstanceIndex];
-    mat4 ModelMatrix = ModelMatrixes[DrawData.ModelMatrixIndex];
+    ModelTransformMatrixes TransformMatrices = TransformMatrixesData[DrawData.ModelMatrixIndex];
     MeshIndex = DrawData.MaterialID;
 
-    vec3 GlobalPosition = vec3(ModelMatrix * vec4(InPosition.xyz, 1.0));
+    vec3 GlobalPosition = vec3(TransformMatrices.ModelMatrix * vec4(InPosition.xyz, 1.0));
     vec4 PreviousPos = PreviousProjViewMatrix * vec4(GlobalPosition.xyz, 1.0);
     vec4 CurrentPos = ProjViewMatrix * vec4(GlobalPosition.xyz, 1.0);
     //CurrentPos /= CurrentPos.w; 
@@ -54,7 +60,7 @@ void main() {
     gl_Position = CurrentPos;
     OutUVcoords = UVcoords;
 
-    mat3 NormalMatrix = transpose(inverse(mat3(ModelMatrix)));
+    mat3 NormalMatrix = mat3(TransformMatrices.NormalMatrix);
     OutNormals = normalize(NormalMatrix * Normals);
     OutTangent = normalize(NormalMatrix * Tangent);
     OutBitangent = normalize(NormalMatrix * Bitangent);    

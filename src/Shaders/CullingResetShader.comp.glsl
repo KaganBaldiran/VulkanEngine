@@ -1,17 +1,5 @@
 #version 460 core
 
-struct DrawMetadata {
-    int MaterialID;
-	int MeshID;
-	int ModelMatrixIndex;
-};
-
-struct BoundingBoxAABB
-{
-    vec3 Center;
-	vec4 Extends;
-};
-
 struct IndirectCommand
 {
 	uint IndexCount;
@@ -26,7 +14,6 @@ struct IndirectCommand
 
 layout(push_constant) uniform MetaData{
    uint IndirectCommandCount;
-   //vec4 
 };
 
 layout(std430,binding = 1,set = 0) buffer IndirectCommandBuffer{

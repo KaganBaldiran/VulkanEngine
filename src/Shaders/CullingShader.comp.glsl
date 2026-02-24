@@ -33,8 +33,14 @@ layout(push_constant) uniform MetaData{
    vec4 FrustumPlanes[6];
 };
 
-layout(std430,binding = 0,set = 0) readonly buffer ModelMatrixesBuffer{
-    mat4 ModelMatrixes[];
+struct ModelTransformMatrixes
+{
+    mat4 ModelMatrix;
+    mat4 NormalMatrix;
+};
+
+layout(std430,binding = 0,set = 0) readonly buffer ModelTransformMatricesBuffer{
+    ModelTransformMatrixes TransformMatrixesData[];
 };
 
 layout(std430,binding = 1,set = 0) buffer IndirectCommandBuffer{
@@ -66,7 +72,7 @@ void main()
 			IndirectCommands[InstanceDrawData.MeshID].ExtentsY,
 			IndirectCommands[InstanceDrawData.MeshID].ExtentsZ);
 
-    mat4 ModelMatrix = ModelMatrixes[InstanceDrawData.ModelMatrixIndex];
+    mat4 ModelMatrix = TransformMatrixesData[InstanceDrawData.ModelMatrixIndex].ModelMatrix;
 	vec3 WorldBoundingBoxCenter = (ModelMatrix * vec4(BoundingBoxCenter,1.0f)).xyz;
 
 	mat3 AbsModelMatrix = mat3(

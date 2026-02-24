@@ -59,7 +59,7 @@ int main()
         ResourceManager.WaitTextureImportsIdle();
 
         SCENE::SceneOptions Options{};
-        Options.UploadMode = SCENE::SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL;
+        Options.UploadMode = SCENE::SCENE_DYNAMIC_UPLOAD_MODE_HOST_VISIBLE;
 
         SCENE::Scene Scene0;
         Scene0.Create(RendererContext, ResourceManager, Options);
@@ -97,7 +97,7 @@ int main()
         ShovelMaterial->ReferenceTexture(SomeTexture.GetHandleID(), SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
 
         auto QuadMaterial = QuadInstance0.GetMaterial(0);
-        QuadMaterial->ReferenceTexture(AnimationSprite.GetHandleID(), SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
+        //QuadMaterial->ReferenceTexture(AnimationSprite.GetHandleID(), SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);
 
         QuadMaterial->TextureSampleSize = glm::vec2(1);
         QuadMaterial->ReferenceTexture(AnimationSprite.GetHandleID(), SCENE::MATERIAL_TEXTURE_TYPE_ALBEDO);

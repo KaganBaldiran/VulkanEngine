@@ -39,6 +39,12 @@ namespace SCENE
 
 	namespace INTERNAL
 	{
+		struct ModelTransformMatrices
+		{
+			glm::mat4 ModelMatrix;
+			glm::mat4 NormalMatrix;
+		};
+
 		struct MaterialTextureIndexData
 		{
 			std::array<uint32_t, static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE)> TextureIndexes;
@@ -180,7 +186,8 @@ namespace SCENE
 			std::unordered_map<size_t, MaterialMetaData> Materials;
 			RENDERER_CORE::MemoryRegion TransformationMatrixMemoryRegion;
 			RENDERER_CORE::MemoryRegion StagingTransformationMatrixMemoryRegion;
-			glm::mat4 ModelMatrix;
+			ModelTransformMatrices TransformMatrices;
+			//glm::mat4 ModelMatrix;
 		};
 
 		//General layer of the entries. Unique for each frame in flight

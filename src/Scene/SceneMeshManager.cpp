@@ -47,9 +47,12 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsHostVisible(std::vector<M
 
         //Copy onto the destination buffer
         auto& AllocatedMemoryRegion = ModelInstanceEntryIterator->second.TransformationMatrixMemoryRegion;
-        glm::mat4 ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+        SCENE::INTERNAL::ModelTransformMatrices TransformMatrices{};
+        TransformMatrices.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+        TransformMatrices.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(TransformMatrices.ModelMatrix)));
+
         memcpy(Destination + AllocatedMemoryRegion.Offset,
-            &ModelMatrix,
+            &TransformMatrices,
             AllocatedMemoryRegion.Size
         );
 
@@ -82,9 +85,10 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
     auto& CurrentFrameInstanceEntries = CurrentFrameEntries.InstanceEntries;
 
     size_t SizeOfMat4 = sizeof(glm::mat4);
+    size_t SizeOfTransformMatrices = sizeof(SCENE::INTERNAL::ModelTransformMatrices);
 
     //Makes sure current staging buffer capacity is enough to take what's coming.
-    size_t MatrixBufferSize = CurrentFrameEntries.TransformationMatrixReallocated ? (CurrentFrameInstanceEntries.Size() * SizeOfMat4) : (UpdateList.size() * SizeOfMat4);
+    size_t MatrixBufferSize = CurrentFrameEntries.TransformationMatrixReallocated ? (CurrentFrameInstanceEntries.Size() * SizeOfTransformMatrices) : (UpdateList.size() * SizeOfTransformMatrices);
     StagingBuffer.AllocateSceneStagingBuffer(MatrixBufferSize, RendererContext);
     uint8_t* Destination = reinterpret_cast<uint8_t*>(StagingBuffer.StagingBuffer.Buffer.MappedMemory);
 
@@ -97,7 +101,10 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
         {
             auto ModelInstanceEntryIterator = CurrentFrameInstanceEntries.Find(ModelInstance->GetHandleID());
             if (!ModelInstanceEntryIterator) continue;
-            ModelInstanceEntryIterator->second.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+
+            glm::mat4 ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+            ModelInstanceEntryIterator->second.TransformMatrices.ModelMatrix = ModelMatrix;
+            ModelInstanceEntryIterator->second.TransformMatrices.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(ModelMatrix)));
         }
 
         //Refresh the copy regions since they will be overwritten anyways.
@@ -111,12 +118,11 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
             auto& StagingAllocatedMemoryRegion = InstanceEntry.StagingTransformationMatrixMemoryRegion;
             if (!StagingAllocatedMemoryRegion.Size || !IsThereCopyInfo)
             {
-                InstanceEntry.StagingTransformationMatrixMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMat4);
+                InstanceEntry.StagingTransformationMatrixMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfTransformMatrices);
             }
 
-            glm::mat4 ModelMatrix = InstanceEntry.ModelMatrix;
             memcpy(Destination + StagingAllocatedMemoryRegion.Offset,
-                &ModelMatrix,
+                &InstanceEntry.TransformMatrices,
                 StagingAllocatedMemoryRegion.Size
             );
 
@@ -142,12 +148,15 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
             auto& StagingAllocatedMemoryRegion = ModelInstanceEntryIterator->second.StagingTransformationMatrixMemoryRegion;
             if (!StagingAllocatedMemoryRegion.Size || !IsThereCopyInfo)
             {
-                StagingAllocatedMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMat4);
+                StagingAllocatedMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfTransformMatrices);
             }
 
-            glm::mat4 ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+            SCENE::INTERNAL::ModelTransformMatrices TransformMatrices{};
+            TransformMatrices.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+            TransformMatrices.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(TransformMatrices.ModelMatrix)));
+            //glm::mat4 ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
             memcpy(Destination + StagingAllocatedMemoryRegion.Offset,
-                &ModelMatrix,
+                &TransformMatrices,
                 StagingAllocatedMemoryRegion.Size
             );
 
@@ -157,7 +166,7 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
             CopyRegion.srcOffset = StagingAllocatedMemoryRegion.Offset;
             CopyOperations[TRANSFORMATION_MATRIX_COPY]->CopyInfo.CopyRegions.push_back(CopyRegion);
 
-            ModelInstanceEntryIterator->second.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+            ModelInstanceEntryIterator->second.TransformMatrices = TransformMatrices;
         }
     }
 }
@@ -179,6 +188,7 @@ void ProcessAppendList(
     size_t SizeOfVertex = sizeof(SCENE::Vertex3D),
         SizeOfUint32 = sizeof(uint32_t),
         SizeOfMat4 = sizeof(glm::mat4),
+        SizeOfTransformMatrices = sizeof(SCENE::INTERNAL::ModelTransformMatrices),
         SizeOfDrawMetaData = sizeof(SCENE::INTERNAL::DrawMetadata),
         SizeOfMaterialData = sizeof(SCENE::INTERNAL::MaterialData),
         SizeOfIndirectCommand = sizeof(SCENE::ExtendedIndirectCommand);
@@ -196,17 +206,21 @@ void ProcessAppendList(
         }
 
         MaterialUpdateList.push_back(ModelInstance);
+        glm::mat4 ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+        glm::mat4 NormalMatrix = glm::transpose(glm::inverse(glm::mat3(ModelMatrix)));
         //Handle already existing instance case
         auto InstanceIterator = CurrentFrameEntries.InstanceEntries.Find(ModelInstance->GetHandleID());
         if (InstanceIterator)
         {
-            InstanceIterator->second.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+            InstanceIterator->second.TransformMatrices.ModelMatrix = ModelMatrix;
+            InstanceIterator->second.TransformMatrices.NormalMatrix = NormalMatrix;
             continue;
         }
         //Couldn't find an existing instance entry with the provided ID so a new entry is introduced 
         SCENE::INTERNAL::InstanceEntry NewInstanceEntry{};
-        NewInstanceEntry.TransformationMatrixMemoryRegion = ModelMatricesBufferAllocator.Suballocate(SizeOfMat4);
-        NewInstanceEntry.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
+        NewInstanceEntry.TransformationMatrixMemoryRegion = ModelMatricesBufferAllocator.Suballocate(SizeOfTransformMatrices);
+        NewInstanceEntry.TransformMatrices.ModelMatrix = ModelMatrix;
+        NewInstanceEntry.TransformMatrices.NormalMatrix = NormalMatrix;
         NewInstanceEntry.Materials.reserve(ModelInstance->Source->Meshes.size());
         //Process and allocate the individual meshes 
         for (uint32_t i = 0; i < ModelInstance->Source->Meshes.size(); i++)
@@ -438,6 +452,7 @@ void CreateAppendCopyInfos(
  
     size_t SizeOfUint32 = sizeof(uint32_t),
         SizeOfMat4 = sizeof(glm::mat4),
+        SizeOfTransformMatrices= sizeof(SCENE::INTERNAL::ModelTransformMatrices),
         SizeOfDrawMetaData = sizeof(SCENE::INTERNAL::DrawMetadata),
         SizeOfIndirectCommand = sizeof(SCENE::ExtendedIndirectCommand);
 
@@ -470,8 +485,9 @@ void CreateAppendCopyInfos(
 
             SCENE::INTERNAL::DrawMetadata NewDrawMetaData{};
             NewDrawMetaData.MaterialID = MaterialDataIterator->second.TextureIndexMemoryRegion.Offset / sizeof(SCENE::INTERNAL::MaterialData);
-            NewDrawMetaData.MeshID = MeshIterator;
-            NewDrawMetaData.ModelMatrixIndex = InstanceIterator->second.TransformationMatrixMemoryRegion.Offset / SizeOfMat4;
+            //NewDrawMetaData.MeshID = MeshIterator;
+            NewDrawMetaData.MeshID = MeshEntry.IndirectBufferMemoryRegion.Offset / SizeOfIndirectCommand;
+            NewDrawMetaData.ModelMatrixIndex = InstanceIterator->second.TransformationMatrixMemoryRegion.Offset / SizeOfTransformMatrices;
 
             InstanceLink.DrawDataMemoryRegion = DrawMetaDataBuffer.Allocator.Suballocate(SizeOfDrawMetaData);
             if (!IsThereDrawMetaCopyInfos || !InstanceLink.StagingDrawDataMemoryRegion.Size)
@@ -586,7 +602,7 @@ void SCENE::SceneMeshManager::AppendModels(
         InsertedMeshInstanceCount
     );
     DrawMetaDataBufferAllocator.Suballocate(InsertedMeshInstanceCount * SizeOfDrawMetaData);
-    VisibilityIndexBuffer.Allocator.Suballocate(InsertedMeshInstanceCount * sizeof(size_t));
+    VisibilityIndexBuffer.Allocator.Suballocate(InsertedMeshInstanceCount * sizeof(uint32_t));
 
     //Check whether the allocator allocated extra virtual memory
     bool IsIndirectBufferReallocated = IndirectBufferCapacity < IndirectBufferAllocator.GetCapacity();
