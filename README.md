@@ -7,7 +7,8 @@ Vulkan engine is a real time PBR renderer powered by Vulkan graphics API written
 # Abilities
 - Pbr rendering.
 - HDRI support.
-- Multi-indirect rendering with dynamic central mesh buffer managing.  
+- Multi-indirect rendering with dynamic central mesh buffer managing.
+- GPU frustum culling.
 - Packed cascaded show maps.
 - Native instancing control.
 - Asynchronous asset loading.
