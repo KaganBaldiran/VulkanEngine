@@ -31,7 +31,7 @@ uint32_t RENDERER_CORE::FindMemoryType(VkPhysicalDevice &PhysicalDevice,uint32_t
     }
 }
 
-void RENDERER_CORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& LogicalDevice,VkDeviceSize Size, VkBufferUsageFlags Usage, VkMemoryPropertyFlags Properties, Buffer& DestinationBuffer)
+void RENDERER_CORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& LogicalDevice,VkDeviceSize Size, VkBufferUsageFlags Usage, VkMemoryPropertyFlags Properties, Buffer& DestinationBuffer,VkMemoryAllocateFlags AllocateFlags)
 {
     VkBufferCreateInfo BufferCreateInfo{};
     BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -49,10 +49,15 @@ void RENDERER_CORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& Logi
     VkMemoryRequirements MemoryRequirements{};
     vkGetBufferMemoryRequirements(LogicalDevice, DestinationBuffer.BufferObject, &MemoryRequirements);
 
+    VkMemoryAllocateFlagsInfo MemoryAllocateFlagsInfo{};
+    MemoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+    MemoryAllocateFlagsInfo.flags = AllocateFlags;
+
     VkMemoryAllocateInfo AllocationInfo{};
     AllocationInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     AllocationInfo.allocationSize = MemoryRequirements.size;
     AllocationInfo.memoryTypeIndex = RENDERER_CORE::FindMemoryType(PhysicalDevice,MemoryRequirements.memoryTypeBits, Properties);
+    AllocationInfo.pNext = &MemoryAllocateFlagsInfo;
 
     if (vkAllocateMemory(LogicalDevice, &AllocationInfo, nullptr, &DestinationBuffer.BufferMemory) != VK_SUCCESS)
     {
@@ -77,7 +82,6 @@ void RENDERER_CORE::Buffer::Destroy(VkDevice &LogicalDevice)
         vkFreeMemory(LogicalDevice, BufferMemory, nullptr);
         BufferMemory = VK_NULL_HANDLE; 
     }
-
     if (BufferObject != VK_NULL_HANDLE)
     {
         vkDestroyBuffer(LogicalDevice, BufferObject, nullptr);
@@ -115,7 +119,12 @@ void RENDERER_CORE::CopyBuffer(std::vector<VkBufferCopy> CopyRegions, VkBuffer S
     RENDERER_CORE::ExecuteSingleTimeCommand(LogicalDevice, CopyCommand, CommandPool, Queue);
 }
 
-void RENDERER_CORE::CopyBuffer(std::vector<BufferCopyInfo> CopyInfos, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& Queue)
+void RENDERER_CORE::CopyBuffer(
+    std::vector<BufferCopyInfo> CopyInfos,
+    VkDevice& LogicalDevice, 
+    VkCommandPool& CommandPool, 
+    VkQueue& Queue
+)
 {
     auto CopyCommand = [&](VkCommandBuffer& CommandBuffer) {
         for (auto& CopyInfo : CopyInfos)
@@ -189,6 +198,15 @@ void RENDERER_CORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice
     );
 
     StagingBuffer.Destroy(LogicalDevice);
+}
+
+uint64_t RENDERER_CORE::GetBufferDeviceAddress(VkDevice& LogicalDevice,const Buffer& Buffer)
+{
+    VkBufferDeviceAddressInfoKHR Info{};
+    Info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    Info.buffer = Buffer.BufferObject;
+    //return vkGetBufferDeviceAddressKHR(LogicalDevice,&Info);
+    return 0;
 }
 
 void RENDERER_CORE::PersistentBuffer::Map(VkDevice& LogicalDevice, VkDeviceSize Offset, VkDeviceSize Size, VkMemoryMapFlags Flags)

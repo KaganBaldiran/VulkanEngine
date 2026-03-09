@@ -263,11 +263,11 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
     };
     vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, CurrentPipeline.Layout, 0, 3, DescriptorSets, 0, nullptr);
 
-    VkBuffer VertexBuffers[] = { MeshManager.GetCurrentVertexBuffer(CurrentFrame).Buffer.BufferObject };
+   /* VkBuffer VertexBuffers[] = { MeshManager.GetCurrentVertexBuffer(CurrentFrame).Buffer.BufferObject };
     VkDeviceSize VertexOffsets[] = { 0 };
     vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, VertexOffsets);
     VkDeviceSize IndexOffset = 0;
-    vkCmdBindIndexBuffer(CommandBuffer, MeshManager.GetCurrentIndexBuffer(CurrentFrame).Buffer.BufferObject, IndexOffset, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(CommandBuffer, MeshManager.GetCurrentIndexBuffer(CurrentFrame).Buffer.BufferObject, IndexOffset, VK_INDEX_TYPE_UINT32);*/
 
     glm::mat4 ProjViewMatrix;
 
@@ -304,28 +304,42 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
         &Matrices
     );
 
-    if (RendererContextPtr->DeviceContext.DeviceFeatures.multiDrawIndirect)
+    auto& PageMeshCounts = Scene.MeshBuffers.PageMeshCounts[CurrentFrame];
+    size_t Offset = 0;
+    for (size_t i = 0; i < PageMeshCounts.size(); i++)
     {
-        vkCmdDrawIndexedIndirect(
-            CommandBuffer,
-            Scene.MeshBuffers.SceneBuffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
-            0,
-            PerformanceModeEnabledMeshCount,
-            sizeof(SCENE::ExtendedIndirectCommand)
-        );
-    }
-    else
-    {
-        for (size_t i = 0; i < PerformanceModeEnabledMeshCount; i++)
+        auto& PageMeshCount = PageMeshCounts[i];
+
+        VkBuffer GeometryBuffers[] = {MeshManager.GeometryBufferPages[CurrentFrame][i].Buffer.BufferObject};
+        VkDeviceSize VertexOffsets[] = { 0 };
+        vkCmdBindVertexBuffers(CommandBuffer, 0, 1, GeometryBuffers, VertexOffsets);
+        VkDeviceSize IndexOffset = 0;
+        vkCmdBindIndexBuffer(CommandBuffer, MeshManager.GeometryBufferPages[CurrentFrame][i].Buffer.BufferObject, IndexOffset, VK_INDEX_TYPE_UINT32);
+
+        if (RendererContextPtr->DeviceContext.DeviceFeatures2.features.multiDrawIndirect)
         {
             vkCmdDrawIndexedIndirect(
                 CommandBuffer,
                 Scene.MeshBuffers.SceneBuffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
-                i * sizeof(SCENE::ExtendedIndirectCommand),
-                1,
+                Offset,
+                PageMeshCount.MeshCount,
                 sizeof(SCENE::ExtendedIndirectCommand)
             );
         }
+        else
+        {
+            for (size_t j = 0; j < PageMeshCount.MeshCount; j++)
+            {
+                vkCmdDrawIndexedIndirect(
+                    CommandBuffer,
+                    Scene.MeshBuffers.SceneBuffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
+                    Offset + j * sizeof(SCENE::ExtendedIndirectCommand),
+                    1,
+                    sizeof(SCENE::ExtendedIndirectCommand)
+                );
+            }
+        }
+        Offset += PageMeshCount.MeshCount * sizeof(SCENE::ExtendedIndirectCommand);
     }
 
     RenderingPass.EndRendering(CommandBuffer);

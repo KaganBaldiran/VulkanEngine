@@ -41,7 +41,7 @@ namespace COMMON
 
 #define LOG_FILE(FilePath,Message) COMMON::Logger::Get().FileLog(FilePath,Message);
 #define LOG_FILE(FilePath,Severity,Message) COMMON::Logger::Get().FileLog(FilePath,{Severity,Message});
-#define LOG_CONSOLE(FilePath,Message) COMMON::Logger::Get().ConsoleLog(FilePath,Message);
+#define LOG_CONSOLE(Severity,Message) COMMON::Logger::Get().ConsoleLog({Severity,Message});
 }
 
 

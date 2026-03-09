@@ -16,47 +16,51 @@ void RENDERER_CORE::VirtualArenaAllocator::Create(size_t InitialCapacityInBytes,
     TotalFreeSpace = InitialCapacityInBytes;
 }
 
-RENDERER_CORE::MemoryRegion RENDERER_CORE::VirtualArenaAllocator::Suballocate(size_t SizeInBytes,bool AutoAllocate)
+RENDERER_CORE::MemoryRegion RENDERER_CORE::VirtualArenaAllocator::Suballocate(size_t SizeInBytes,size_t Alignment, bool AutoAllocate)
 {
-    if(SizeInBytes == 0) return { 0,0 };
+    if(SizeInBytes == 0) return { 0, 0, 0, 0, 0 };
+    size_t AlignedSize = AlignUp(SizeInBytes, Alignment);
     while (true)
     {
         for (size_t FreeRegionIndex = 0; FreeRegionIndex < FreeRegions.size(); FreeRegionIndex++)
         {
             auto& FreeRegion = FreeRegions[FreeRegionIndex];
-            if (SizeInBytes <= FreeRegion.Size)
+            size_t AllocatedOffset = FreeRegion.Offset;
+            size_t StartPadding = AlignUp(AllocatedOffset, Alignment) - AllocatedOffset;
+            size_t TotalRequiredSize = AlignedSize + StartPadding;
+            if (TotalRequiredSize <= FreeRegion.Size)
             {
-                size_t AllocatedOffset = FreeRegion.Offset;
-                if (SizeInBytes == FreeRegion.Size)
+                if (TotalRequiredSize == FreeRegion.Size)
                 {
                     FreeRegions.erase(FreeRegions.begin() + FreeRegionIndex);
                 }
                 else
                 {
-                    FreeRegion.Offset += SizeInBytes;
-                    FreeRegion.Size -= SizeInBytes;
+                    FreeRegion.Offset += TotalRequiredSize;
+                    FreeRegion.Size -= TotalRequiredSize;
                 }
-                TotalFreeSpace -= SizeInBytes;
-                return { AllocatedOffset, SizeInBytes };
+                TotalFreeSpace -= TotalRequiredSize;
+                return { AllocatedOffset + StartPadding,AlignedSize,AllocatedOffset,TotalRequiredSize,Alignment };
             }
         }
-        if (AutoAllocate) Allocate(SizeInBytes);
+        if (AutoAllocate) Allocate(AlignedSize + Alignment - 1);
         else break;
     }
-    return {0,0};
+    return { 0, 0, 0, 0, 0 };
 }
 
 void RENDERER_CORE::VirtualArenaAllocator::Allocate(size_t SizeInBytes)
 {
+    //size_t AdditionalAllocatedSize = AlignUp(SizeInBytes, ChunkSize);
     size_t AdditionalAllocatedSize = static_cast<size_t>(std::ceil(static_cast<float>(SizeInBytes) / static_cast<float>(ChunkSize))) * ChunkSize;
-    FreeRegions.push_back({ Capacity, AdditionalAllocatedSize });
+    FreeRegions.push_back({ Capacity,AdditionalAllocatedSize });
     Capacity += AdditionalAllocatedSize;
     TotalFreeSpace += AdditionalAllocatedSize;
 
     std::sort(FreeRegions.begin(), FreeRegions.end(), [&](auto& Region0, auto& Region1) {
         return Region0.Offset < Region1.Offset;
-        });
-    std::vector<MemoryRegion> MergedFreeRegions;
+    });
+    std::vector<AllocatableMemoryRegion> MergedFreeRegions;
     MergedFreeRegions.reserve(FreeRegions.size());
     for (auto& FreeRegion : FreeRegions)
     {
@@ -74,14 +78,14 @@ void RENDERER_CORE::VirtualArenaAllocator::Allocate(size_t SizeInBytes)
 
 void RENDERER_CORE::VirtualArenaAllocator::Free(const MemoryRegion& RegionToFree)
 {
-    if (RegionToFree.Size == 0) throw std::runtime_error("Invalid memory region!");
-    FreeRegions.push_back(RegionToFree);
+    if (RegionToFree.Size == 0 || (RegionToFree.OffsetWithoutPadding + RegionToFree.TotalConsumedSize) > Capacity) throw std::runtime_error("Invalid memory region!");
+    FreeRegions.push_back({ RegionToFree.OffsetWithoutPadding,RegionToFree.TotalConsumedSize});
     std::sort(FreeRegions.begin(), FreeRegions.end(), [&](auto& Region0, auto& Region1) {
         return Region0.Offset < Region1.Offset;
     });
-    TotalFreeSpace += RegionToFree.Size;
+    TotalFreeSpace += RegionToFree.TotalConsumedSize;
 
-    std::vector<MemoryRegion> MergedFreeRegions;
+    std::vector<AllocatableMemoryRegion> MergedFreeRegions;
     for (auto& FreeRegion : FreeRegions)
     {
         if (!MergedFreeRegions.empty() && (MergedFreeRegions.back().Offset + MergedFreeRegions.back().Size) == FreeRegion.Offset)
@@ -99,7 +103,7 @@ void RENDERER_CORE::VirtualArenaAllocator::Free(const MemoryRegion& RegionToFree
 void RENDERER_CORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion>& Regions)
 {
     std::sort(Regions.begin(), Regions.end(), [&](auto& Region0, auto& Region1) {
-        return Region0.Offset < Region1.Offset;
+        return Region0.OffsetWithoutPadding < Region1.OffsetWithoutPadding;
     });
 
     std::vector<MemoryRegion> DefragmentedRegions;
@@ -107,9 +111,14 @@ void RENDERER_CORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion>&
     size_t Offset = 0;
     for (auto& Region : Regions)
     {
-        if (Region.Size == 0) continue;
-        DefragmentedRegions.push_back({ Offset, Region.Size });
-        Offset += Region.Size;
+        if (Region.Size == 0 || Region.TotalConsumedSize == 0) continue;
+
+        size_t AlignedOffset = AlignUp(Offset, Region.Alignment);
+        size_t StartPadding = AlignedOffset - Offset;
+        size_t TotalConsumedSize = Region.Size + StartPadding;
+
+        DefragmentedRegions.push_back({ AlignedOffset, Region.Size,Offset, TotalConsumedSize ,Region.Alignment });
+        Offset += TotalConsumedSize;
     }
     std::swap(DefragmentedRegions, Regions);
 
@@ -120,17 +129,24 @@ void RENDERER_CORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion>&
 
 void RENDERER_CORE::VirtualArenaAllocator::Defragment(std::vector<MemoryRegion*>& Regions)
 {
-    if (Regions.empty()) return;
     std::sort(Regions.begin(), Regions.end(), [&](auto& Region0, auto& Region1) {
-        return Region0->Offset < Region1->Offset;
-    });
+        return Region0->OffsetWithoutPadding < Region1->OffsetWithoutPadding;
+        });
 
     size_t Offset = 0;
     for (auto& Region : Regions)
     {
-        if (!Region || Region->Size == 0) continue;
-        Region->Offset = Offset;
-        Offset += Region->Size;
+        if (!Region || Region->Size == 0 || Region->TotalConsumedSize == 0) continue;
+
+        size_t AlignedOffset = AlignUp(Offset, Region->Alignment);
+        size_t StartPadding = AlignedOffset - Offset;
+        size_t TotalConsumedSize = Region->Size + StartPadding;
+
+        Region->Offset = AlignedOffset;
+        Region->OffsetWithoutPadding = Offset;
+        Region->TotalConsumedSize = TotalConsumedSize;
+
+        Offset += TotalConsumedSize;
     }
 
     FreeRegions.clear();
@@ -156,4 +172,10 @@ void RENDERER_CORE::VirtualArenaAllocator::Reset(size_t Capacity)
     this->Capacity = Capacity;
     FreeRegions.push_back({ 0,Capacity });
     TotalFreeSpace = Capacity;
+}
+
+size_t RENDERER_CORE::AlignUp(size_t Size, size_t Alignment)
+{
+    //return (Size + Alignment - 1) & ~(Alignment - 1);
+    return ((Size + Alignment - 1) / Alignment) * Alignment;
 }

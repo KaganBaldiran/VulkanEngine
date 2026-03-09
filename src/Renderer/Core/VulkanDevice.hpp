@@ -10,11 +10,26 @@
 
 namespace RENDERER_CORE
 {
+    struct DeviceFeature
+    {
+        //Vulkan extention name
+        std::string ExtensionName;
+        //Feature structure thats passed through 
+        void* FeatureStructure = nullptr;
+        //Flag that makes the device creation dependent on this feature and extension
+        bool Required = false;
+        //Condition to check whether the desired feature in the feature struct is set.
+        //Makes the given feature "Required"
+        std::function<bool()> CheckAvailability;
+    };
+
     struct VulkanDeviceCreateInfo
     {
         std::function<int(VkPhysicalDevice&, VkSurfaceKHR&)> PhysicalDeviceScoreEvalOperation;
-        std::vector<const char*> DeviceExtensionsToEnable;
+        std::vector<DeviceFeature> RequestedDeviceFeatureNodes;
+        //std::vector<const char*> DeviceExtensionsToEnable;
         float QueuePriority = 1.0f;
+        void* FeaturesToEnable = nullptr;
     };
 
     struct QueueFamilyIndices {
@@ -22,17 +37,18 @@ namespace RENDERER_CORE
         std::optional<uint32_t> GraphicsComputeFamily;
         std::optional<uint32_t> ComputeFamily;
         std::optional<uint32_t> PresentFamily;
+        std::optional<uint32_t> TransferFamily;
 
         bool HasGraphics() { return GraphicsFamily.has_value(); };
         bool HasCompute() { return ComputeFamily.has_value(); };
         bool HasPresent() { return PresentFamily.has_value(); };
         bool HasComputeGraphics() { return GraphicsComputeFamily.has_value(); };
+        bool HasTransfer() { return TransferFamily.has_value(); };
 
         bool isComplete() {
             return GraphicsComputeFamily.has_value() && GraphicsFamily.has_value() && PresentFamily.has_value() && ComputeFamily.has_value();
         }
     };
-
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR Capabilities;
         std::vector<VkSurfaceFormatKHR> Formats;
@@ -42,22 +58,25 @@ namespace RENDERER_CORE
     VulkanResult CreateSurface(VkInstance& Instance, GLFWwindow* Window, VkSurfaceKHR& Surface);
   
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice Device, VkSurfaceKHR& Surface);
-    bool CheckDeviceExtensionSupport(VkPhysicalDevice Device, const std::vector<const char*>& DeviceExtensions);
+    bool CheckDeviceExtensionSupport(VkPhysicalDevice Device, const std::vector<DeviceFeature>& DeviceExtensions);
+    bool EvaluateDeviceExtensions(VkPhysicalDevice Device, std::vector<DeviceFeature>& DeviceExtensions);
     QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice Device, VkSurfaceKHR& Surface);
-    int CheckDeviceSuitability(VkPhysicalDevice Device, VkSurfaceKHR& Surface, const std::vector<const char*> DeviceExtensions);
+    int CheckDeviceSuitability(VkPhysicalDevice Device, VkSurfaceKHR& Surface, const std::vector<DeviceFeature> DeviceExtensions);
     VulkanResult PickPhysicalDevice(VulkanDeviceCreateInfo& CreateInfo, VkInstance& Instance, VkPhysicalDevice& DestinationDevice, VkSurfaceKHR& Surface);
 
     VulkanResult CreateLogicalDevice(
-        VulkanDeviceCreateInfo& CreateInfo,
         VkPhysicalDevice PhysicalDevice,
         VkSurfaceKHR Surface,
         VkDevice& LogicalDevice,
         VkQueue& GraphicsQueue,
         VkQueue& PresentQueue,
         VkQueue& ComputeQueue,
-        VkQueue& GraphicsComputeQueue
+        VkQueue& TransferQueue,
+        VkQueue& GraphicsComputeQueue,
+        float QueuePriority,
+        VkBaseOutStructure* FeaturesToEnable,
+        std::vector<const char*> ExtensionsToEnable
     );
-
 
     class Surface
     {
@@ -79,7 +98,10 @@ namespace RENDERER_CORE
         void Create(VulkanDeviceCreateInfo& CreateInfo, VkSurfaceKHR& Surface, VkInstance& Instance);
         void Destroy();
 
-        VkPhysicalDeviceFeatures DeviceFeatures;
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR AccelerationStructureFeatures;
+        VkPhysicalDeviceRayQueryFeaturesKHR RayQueryFeatures;
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR RayTracingPipelineFeatures;
+        VkPhysicalDeviceFeatures2 DeviceFeatures2;
         VkPhysicalDeviceProperties DeviceProperties;
 
         VkDevice LogicalDevice;
@@ -87,6 +109,7 @@ namespace RENDERER_CORE
 
         VkQueue PresentQueue = VK_NULL_HANDLE;
         VkQueue GraphicsQueue = VK_NULL_HANDLE;
+        VkQueue TransferQueue = VK_NULL_HANDLE;
         VkQueue ComputeQueue = VK_NULL_HANDLE;
         VkQueue GraphicsComputeQueue = VK_NULL_HANDLE;
     private:

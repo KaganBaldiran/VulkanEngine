@@ -42,6 +42,10 @@ RENDERER_CORE::QueueFamilyIndices RENDERER_CORE::FindQueueFamilies(VkPhysicalDev
         {
             Indices.ComputeFamily = i;
         }
+        if ((QueueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) && !(QueueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) && !(QueueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT))
+        {
+            Indices.TransferFamily = i;
+        }
         if (DoesSupportPresent)
         {
             Indices.PresentFamily = i;
@@ -55,7 +59,7 @@ RENDERER_CORE::QueueFamilyIndices RENDERER_CORE::FindQueueFamilies(VkPhysicalDev
     }
     return Indices;
 }
-
+/*
 bool RENDERER_CORE::CheckDeviceExtensionSupport(VkPhysicalDevice Device, const std::vector<const char*> &DeviceExtensions)
 {
     uint32_t ExtensionCount;
@@ -70,8 +74,40 @@ bool RENDERER_CORE::CheckDeviceExtensionSupport(VkPhysicalDevice Device, const s
     {
         RequiredExtensions.erase(Extension.extensionName);
     }
-
     return RequiredExtensions.empty();
+}
+*/
+
+bool RENDERER_CORE::CheckDeviceExtensionSupport(VkPhysicalDevice Device, const std::vector<DeviceFeature>& DeviceExtensions)
+{
+    uint32_t ExtensionCount;
+    vkEnumerateDeviceExtensionProperties(Device, nullptr, &ExtensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> AvailableExtensions(ExtensionCount);
+    vkEnumerateDeviceExtensionProperties(Device, nullptr, &ExtensionCount, AvailableExtensions.data());
+
+    for (const auto& Extension : DeviceExtensions)
+    {
+        if (Extension.ExtensionName.empty()) continue;
+        bool Found = false;
+        for (const auto& AvailableExtension : AvailableExtensions)
+        {
+            if (strcmp(AvailableExtension.extensionName, Extension.ExtensionName.c_str()))
+            {
+                Found = true;
+                break;
+            }
+        }
+        if (!Found && Extension.Required) return false;
+    }
+    return true;
+}
+
+bool RENDERER_CORE::EvaluateDeviceExtensions(VkPhysicalDevice Device, std::vector<DeviceFeature>& DeviceExtensions)
+{
+   
+
+    return false;
 }
 
 RENDERER_CORE::SwapChainSupportDetails RENDERER_CORE::QuerySwapChainSupport(VkPhysicalDevice Device,VkSurfaceKHR &Surface)
@@ -101,7 +137,7 @@ RENDERER_CORE::SwapChainSupportDetails RENDERER_CORE::QuerySwapChainSupport(VkPh
     return Details;
 }
 
-int RENDERER_CORE::CheckDeviceSuitability(VkPhysicalDevice Device,VkSurfaceKHR& Surface,const std::vector<const char*> DeviceExtensions)
+int RENDERER_CORE::CheckDeviceSuitability(VkPhysicalDevice Device,VkSurfaceKHR& Surface,const std::vector<DeviceFeature> DeviceExtensions)
 {
     VkPhysicalDeviceProperties DeviceProperties;
     vkGetPhysicalDeviceProperties(Device, &DeviceProperties);
@@ -120,9 +156,8 @@ int RENDERER_CORE::CheckDeviceSuitability(VkPhysicalDevice Device,VkSurfaceKHR& 
     RENDERER_CORE::QueueFamilyIndices indices = RENDERER_CORE::FindQueueFamilies(Device, Surface);
 
     bool IsExtensionsSupported = RENDERER_CORE::CheckDeviceExtensionSupport(Device, DeviceExtensions);
-
-    Score *= static_cast<int>(indices.GraphicsFamily.has_value());
     Score *= static_cast<int>(IsExtensionsSupported);
+    Score *= static_cast<int>(indices.GraphicsFamily.has_value());
 
     if (IsExtensionsSupported)
     {
@@ -153,7 +188,7 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::PickPhysicalDevice(VulkanDeviceCreate
     {
         int Score;
         if (CreateInfo.PhysicalDeviceScoreEvalOperation) Score = CreateInfo.PhysicalDeviceScoreEvalOperation(Device, Surface);
-        else Score = RENDERER_CORE::CheckDeviceSuitability(Device, Surface,CreateInfo.DeviceExtensionsToEnable);
+        else Score = RENDERER_CORE::CheckDeviceSuitability(Device, Surface,CreateInfo.RequestedDeviceFeatureNodes);
         Candidates.insert({ Score,Device });
     }
 
@@ -171,14 +206,17 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::PickPhysicalDevice(VulkanDeviceCreate
 }
 
 RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
-    VulkanDeviceCreateInfo& CreateInfo,
     VkPhysicalDevice PhysicalDevice,
     VkSurfaceKHR Surface,
     VkDevice& LogicalDevice,
     VkQueue& GraphicsQueue,
     VkQueue& PresentQueue,
     VkQueue& ComputeQueue,
-    VkQueue& GraphicsComputeQueue
+    VkQueue& TransferQueue,
+    VkQueue& GraphicsComputeQueue,
+    float QueuePriority,
+    VkBaseOutStructure* FeaturesToEnable,
+    std::vector<const char*> ExtensionsToEnable
 )
 {
     RENDERER_CORE::QueueFamilyIndices indices = RENDERER_CORE::FindQueueFamilies(PhysicalDevice, Surface);
@@ -187,6 +225,7 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
     std::set<uint32_t> UniqueQueueFamilies = { indices.GraphicsFamily.value(), indices.PresentFamily.value(), };
     if (indices.HasCompute()) UniqueQueueFamilies.insert(indices.ComputeFamily.value());
     if (indices.HasComputeGraphics()) UniqueQueueFamilies.insert(indices.GraphicsComputeFamily.value());
+    if (indices.HasTransfer()) UniqueQueueFamilies.insert(indices.TransferFamily.value());
 
     QueueCreateInfos.reserve(UniqueQueueFamilies.size());
 
@@ -196,7 +235,7 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
         QueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         QueueCreateInfo.queueFamilyIndex = QueueFamily;
         QueueCreateInfo.queueCount = 1;
-        QueueCreateInfo.pQueuePriorities = &CreateInfo.QueuePriority;
+        QueueCreateInfo.pQueuePriorities = &QueuePriority;
         QueueCreateInfos.push_back(QueueCreateInfo);
     }
 
@@ -209,33 +248,9 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
     DeviceCreateInfo.pQueueCreateInfos = QueueCreateInfos.data();
     DeviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(QueueCreateInfos.size());
     DeviceCreateInfo.pEnabledFeatures = &DeviceFeatures;
-    DeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(CreateInfo.DeviceExtensionsToEnable.size());
-    DeviceCreateInfo.ppEnabledExtensionNames = CreateInfo.DeviceExtensionsToEnable.data();
-
-    VkPhysicalDeviceSynchronization2Features Synchronization2Features{};
-    Synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
-    Synchronization2Features.synchronization2 = VK_TRUE;
-
-    VkPhysicalDeviceTimelineSemaphoreFeatures TimelineFeatures{};
-    TimelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
-    TimelineFeatures.timelineSemaphore = VK_TRUE;
-    TimelineFeatures.pNext = &Synchronization2Features;
-
-    VkPhysicalDeviceDescriptorIndexingFeatures PhysicalDeviceDescriptorIndexingFeatures{};
-    PhysicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-    PhysicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
-    PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
-    PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
-    PhysicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-    PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-    PhysicalDeviceDescriptorIndexingFeatures.pNext = &TimelineFeatures;
-
-    VkPhysicalDeviceDynamicRenderingFeaturesKHR DynamicRenderingFeatures{};
-    DynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
-    DynamicRenderingFeatures.dynamicRendering = VK_TRUE;
-    DynamicRenderingFeatures.pNext = &PhysicalDeviceDescriptorIndexingFeatures;
-
-    DeviceCreateInfo.pNext = &DynamicRenderingFeatures;
+    DeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(ExtensionsToEnable.size());
+    DeviceCreateInfo.ppEnabledExtensionNames = ExtensionsToEnable.data();
+    DeviceCreateInfo.pNext = FeaturesToEnable;
 
     if (vkCreateDevice(PhysicalDevice, &DeviceCreateInfo, nullptr, &LogicalDevice) != VK_SUCCESS)
     {
@@ -257,6 +272,11 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
     {
         vkGetDeviceQueue(LogicalDevice, indices.ComputeFamily.value(), 0, &ComputeQueue);
         LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Detected compute queue [" + std::to_string(reinterpret_cast<uintptr_t>(ComputeQueue)) + "].");
+    }
+    if (indices.HasTransfer())
+    {
+        vkGetDeviceQueue(LogicalDevice, indices.TransferFamily.value(), 0, &TransferQueue);
+        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Detected transfer queue [" + std::to_string(reinterpret_cast<uintptr_t>(TransferQueue)) + "].");
     }
     if (indices.HasComputeGraphics())
     {
@@ -294,27 +314,91 @@ void RENDERER_CORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, Vk
     VULKAN_ASSERT_RESULT(PickPhysicalDevice(CreateInfo, Instance, PhysicalDevice, Surface));
 
     vkGetPhysicalDeviceProperties(PhysicalDevice, &DeviceProperties);
-    vkGetPhysicalDeviceFeatures(PhysicalDevice, &DeviceFeatures);
+
+    DeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    AccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    RayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+    RayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+
+    uint32_t ExtensionCount;
+    vkEnumerateDeviceExtensionProperties(PhysicalDevice, nullptr, &ExtensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> AvailableExtensions(ExtensionCount);
+    vkEnumerateDeviceExtensionProperties(PhysicalDevice, nullptr, &ExtensionCount, AvailableExtensions.data());
+
+    VkBaseOutStructure* FeatureLine = reinterpret_cast<VkBaseOutStructure*>(&AccelerationStructureFeatures);
+    std::vector<const char*> SupportedExtensionNames;
+    SupportedExtensionNames.reserve(CreateInfo.RequestedDeviceFeatureNodes.size());
+    
+    std::vector<RENDERER_CORE::DeviceFeature*> PassedInitialCheck;
+    PassedInitialCheck.reserve(CreateInfo.RequestedDeviceFeatureNodes.size());
+    for (auto& Extension : CreateInfo.RequestedDeviceFeatureNodes)
+    {
+        bool IsSupported = false;
+        if (!Extension.ExtensionName.empty())
+        {
+            for (const auto& AvailableExtension : AvailableExtensions)
+            {
+                if (strcmp(AvailableExtension.extensionName, Extension.ExtensionName.c_str()) == 0)
+                {
+                    IsSupported = true;
+                    break;
+                }
+            }
+            if (!IsSupported) continue;
+            SupportedExtensionNames.push_back(Extension.ExtensionName.c_str());
+        }
+        if(Extension.FeatureStructure)
+        {
+            FeatureLine->pNext = reinterpret_cast<VkBaseOutStructure*>(Extension.FeatureStructure);
+            FeatureLine = FeatureLine->pNext;
+            FeatureLine->pNext = nullptr;
+
+            PassedInitialCheck.push_back(&Extension);
+        }
+    }
+
+    RayQueryFeatures.pNext = &AccelerationStructureFeatures;
+    RayTracingPipelineFeatures.pNext = &RayQueryFeatures;
+    DeviceFeatures2.pNext = &RayTracingPipelineFeatures;
+    vkGetPhysicalDeviceFeatures2(PhysicalDevice, &DeviceFeatures2);
+
+    FeatureLine = reinterpret_cast<VkBaseOutStructure*>(&AccelerationStructureFeatures);
+    FeatureLine->pNext = nullptr;
+    for (auto& FeatureNode : PassedInitialCheck)
+    {
+        if (FeatureNode->CheckAvailability && FeatureNode->CheckAvailability())
+        {
+            FeatureLine->pNext = reinterpret_cast<VkBaseOutStructure*>(FeatureNode->FeatureStructure);
+            FeatureLine = FeatureLine->pNext;
+            FeatureLine->pNext = nullptr;
+        }
+        else if (FeatureNode->Required)
+        {
+            const char* FeatureName = string_VkStructureType(reinterpret_cast<VkBaseOutStructure*>(FeatureNode->FeatureStructure)->sType);
+            LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Physical Device " + std::string(DeviceProperties.deviceName) +
+                " doesn't support a required feature (" + FeatureName + ")!");
+            LOG_CONSOLE(COMMON::LOG_SEVERITY_VERBOSE,"Physical Device " + std::string(DeviceProperties.deviceName) +
+                                    " doesn't support a required feature (" + FeatureName + ")! Exiting...")
+            exit(-1);
+        }
+    }
 
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, "Detected a suitable physical device [name(" + std::string(DeviceProperties.deviceName) +
         "), device type(" + string_VkPhysicalDeviceType(DeviceProperties.deviceType) + ")].");
-    if (!DeviceFeatures.drawIndirectFirstInstance && !DeviceFeatures.shaderSampledImageArrayDynamicIndexing)
-    {
-        LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Physical Device " + std::string(DeviceProperties.deviceName) +
-            " doesn't support drawIndirectFirstInstance or shaderSampledImageArrayDynamicIndexing.");
-        std::cout << "Physical Device '" << DeviceProperties.deviceName <<"' doesn't support drawIndirectFirstInstance or shaderSampledImageArrayDynamicIndexing! Exitting..." << std::endl;
-        exit(-1);
-    }
-    
+
     VULKAN_ASSERT_RESULT(CreateLogicalDevice(
-        CreateInfo,
         PhysicalDevice, 
         Surface, 
         LogicalDevice, 
         GraphicsQueue, 
         PresentQueue,
         ComputeQueue,
-        GraphicsComputeQueue
+        TransferQueue,
+        GraphicsComputeQueue,
+        CreateInfo.QueuePriority,
+        FeatureLine->pNext,
+        SupportedExtensionNames
     ));
 }
 

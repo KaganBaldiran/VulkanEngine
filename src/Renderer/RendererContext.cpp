@@ -61,14 +61,14 @@ RENDERER::RendererContext::RendererContext(
     uint32_t WindowWidth,
     uint32_t WindowHeight,
     const char* WindowName,
-    bool EnableValidationLayers
+    RendererSettings Settings
 )
 {
     Create(
         WindowWidth,
         WindowHeight,
         WindowName,
-        EnableValidationLayers
+        Settings
     );
 }
 
@@ -76,7 +76,7 @@ void RENDERER::RendererContext::Create(
     uint32_t WindowWidth,
     uint32_t WindowHeight,
     const char* WindowName,
-    bool EnableValidationLayers
+    RendererSettings Settings
 )
 {
     RENDERER_CORE::VulkanWindowCreateInfo WindowCreateInfo{};
@@ -98,8 +98,90 @@ void RENDERER::RendererContext::Create(
     Surface.Create(Instance.instance, Window.window);
 
     RENDERER_CORE::VulkanDeviceCreateInfo DeviceCreateInfo{};
-    DeviceCreateInfo.DeviceExtensionsToEnable = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME };
     DeviceCreateInfo.QueuePriority = 1.0f;
+
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+        VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        nullptr,
+        false      
+        });
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR AccelerationStructureFeatures{};
+    AccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    AccelerationStructureFeatures.accelerationStructure = VK_TRUE;
+
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+       VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+       &AccelerationStructureFeatures,
+       false,
+        [&AccelerationStructureFeatures]() { return AccelerationStructureFeatures.accelerationStructure == VK_TRUE; }
+    });
+
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+       VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+       nullptr,
+       false
+    });
+
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        nullptr,
+        true
+    });
+
+    VkPhysicalDeviceDynamicRenderingFeaturesKHR DynamicRenderingFeatures{};
+    DynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+    DynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+       VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+       &DynamicRenderingFeatures,
+       true,
+       [&DynamicRenderingFeatures]() { return DynamicRenderingFeatures.dynamicRendering == VK_TRUE; }
+    });
+    
+    VkPhysicalDeviceSynchronization2Features Synchronization2Features{};
+    Synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+    Synchronization2Features.synchronization2 = VK_TRUE;
+
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+        std::string(),
+        &Synchronization2Features,
+        true,
+        [&Synchronization2Features]() { return Synchronization2Features.synchronization2 == VK_TRUE; }
+    });
+
+    VkPhysicalDeviceTimelineSemaphoreFeatures TimelineFeatures{};
+    TimelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
+    TimelineFeatures.timelineSemaphore = VK_TRUE;
+
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+        std::string(),
+        &TimelineFeatures,
+        true,
+        [&TimelineFeatures]() { return TimelineFeatures.timelineSemaphore == VK_TRUE; }
+    });
+
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.insert(DeviceCreateInfo.RequestedDeviceFeatureNodes.end(), Settings.RequestedDeviceFeatureNodes.begin(), Settings.RequestedDeviceFeatureNodes.end());
+
+    VkPhysicalDeviceDescriptorIndexingFeatures PhysicalDeviceDescriptorIndexingFeatures{};
+    PhysicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    PhysicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
+    PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+    PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    PhysicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+       std::string(),
+       & PhysicalDeviceDescriptorIndexingFeatures,
+       true,
+       [&PhysicalDeviceDescriptorIndexingFeatures]() { return PhysicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray == VK_TRUE && 
+       PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingPartiallyBound == VK_TRUE || PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount == VK_TRUE
+        || PhysicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing == VK_TRUE || PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind == VK_TRUE; }
+    });
+
+    DeviceCreateInfo.FeaturesToEnable = &DynamicRenderingFeatures;
     DeviceContext.Create(DeviceCreateInfo, Surface.Handle, Instance.instance);
 
     SwapChain.Create(DeviceContext.PhysicalDevice, DeviceContext.LogicalDevice, Surface.Handle, Window.window);
@@ -295,6 +377,16 @@ RENDERER::GPUmemoryStats RENDERER::RendererContext::QueryMemoryStats()
     return Stats;
 }
 
+bool RENDERER::RendererContext::IsRayQuerySupported()
+{
+    return DeviceContext.AccelerationStructureFeatures.accelerationStructure && DeviceContext.RayQueryFeatures.rayQuery;
+}
+
+bool RENDERER::RendererContext::IsRayTracingPipelineSupported()
+{
+    return DeviceContext.AccelerationStructureFeatures.accelerationStructure && DeviceContext.RayTracingPipelineFeatures.rayTracingPipeline;
+}
+
 bool RENDERER::RendererContext::CreateTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex,bool DestroyPrevious)
 {
     bool ShouldRewrite = false;
@@ -304,9 +396,10 @@ bool RENDERER::RendererContext::CreateTextureDescriptors(uint32_t DescriptorCoun
 
     if (DescriptorCount > CurrentDescriptorIndexAllocator.GetTotalFreeSpace())
     {
+        /*
         std::cout << "CurrentTextureDescriptorUpperBound: " << CurrentTextureDescriptorUpperBound << " DescriptorCount: "
             << DescriptorCount << " CurrentDescriptorIndexAllocator.GetTotalFreeSpace(): " << CurrentDescriptorIndexAllocator.GetTotalFreeSpace() << std::endl;
-
+        */
         if (CurrentTextureDescriptorUpperBound)
         {
             CurrentTexturesDescriptor.Destroy(DeviceContext.LogicalDevice);
@@ -315,7 +408,7 @@ bool RENDERER::RendererContext::CreateTextureDescriptors(uint32_t DescriptorCoun
 
         CurrentTextureDescriptorUpperBound = static_cast<uint32_t>(glm::ceil((float)(DescriptorCount + CurrentTextureDescriptorUpperBound) / (float)TextureDescriptorBlockSize)) * TextureDescriptorBlockSize;
         CurrentDescriptorIndexAllocator.Allocate(CurrentTextureDescriptorUpperBound - CurrentDescriptorIndexAllocator.GetCapacity());
-        std::cout << "Creating texture descriptor set with upper bound: " << CurrentTextureDescriptorUpperBound << " CurrentDescriptorIndexAllocator.GetCapacity(): " << CurrentDescriptorIndexAllocator.GetCapacity() << "\n";
+        //std::cout << "Creating texture descriptor set with upper bound: " << CurrentTextureDescriptorUpperBound << " CurrentDescriptorIndexAllocator.GetCapacity(): " << CurrentDescriptorIndexAllocator.GetCapacity() << "\n";
 
         CurrentTexturesDescriptor.DescriptorPool.Create(
             { {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,CurrentTextureDescriptorUpperBound} },
@@ -452,12 +545,13 @@ void RENDERER::RendererContext::CreateHDRIrenderPassResources()
 
 void RENDERER::RendererContext::CreateTextureDescriptorPipelines(RENDERER_CORE::DescriptorSetLayout& Layout, uint32_t MaxTextureCount,uint32_t FrameIndex)
 {
+    /*
     std::cout << "Deleted indices: " << DefaultPipelines.GbufferDepthEnabled[FrameIndex] << " "
             << DefaultPipelines.GbufferDepthDisabled[FrameIndex] << " "
             << DefaultPipelines.DeferredShading[FrameIndex] << " "
             << FrameIndex
             << std::endl;
-
+            */
     //PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.GbufferDepthEnabled[FrameIndex], DeviceContext.LogicalDevice);
     //PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.GbufferDepthDisabled[FrameIndex], DeviceContext.LogicalDevice);
     //PipelineManager.EraseGraphicsPipelineByIndex(DefaultPipelines.DeferredShading[FrameIndex], DeviceContext.LogicalDevice);
@@ -543,11 +637,13 @@ void RENDERER::RendererContext::CreateTextureDescriptorPipelines(RENDERER_CORE::
     auto DeferredShadingGraphicsPipelineIterator = PipelineManager.AppendGraphicsPipeline(DeferredShadingPipelineCreateInfo, DeviceContext.LogicalDevice);
     DefaultPipelines.DeferredShading[FrameIndex] = DeferredShadingGraphicsPipelineIterator.second;
 
+    /*
     std::cout << "Appended indices: " << DefaultPipelines.GbufferDepthEnabled[FrameIndex] << " "
         << DefaultPipelines.GbufferDepthDisabled[FrameIndex] << " "
         << DefaultPipelines.DeferredShading[FrameIndex] << " "
         << FrameIndex
         << std::endl;
+        */
 }
 
 void RENDERER::RendererContext::DestroyMeshTextureDescriptors()

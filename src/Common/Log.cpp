@@ -35,11 +35,11 @@ void COMMON::Logger::ConsoleLog(const LogMessage& Message)
 {
 	switch (Message.Severity)
 	{
-	case LOG_SEVERITY_INFO: std::cout << "Info: "; break;
-	case LOG_SEVERITY_WARNING: std::cout << "Warning: "; break;
-	case LOG_SEVERITY_ERROR: std::cout << "Error: "; break;
-	case LOG_SEVERITY_VERBOSE: std::cout << "Verbose: "; break;
-	default: std::cout << "Unknown: "; break;
+	case LOG_SEVERITY_INFO: std::cout << "[Info]: "; break;
+	case LOG_SEVERITY_WARNING: std::cout << "[Warning]: "; break;
+	case LOG_SEVERITY_ERROR: std::cout << "[Error]: "; break;
+	case LOG_SEVERITY_VERBOSE: std::cout << "[Verbose]: "; break;
+	default: std::cout << "[Unknown]: "; break;
 	}
 	std::cout << Message.Message << std::endl;
 }
@@ -54,11 +54,11 @@ void COMMON::Logger::FileFlush()
 		std::string FinalMessage;
 		switch (Message.first.Severity)
 		{
-		case LOG_SEVERITY_INFO:    FinalMessage += "Info: "; break;
-		case LOG_SEVERITY_WARNING: FinalMessage += "Warning: "; break;
-		case LOG_SEVERITY_ERROR:   FinalMessage += "Error: "; break;
-		case LOG_SEVERITY_VERBOSE: FinalMessage += "Verbose: "; break;
-		default: FinalMessage += "Unknown: "; break;
+		case LOG_SEVERITY_INFO:    FinalMessage += "[Info]: "; break;
+		case LOG_SEVERITY_WARNING: FinalMessage += "[Warning]: "; break;
+		case LOG_SEVERITY_ERROR:   FinalMessage += "[Error]: "; break;
+		case LOG_SEVERITY_VERBOSE: FinalMessage += "[Verbose]: "; break;
+		default: FinalMessage += "[Unknown]: "; break;
 		}
 		FinalMessage += Message.first.Message + "\n";
 		File << FinalMessage;

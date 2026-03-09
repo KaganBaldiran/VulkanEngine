@@ -20,6 +20,8 @@ void RENDERER::MeshManager::Create(TextureManager& ImportManager, RENDERER::Rend
 
         VertexBufferSet[i] = false;
         IndexBufferSet[i] = false;
+
+        
     }
     this->ImportManager = &ImportManager;
     this->RendererContext = &RendererContext;
@@ -35,11 +37,16 @@ void RENDERER::MeshManager::Destroy()
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         GeometryEntries[i].clear();
+        for (size_t j = 0; j < GeometryBufferPages[i].size(); j++)
+        {
+            GeometryBufferPages[i][j].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+        }
     }
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT * 2; i++)
     {
         VertexBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
         IndexBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+        
     }
 
     MeshImportResults.clear();
@@ -130,7 +137,7 @@ RENDERER_CORE::BufferAllocator& RENDERER::MeshManager::GetCurrentIndexBuffer(uin
 {
     return IndexBuffers[IndexBufferSet[FrameIndex] * MAX_FRAMES_IN_FLIGHT + FrameIndex];
 }
-
+/*
 void RENDERER::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
 {
     if (MeshImportResults.empty()) return;
@@ -265,6 +272,147 @@ void RENDERER::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
         }
     }
 }
+*/
+
+
+void RENDERER::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
+{
+    if (MeshImportResults.empty()) return;
+
+    auto& VertexBufferSetBit = VertexBufferSet[FrameIndex];
+    auto& IndexBufferSetBit = IndexBufferSet[FrameIndex];
+
+    auto& VertexBuffer = VertexBuffers[VertexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex];
+    auto& IndexBuffer = IndexBuffers[IndexBufferSetBit * MAX_FRAMES_IN_FLIGHT + FrameIndex];
+    auto& GeometryEntryList = GeometryEntries[FrameIndex];
+    auto& GeometryBuffers = GeometryBufferPages[FrameIndex];
+
+    size_t OldVertexCapacity = VertexBuffer.Allocator.GetCapacity();
+    size_t OldIndexCapacity = IndexBuffer.Allocator.GetCapacity();
+    size_t VertexSize, IndexSize, VertexBufferSize = 0, IndexBufferSize = 0;
+
+    std::unordered_map<size_t, GeometryEntry> InsertedGeometryEntries;
+    std::unordered_map<size_t, SCENE::GeometryData*> GeometryDataReferences;
+    for (auto& ImportResult : MeshImportResults)
+    {
+        for (size_t i = 0; i < ImportResult.GeometryDatas.size(); i++)
+        {
+            SCENE::GeometryData& Data = ImportResult.GeometryDatas[i];
+            size_t& Handle = ImportResult.GeometryHandles[i];
+
+            //Referencing the data to use for copying later on
+            GeometryDataReferences[Handle] = &ImportResult.GeometryDatas[i];
+
+            //Detect the data sizes and append them in the overall inserted size
+            VertexSize = Data.Vertices.size() * sizeof(SCENE::Vertex3D);
+            IndexSize = Data.Indices.size() * sizeof(uint32_t);
+
+            //Fill in the new geometry entry
+            GeometryEntry NewGeometryEntry{};
+            NewGeometryEntry.MeshMaterial = Data.MeshMaterial;
+            NewGeometryEntry.BoundingBox = Data.BoundingBox;
+
+            RENDERER::BufferPageAllocationInfo AllocationInfo = AllocateFromGeometryBuffers(VertexSize, IndexSize, FrameIndex);
+            NewGeometryEntry.VertexRegion = AllocationInfo.VertexRegion;
+            NewGeometryEntry.IndexRegion = AllocationInfo.IndexRegion;
+            NewGeometryEntry.PageIndex = AllocationInfo.PageIndex;
+            //GeometryEntryList[Handle] = NewGeometryEntry;
+            InsertedGeometryEntries[Handle] = NewGeometryEntry;
+
+            VertexBufferSize += AllocationInfo.VertexRegion.TotalConsumedSize;
+            IndexBufferSize += AllocationInfo.IndexRegion.TotalConsumedSize;
+        }
+        //Set processed by the current frame
+        ImportResult.SetFlag(FrameIndex, true);
+    }
+
+    //Decide whether buffers should be reallocated or not
+    bool VertexBufferReallocated = VertexBuffer.Allocator.GetCapacity() > OldVertexCapacity;
+    bool IndexBufferReallocated = IndexBuffer.Allocator.GetCapacity() > OldIndexCapacity;
+    bool VertexBufferAllocatedFirstTime = !OldVertexCapacity;
+    bool IndexBufferAllocatedFirstTime = !OldIndexCapacity;
+
+    size_t VertexStagingBufferSize = VertexBufferSize,
+        IndexStagingBufferSize = IndexBufferSize;
+
+    //Create or recreate geometry buffers
+    RENDERER_CORE::PersistentBufferAllocator StagingBuffer{};
+    StagingBuffer.Allocator.Create(VertexStagingBufferSize + IndexStagingBufferSize);
+  
+    RENDERER_CORE::CreateStagingBuffer(
+        RendererContext->DeviceContext.PhysicalDevice,
+        RendererContext->DeviceContext.LogicalDevice,
+        StagingBuffer.Allocator.GetCapacity(),
+        StagingBuffer.Buffer.Buffer
+    );
+    StagingBuffer.Buffer.Map(RendererContext->DeviceContext.LogicalDevice, 0, StagingBuffer.Allocator.GetCapacity(), 0);
+    uint8_t* StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.Buffer.MappedMemory);
+    if (!StagingBufferPtr) return;
+
+    std::vector<RENDERER_CORE::BufferCopyInfo> CopyInfos;
+    CopyInfos.resize(this->GeometryBufferPages[FrameIndex].size());
+
+    //Append newly inserted data
+    for (auto& [Handle, GeoEntry] : InsertedGeometryEntries)
+    {
+        SCENE::GeometryData*& Data = GeometryDataReferences[Handle];
+        
+        auto& CopyInfo = CopyInfos[GeoEntry.PageIndex];
+        if (CopyInfo.SourceBuffer == VK_NULL_HANDLE || CopyInfo.DestinationBuffer == VK_NULL_HANDLE)
+        {
+            CopyInfo.SourceBuffer = StagingBuffer.Buffer.Buffer.BufferObject;
+            CopyInfo.DestinationBuffer = GeometryBuffers[GeoEntry.PageIndex].Buffer.BufferObject;
+        }
+        RENDERER_CORE::MemoryRegion VertexAllocatedRegion = StagingBuffer.Allocator.Suballocate(GeoEntry.VertexRegion.Size,1,false);
+        if (VertexAllocatedRegion.Size == 0) {
+            throw std::runtime_error("Staging buffer overflow prevented!");
+        }
+        memcpy(StagingBufferPtr + VertexAllocatedRegion.Offset, Data->Vertices.data(), VertexAllocatedRegion.Size);
+
+        VkBufferCopy VertexCopyRegion{};
+        VertexCopyRegion.dstOffset = GeoEntry.VertexRegion.Offset;
+        VertexCopyRegion.size = VertexAllocatedRegion.Size;
+        VertexCopyRegion.srcOffset = VertexAllocatedRegion.Offset;
+        CopyInfo.CopyRegions.push_back(VertexCopyRegion);
+
+        RENDERER_CORE::MemoryRegion IndexAllocatedRegion = StagingBuffer.Allocator.Suballocate(GeoEntry.IndexRegion.Size, 1, false);
+        if (IndexAllocatedRegion.Size == 0) {
+            throw std::runtime_error("Staging buffer overflow prevented!");
+        }
+        memcpy(StagingBufferPtr + IndexAllocatedRegion.Offset, Data->Indices.data(), IndexAllocatedRegion.Size);
+
+        VkBufferCopy IndexCopyRegion{};
+        IndexCopyRegion.dstOffset = GeoEntry.IndexRegion.Offset;
+        IndexCopyRegion.size = IndexAllocatedRegion.Size;
+        IndexCopyRegion.srcOffset = IndexAllocatedRegion.Offset;
+        CopyInfo.CopyRegions.push_back(IndexCopyRegion);
+    }
+   
+    RENDERER_CORE::CopyBuffer(
+        CopyInfos,
+        RendererContext->DeviceContext.LogicalDevice,
+        RendererContext->CommandPool.commandPool,
+        RendererContext->DeviceContext.GraphicsQueue
+    );
+
+    StagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+
+    for (auto& [handle, entry] : InsertedGeometryEntries)
+        GeometryEntryList[handle] = std::move(entry);
+
+    //Clear out the fully processed targets
+    for (size_t i = 0; i < MeshImportResults.size(); i++)
+    {
+        auto& Target = MeshImportResults[i];
+        if (Target.IsProcessedByAll())
+        {
+            std::swap(Target, MeshImportResults.back());
+            MeshImportResults.pop_back();
+            --i;
+        }
+    }
+}
+
 
 void RENDERER::MeshManager::CreateGeometryBuffers(
     RENDERER::RendererContext* RendererContext,
@@ -391,6 +539,78 @@ void RENDERER::MeshManager::HandleGeometryBufferReallocationCopy(
         CopyInfos[0].CopyRegions.clear();
         CopyInfos[1].CopyRegions.clear();
     }
+}
+
+RENDERER::BufferPageAllocationInfo RENDERER::MeshManager::AllocateFromGeometryBuffers(size_t VertexSize, size_t IndexSize,uint32_t FrameIndex)
+{
+    size_t VertexAlignedSize = VertexSize;
+    size_t IndexAlignedSize = IndexSize;
+    size_t CombinedSize = IndexAlignedSize + VertexAlignedSize;
+    BufferPageAllocationInfo AllocationInfo{};
+    if (!CombinedSize) return AllocationInfo;
+
+    auto& CurrentPages = GeometryBufferPages[FrameIndex];
+    size_t BufferSize = glm::max(GeometryBufferPageSize, CombinedSize);
+    //Append a page in case there isn't any.
+    if (CurrentPages.empty())
+    {
+        RENDERER_CORE::BufferAllocator Buffer{};
+        Buffer.Allocator.Create(BufferSize);
+        RENDERER_CORE::CreateBuffer(
+            RendererContext->DeviceContext.PhysicalDevice,
+            RendererContext->DeviceContext.LogicalDevice,
+            BufferSize,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            Buffer.Buffer
+        );
+        CurrentPages.push_back(std::move(Buffer));
+    }
+    for (size_t i = 0; i < CurrentPages.size(); i++)
+    {
+        auto& Page = CurrentPages[i];
+        RENDERER_CORE::MemoryRegion AllocatedRegion = Page.Allocator.Suballocate(CombinedSize, sizeof(SCENE::Vertex3D), false);
+        if (!AllocatedRegion.Size)
+        {
+            //In case there isn't enough space, append a new page.
+            if (i == (CurrentPages.size() - 1))
+            {
+                RENDERER_CORE::BufferAllocator Buffer{};
+                Buffer.Allocator.Create(BufferSize);
+                RENDERER_CORE::CreateBuffer(
+                    RendererContext->DeviceContext.PhysicalDevice,
+                    RendererContext->DeviceContext.LogicalDevice,
+                    BufferSize,
+                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                    Buffer.Buffer
+                );
+                CurrentPages.push_back(std::move(Buffer));  
+            }
+            continue;
+        }
+
+        //Allocate as a combined and aligned chunk of memory and then manually split them to ensure they reside in the same page.
+        RENDERER_CORE::MemoryRegion VertexMemoryRegion{};
+        VertexMemoryRegion.Alignment = AllocatedRegion.Alignment;
+        VertexMemoryRegion.Offset = AllocatedRegion.Offset;
+        VertexMemoryRegion.Size = VertexAlignedSize;
+        VertexMemoryRegion.TotalConsumedSize = VertexAlignedSize + (AllocatedRegion.Offset - AllocatedRegion.OffsetWithoutPadding);
+        VertexMemoryRegion.OffsetWithoutPadding = AllocatedRegion.OffsetWithoutPadding;
+        RENDERER_CORE::MemoryRegion IndexMemoryRegion{};
+        IndexMemoryRegion.Alignment = AllocatedRegion.Alignment;
+        IndexMemoryRegion.Offset = AllocatedRegion.Offset + VertexAlignedSize;
+        IndexMemoryRegion.Size = IndexAlignedSize;
+        IndexMemoryRegion.OffsetWithoutPadding = IndexMemoryRegion.Offset;
+        IndexMemoryRegion.TotalConsumedSize = AllocatedRegion.Size - VertexAlignedSize;
+
+        //Construct allocation info
+        AllocationInfo.IndexRegion = std::move(IndexMemoryRegion);
+        AllocationInfo.VertexRegion = std::move(VertexMemoryRegion);
+        AllocationInfo.PageIndex = i;
+        break;
+    }
+    return AllocationInfo;
 }
 
 void RENDERER::RecreateBuffer(

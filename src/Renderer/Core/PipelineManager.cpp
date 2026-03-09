@@ -19,14 +19,12 @@ void RENDERER_CORE::PipelineManager::Create(size_t ReserveCount)
 std::pair<RENDERER_CORE::GraphicsPipelineEntry*, size_t> RENDERER_CORE::PipelineManager::AppendGraphicsPipeline(RENDERER_CORE::GraphicsPipelineCreateInfo& CreateInfo, VkDevice LogicalDevice)
 {
 	const size_t Hash = CreateInfo.Hash();
-	std::cout << "Hash: " << Hash << std::endl;
 
 	auto PipelineIterator = GraphicsPipelineHashTable.find(Hash);
 	if (PipelineIterator != GraphicsPipelineHashTable.end())
 	{
 		auto& PipelineEntry = GraphicPipelines[PipelineIterator->second];
 		PipelineEntry.IncreaseReference();
-		std::cout << "SAME PIPELINE FOUND!" << std::endl;
 		return { &PipelineEntry,PipelineIterator->second};
 	}	
 	GraphicsPipeline NewPipeline(CreateInfo,LogicalDevice);
@@ -115,7 +113,6 @@ void RENDERER_CORE::PipelineManager::EraseGraphicsPipelineByIndex(size_t Index, 
 		GraphicsPipelineHashTable.erase(PipelineIterator->Pipeline.GetHash());
 		PipelineIterator->Pipeline.Destroy(LogicalDevice);
 		GraphicPipelines.erase(Index);
-		std::cout << "Graphics pipeline destroyed (id:" << Index << ")" << std::endl;
 	}
 }
 

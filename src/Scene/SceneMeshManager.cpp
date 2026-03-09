@@ -199,7 +199,6 @@ void ProcessAppendList(
     for (auto& ModelInstance : AppendList)
     {
         if (!ModelInstance || !ModelInstance->Source) continue;
-
         if (ModelInstance->Materials.size() > ModelInstance->Source->Meshes.size())
         {
             throw std::runtime_error("Instance material count exceeds target mesh count!");
@@ -261,13 +260,13 @@ void ProcessAppendList(
             MeshDrawInfo.FirstIndex = GeometryEntryIterator->second.IndexRegion.Offset / SizeOfUint32;
             MeshDrawInfo.IndexCount = GeometryEntryIterator->second.IndexRegion.Size / SizeOfUint32;
             NewMeshEntry.Info = MeshDrawInfo;
+            NewMeshEntry.PageIndex = GeometryEntryIterator->second.PageIndex;
 
-            NewMeshEntry.IndirectBufferMemoryRegion = IndirectBufferAllocator.Suballocate(SizeOfIndirectCommand);
+            //NewMeshEntry.IndirectBufferMemoryRegion = IndirectBufferAllocator.Suballocate(SizeOfIndirectCommand);
             NewMeshEntry.ResourceID = Mesh.GeometryID;
 
             CurrentFrameEntries.MeshEntries.Insert( Mesh.GeometryID,NewMeshEntry);
             IndirectBufferSize += SizeOfIndirectCommand;
-
             //EnabledMeshCount++;
         }
         CurrentFrameEntries.InstanceEntries.Insert(ModelInstance->GetHandleID(), NewInstanceEntry);
@@ -288,6 +287,7 @@ void AllocateSceneBuffers(
     SCENE::SceneOptions SceneOptions,
     VkDescriptorSet TargetDescriptorSet,
     bool IsIndirectBufferReallocated,
+    size_t IndirectBufferSize,
     bool IsModelMatrixesBufferReallocated,
     size_t InitialModelMatrixBufferCapacity,
     bool IsDrawMetaDataBufferReallocated,
@@ -305,6 +305,7 @@ void AllocateSceneBuffers(
         //Case where the indirect command buffer needs to be reallocated or allocated
         if (IsIndirectBufferReallocated)
         {
+            IndirectBuffer.Allocator.Allocate((IndirectBuffer.Allocator.GetTotalFreeSpace() + IndirectBufferSize) - IndirectBuffer.Allocator.GetCapacity());
             RENDERER::RecreateBuffer(
                 RendererContext,
                 IndirectBuffer.Allocator.GetCapacity(),
@@ -441,6 +442,8 @@ void CreateAppendCopyInfos(
     RENDERER_CORE::BufferAllocator& IndirectBuffer,
     RENDERER_CORE::BufferAllocator& DrawMetaDataBuffer,
     RENDERER_CORE::PersistentBufferAllocator& StagingBuffer,
+    std::vector<SCENE::INTERNAL::PageMeshCountEntry>& CurrentPageMeshCounts,
+    size_t PageCount,
     bool IsIndirectBufferReallocated,
     bool IsThereIndirectCopyInfos,
     bool IsThereDrawMetaCopyInfos
@@ -459,20 +462,37 @@ void CreateAppendCopyInfos(
     uint8_t* StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.Buffer.MappedMemory);
     if (!StagingBufferPtr) throw std::runtime_error("Unable to map the staging buffer! exitting...");
 
-    DrawMetaDataBuffer.Allocator.Reset();
     size_t MeshIterator = 0;
     //Global draw index iterator
     size_t DrawIndexIterator = 0;
     //Create or update indirect commands 
     SCENE::ExtendedIndirectCommand NewIndirectCommand{};
+   // if (IsThereIndirectCopyInfos && IsIndirectBufferReallocated) IndirectCopyInfo.CopyRegions.clear();
+    if (IsThereIndirectCopyInfos) IndirectCopyInfo.CopyRegions.clear();
+    IndirectBuffer.Allocator.Reset(IndirectBuffer.Allocator.GetCapacity());
+
+    DrawMetaDataBuffer.Allocator.Reset(DrawMetaDataBuffer.Allocator.GetCapacity());
     DrawMetaCopyInfo.CopyRegions.clear();
-    if (IsThereIndirectCopyInfos && IsIndirectBufferReallocated) IndirectCopyInfo.CopyRegions.clear();
+
+    //Clear the page mesh counts to avoid accumulation over the passes. 
+    CurrentPageMeshCounts.clear();
+    CurrentPageMeshCounts.resize(PageCount);
 
     DrawMetaCopyInfo.CopyRegions.reserve(CurrentFrameEntries.MeshEntries.Size() * 10);
     IndirectCopyInfo.CopyRegions.reserve(CurrentFrameEntries.MeshEntries.Size());
 
+    CurrentFrameEntries.MeshEntries.Sort([](auto& First, auto& Second) {
+        if (First.second.PageIndex == Second.second.PageIndex)
+        {
+            return First.second.Info.FirstIndex < Second.second.Info.FirstIndex;
+        }
+        return First.second.PageIndex < Second.second.PageIndex;
+    });
     for (auto& [Handle, MeshEntry] : CurrentFrameEntries.MeshEntries)
     {
+        auto& PageMeshCountData = CurrentPageMeshCounts[MeshEntry.PageIndex];
+        MeshEntry.IndirectBufferMemoryRegion = IndirectBuffer.Allocator.Suballocate(SizeOfIndirectCommand, 1, false);
+
         //Redistribute draw meta datas
         for (size_t i = 0; i < MeshEntry.InstanceLinks.size(); i++)
         {
@@ -492,7 +512,7 @@ void CreateAppendCopyInfos(
             InstanceLink.DrawDataMemoryRegion = DrawMetaDataBuffer.Allocator.Suballocate(SizeOfDrawMetaData);
             if (!IsThereDrawMetaCopyInfos || !InstanceLink.StagingDrawDataMemoryRegion.Size)
             {
-                InstanceLink.StagingDrawDataMemoryRegion = StagingBuffer.Allocator.Suballocate(SizeOfDrawMetaData);
+                InstanceLink.StagingDrawDataMemoryRegion = StagingBuffer.Allocator.Suballocate(SizeOfDrawMetaData, 1, false);
             }
 
             memcpy(StagingBufferPtr + InstanceLink.StagingDrawDataMemoryRegion.Offset, &NewDrawMetaData, InstanceLink.StagingDrawDataMemoryRegion.Size);
@@ -515,12 +535,13 @@ void CreateAppendCopyInfos(
             NewIndirectCommand.InstanceCount = 0;
             NewIndirectCommand.VertexOffset = MeshEntry.Info.VertexOffset;
             NewIndirectCommand.FirstInstance = DrawIndexIterator;
+            //NewIndirectCommand.FirstInstance = PageMeshCountData.InstanceCount;
             NewIndirectCommand.BoundingBox = MeshEntry.BoundingBox;
             
             //Should allocate a region from the staging buffer
             if (!IsThereIndirectCopyInfos || !MeshEntry.StagingIndirectBufferMemoryRegion.Size)
             {
-                MeshEntry.StagingIndirectBufferMemoryRegion = StagingBuffer.Allocator.Suballocate(SizeOfIndirectCommand);
+                MeshEntry.StagingIndirectBufferMemoryRegion = StagingBuffer.Allocator.Suballocate(SizeOfIndirectCommand,1,false);
             }
             memcpy(StagingBufferPtr + MeshEntry.StagingIndirectBufferMemoryRegion.Offset, &NewIndirectCommand, MeshEntry.StagingIndirectBufferMemoryRegion.Size);
 
@@ -531,6 +552,9 @@ void CreateAppendCopyInfos(
             IndirectCopyInfo.CopyRegions.push_back(std::move(CopyRegion));
         }
         if (MeshEntry.FirstInstance != DrawIndexIterator) MeshEntry.FirstInstance = DrawIndexIterator;
+
+        PageMeshCountData.MeshCount++;
+        PageMeshCountData.InstanceCount += MeshEntry.ReferenceCount;
 
         DrawIndexIterator += MeshEntry.ReferenceCount;
         MeshIterator++;
@@ -568,9 +592,12 @@ void SCENE::SceneMeshManager::AppendModels(
     auto& DrawMetaDataBufferAllocator = DrawMetaDataBuffer.Allocator;
     auto& TexturesIndexBufferAllocator = TexturesIndexBuffer.Allocator;
 
+    std::vector<SCENE::INTERNAL::PageMeshCountEntry>& CurrentPageMeshCounts = PageMeshCounts[FrameIndex];
+    size_t GeometryBufferPageCount = ResourceManagerPtr->MeshManager.GeometryBufferPages[FrameIndex].size();
+
     auto& TexturesIndexBufferReallocated = SceneBuffers.TexturesIndexBuffersReallocated[FrameIndex];
 
-    size_t IndirectBufferSize = 0;
+    size_t IndirectAppendedBufferSize = 0;
     size_t SizeOfDrawMetaData = sizeof(INTERNAL::DrawMetadata);
 
     //Initial buffer capacities 
@@ -598,14 +625,15 @@ void SCENE::SceneMeshManager::AppendModels(
         TexturesIndexBufferAllocator, 
         IndirectBufferAllocator, 
         EnabledMeshCount, 
-        IndirectBufferSize, 
+        IndirectAppendedBufferSize, 
         InsertedMeshInstanceCount
     );
     DrawMetaDataBufferAllocator.Suballocate(InsertedMeshInstanceCount * SizeOfDrawMetaData);
     VisibilityIndexBuffer.Allocator.Suballocate(InsertedMeshInstanceCount * sizeof(uint32_t));
 
     //Check whether the allocator allocated extra virtual memory
-    bool IsIndirectBufferReallocated = IndirectBufferCapacity < IndirectBufferAllocator.GetCapacity();
+    //bool IsIndirectBufferReallocated = IndirectBufferCapacity < IndirectBufferAllocator.GetCapacity();
+    bool IsIndirectBufferReallocated = IndirectBufferAllocator.GetCapacity() < (IndirectBufferAllocator.GetTotalFreeSpace() + IndirectAppendedBufferSize);
     bool IsModelMatrixesBufferReallocated = ModelMatricesBufferCapacity < ModelMatricesBufferAllocator.GetCapacity();
     //bool IsMeshVisibilityCountBufferReallocated = MeshVisibilityCountBufferCapacity < MeshVisibilityCountBufferAllocator.GetCapacity();
     bool IsDrawMetaDataBufferReallocated = DrawMetaDataBufferCapacity < DrawMetaDataBufferAllocator.GetCapacity();
@@ -633,7 +661,8 @@ void SCENE::SceneMeshManager::AppendModels(
         VisibilityIndexBuffer,
         SceneOptions,
         TargetDescriptorSets[FrameIndex],
-        IsIndirectBufferReallocated, 
+        IsIndirectBufferReallocated,
+        IndirectAppendedBufferSize,
         IsModelMatrixesBufferReallocated, 
         ModelMatricesBufferCapacity,
         IsDrawMetaDataBufferReallocated, 
@@ -642,7 +671,8 @@ void SCENE::SceneMeshManager::AppendModels(
     );
       
     //Calculate the needed staging buffer size
-    size_t IndirectStagingBufferSize = IsIndirectBufferReallocated ? IndirectBufferAllocator.GetUsedSpace() : IndirectBufferSize;
+    //size_t IndirectStagingBufferSize = IsIndirectBufferReallocated ? IndirectBufferAllocator.GetUsedSpace() : IndirectAppendedBufferSize;
+    size_t IndirectStagingBufferSize = IndirectBufferAllocator.GetUsedSpace() + IndirectAppendedBufferSize;
     size_t DrawMetaDataBufferSize = IsThereDrawMetaCopyInfos ? (InsertedMeshInstanceCount * SizeOfDrawMetaData) : DrawMetaDataBufferAllocator.GetUsedSpace();
     size_t TotalStagingBufferSize = IndirectStagingBufferSize + DrawMetaDataBufferSize;
 
@@ -661,7 +691,9 @@ void SCENE::SceneMeshManager::AppendModels(
         CurrentFrameEntries,
         IndirectBuffer,
         DrawMetaDataBuffer,
-        StagingBuffer.StagingBuffer, 
+        StagingBuffer.StagingBuffer,
+        CurrentPageMeshCounts,
+        GeometryBufferPageCount,
         IsIndirectBufferReallocated,
         IsThereIndirectCopyInfos, 
         IsThereDrawMetaCopyInfos

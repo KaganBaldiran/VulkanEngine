@@ -164,6 +164,7 @@ namespace SCENE
 		struct MeshEntry
 		{
 			uint32_t Index, ReferenceCount = 0;
+			uint32_t PageIndex;
 			bool IsChanged = false;
 			size_t ResourceID, FirstInstance = std::numeric_limits<size_t>::max();
 			RENDERER_CORE::MemoryRegion IndirectBufferMemoryRegion;
@@ -204,6 +205,12 @@ namespace SCENE
 			int MeshID;
 			int ModelMatrixIndex;
 		};
+
+		struct PageMeshCountEntry
+		{
+			size_t MeshCount = 0;
+			size_t InstanceCount = 0;
+		};
 	}
 
 	struct MeshEraseInfo
@@ -240,6 +247,8 @@ namespace SCENE
 
 		uint32_t CurrentBalancedBuffer = 0;
 		std::array<INTERNAL::EntryManager,MAX_FRAMES_IN_FLIGHT> Entries;
+		//Array that holds mesh count related data per geometry buffer page.
+		std::array<std::vector<SCENE::INTERNAL::PageMeshCountEntry>,MAX_FRAMES_IN_FLIGHT> PageMeshCounts;
 		
 		void UpdateMeshTransformationsHostVisible(std::vector<ModelInstance*> &UpdateList,uint32_t CurrentFrame);
 		void UpdateMeshTransformationsDeviceLocal(

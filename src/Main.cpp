@@ -24,7 +24,11 @@ int main()
             throw std::runtime_error("Unable to initialize GLFW");
         }
 
-        RENDERER::RendererContext RendererContext(1000,800,"HelloWorld",true);
+        RENDERER::RendererSettings RendererSettings{};
+        RendererSettings.EnableValidationLayers = true;
+        RendererSettings.BuildRayTracingAccelerationStructures = true;
+
+        RENDERER::RendererContext RendererContext(1000,800,"HelloWorld",RendererSettings);
         RENDERER::Renderer Renderer(RendererContext, false);
 
         SCENE::ModelHandle SponzaModel;
@@ -59,7 +63,7 @@ int main()
         ResourceManager.WaitTextureImportsIdle();
 
         SCENE::SceneOptions Options{};
-        Options.UploadMode = SCENE::SCENE_DYNAMIC_UPLOAD_MODE_HOST_VISIBLE;
+        Options.UploadMode = SCENE::SCENE_DYNAMIC_UPLOAD_MODE_DEVICE_LOCAL;
 
         SCENE::Scene Scene0;
         Scene0.Create(RendererContext, ResourceManager, Options);
@@ -214,6 +218,7 @@ int main()
         Scene1.LinkCubemap(Cubemap0);
         Scene1.LinkCamera(Camera);
 
+        
 
         /*
         VKPHYSICS::PhysicsContext PhyContext;
@@ -258,7 +263,9 @@ int main()
         PhyContext.DynamicsWorld->setDebugDrawer(&PhysicsDebugDrawer);
         Scene0.DebugDrawer = &PhysicsDebugDrawer;
          */
-      
+        auto Stats = RendererContext.QueryMemoryStats();
+        std::cout << "Memory usage is " << Stats.TotalUsedBytes / (1024.0f * 1024.0f) << "/" << Stats.TotalBudgetBytes / (1024.0f * 1024.0f) << "(" << Stats.UsageRate << "%)." << std::endl;
+
 
         std::string ShadeFunction =
             "vec3 ShadePixel(in vec3 CameraPosition,in vec3 CameraDirection,in vec3 Normal, in vec3 Position, in vec3 Albedo, in float Roughness, in float Metallic, in float Time) \n\
@@ -285,7 +292,6 @@ int main()
         PassConfiguration1.Scene = &Scene1;
         PassConfiguration1.EnableDepthTesting = true;
         Renderer.AddRenderPass(PassConfiguration1);
-       
 
         float DeltaTime = 0.0f;
         float LastFrame = 0.0f;
@@ -356,8 +362,8 @@ int main()
                 45.0f
             );
 
-            //auto Stats = RendererContext.QueryMemoryStats();
-            //std::cout << "Memory usage is " << Stats.TotalUsedBytes / (1024.0f * 1024.0f) << "/" << Stats.TotalBudgetBytes / (1024.0f * 1024.0f) << "(" << Stats.UsageRate << "%)." << std::endl;
+           // auto Stats = RendererContext.QueryMemoryStats();
+           // std::cout << "Memory usage is " << Stats.TotalUsedBytes / (1024.0f * 1024.0f) << "/" << Stats.TotalBudgetBytes / (1024.0f * 1024.0f) << "(" << Stats.UsageRate << "%)." << std::endl;
 
             Renderer.RenderFrame();
             glfwPollEvents();

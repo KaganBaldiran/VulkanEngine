@@ -2,6 +2,7 @@
 #include <vector>
 #include <unordered_map>
 #include <iostream>
+#include <algorithm>
 
 namespace COMMON
 {
@@ -51,6 +52,23 @@ namespace COMMON
 			KeyIndexMap.reserve(NewCapacity);
 		}
 
+		void Clear()
+		{
+			Data.clear();
+			KeyIndexMap.clear();
+		}
+
+		template <typename CompareFunc>
+		void Sort(CompareFunc CompareFunction)
+		{
+			std::sort(Data.begin(), Data.end(), CompareFunction);
+			for (size_t i = 0; i < Data.size(); i++)
+			{
+				auto& CurrentData = Data[i];
+				KeyIndexMap[CurrentData.first] = i;
+			}
+		}
+
 		std::pair<Key, Value>& operator[](const Key& Key)
 		{
 			return Data[KeyIndexMap[Key]];
@@ -63,6 +81,7 @@ namespace COMMON
 
 		auto begin() { return Data.begin(); };
 		auto end() { return Data.end(); };
+		std::vector<std::pair<Key, Value>>& GetData() { return Data; };
 	private:
 		std::vector<std::pair<Key,Value>> Data;
 		std::unordered_map<Key, size_t> KeyIndexMap;

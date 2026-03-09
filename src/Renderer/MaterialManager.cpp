@@ -140,7 +140,7 @@ void RENDERER::TextureManager::UpdateDescriptors(uint32_t FrameIndex)
         auto& Data = TextureDataIterator->second.Data;
         auto& DescriptorSlots = TextureDataIterator->second.DescriptorSlots;
 
-        auto AllocatedRegion = CurrentTextureDescriptorIndexAllocator.Suballocate(1,false);
+        auto AllocatedRegion = CurrentTextureDescriptorIndexAllocator.Suballocate(1,1,false);
         if (!AllocatedRegion.Size) break;
         DescriptorSlots[FrameIndex] = AllocatedRegion.Offset;
 

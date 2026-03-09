@@ -70,6 +70,20 @@ namespace RENDERER
         float UsageRate = 0.0f;
     };
 
+    enum ShadowTypeHint
+    {
+        SHADOW_TYPE_HINT_SHADOW_MAPS = 0,
+        SHADOW_TYPE_HINT_RAY_TRACED = 1
+    };
+
+    struct RendererSettings
+    {
+        ShadowTypeHint ShadowType = SHADOW_TYPE_HINT_SHADOW_MAPS;
+        bool BuildRayTracingAccelerationStructures = false;
+        bool EnableValidationLayers = true;
+        std::vector<RENDERER_CORE::DeviceFeature> RequestedDeviceFeatureNodes;
+    };
+
 	class RendererContext : COMMON::Destructible
 	{
         friend class SCENE::Scene;
@@ -81,14 +95,14 @@ namespace RENDERER
             uint32_t WindowWidth,
             uint32_t WindowHeight,
             const char* WindowName,
-            bool EnableValidationLayers
+            RendererSettings Settings
         );
         RendererContext() = default;
         void Create(
             uint32_t WindowWidth,
             uint32_t WindowHeight,
             const char* WindowName,
-            bool EnableValidationLayers
+            RendererSettings Settings
         );
 		void Destroy() override;
         void WaitDeviceIdle();
@@ -179,6 +193,9 @@ namespace RENDERER
         };
         DefaultPipelineIndices DefaultPipelines;
 	private:
+        bool IsRayQuerySupported();
+        bool IsRayTracingPipelineSupported();
+
         //Creates texture descriptors. If the provided descriptor count exceeds the current free descriptor count, it recreates the descriptors.
         //In case the descriptors are recreated then the pipelines that reference the prior descriptors are also recreated.
         bool CreateTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex,bool DestroyPrevious = false);

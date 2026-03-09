@@ -10,9 +10,30 @@ namespace RENDERER_CORE
 
 	struct MemoryRegion
 	{
+		//Data that represents the region. Can be directly used with no further processing.
+
+		//Offset with the start padding (OriginalOffset + StartPadding).
+		size_t Offset = 0;
+		//Size that consists of (RequestedSize + EndPadding).
+		size_t Size = 0;
+
+		//Data that allocator will use to free the region.
+		
+		//Offset without the start padding.
+		size_t OffsetWithoutPadding = 0;
+		//Size that consists of (StartPadding + RequestedSize + EndPadding).
+		size_t TotalConsumedSize = 0;
+		//The requested alignment. 
+		size_t Alignment = 0;
+	};
+
+	struct AllocatableMemoryRegion
+	{
 		size_t Offset;
 		size_t Size;
 	};
+
+	size_t AlignUp(size_t Size, size_t Alignment);
 
 	class VirtualArenaAllocator
 	{
@@ -21,7 +42,7 @@ namespace RENDERER_CORE
 		VirtualArenaAllocator() = default;
 		void Create(size_t InitialCapacityInBytes = MEMORY_SIZE_KILOBYTE, size_t AllocationChunkSize = MEMORY_SIZE_KILOBYTE);
 
-		MemoryRegion Suballocate(size_t SizeInBytes,bool AutoAllocate = true);
+		MemoryRegion Suballocate(size_t SizeInBytes, size_t Alignment = 1,bool AutoAllocate = true);
 		void Allocate(size_t SizeInBytes);
 		void Free(const MemoryRegion& RegionToFree);
 		void Defragment(std::vector<MemoryRegion> &Regions);
@@ -32,9 +53,9 @@ namespace RENDERER_CORE
 		inline size_t GetCapacity() const noexcept { return Capacity; };
 		inline size_t GetTotalFreeSpace() const noexcept { return TotalFreeSpace; };
 		inline size_t GetUsedSpace() const noexcept { return Capacity - TotalFreeSpace; };
-		inline const std::vector<MemoryRegion>& GetFreeRegions() { return FreeRegions; };
+		inline const std::vector<AllocatableMemoryRegion>& GetFreeRegions() { return FreeRegions; };
 	private:
 		size_t Capacity = 0,ChunkSize = MEMORY_SIZE_KILOBYTE,TotalFreeSpace = 0;
-		std::vector<MemoryRegion> FreeRegions;
+		std::vector<AllocatableMemoryRegion> FreeRegions;
 	};
 }

@@ -42,7 +42,15 @@ namespace RENDERER_CORE
 	/// <param name="Usage">A bitmask specifying the intended usage of the buffer (VkBufferUsageFlags).</param>
 	/// <param name="Properties">A bitmask specifying the desired memory properties for the buffer (VkMemoryPropertyFlags).</param>
 	/// <param name="DestinationBuffer">A reference to a Buffer object where the created buffer will be stored.</param>
-	void CreateBuffer(VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkDeviceSize Size, VkBufferUsageFlags Usage, VkMemoryPropertyFlags Properties, Buffer& DestinationBuffer);
+	void CreateBuffer(
+		VkPhysicalDevice& PhysicalDevice, 
+		VkDevice& LogicalDevice, 
+		VkDeviceSize Size, 
+		VkBufferUsageFlags Usage,
+		VkMemoryPropertyFlags Properties,
+		Buffer& DestinationBuffer,
+		VkMemoryAllocateFlags AllocateFlags = 0
+	);
 	void CopyBuffer(
 		VkBuffer SourceBuffer,
 		VkBuffer DestinationBuffer,
@@ -118,6 +126,8 @@ namespace RENDERER_CORE
 		RENDERER_CORE::Buffer& DestinationBuffer,
 		VkBufferUsageFlags UsageFlags
 	);
+
+	uint64_t GetBufferDeviceAddress(VkDevice& LogicalDevice, const Buffer& Buffer);
 
 	//Buffer with a virtual allocator plugged into it
 	struct BufferAllocator

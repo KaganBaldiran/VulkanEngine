@@ -101,7 +101,7 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateVulkanInstance(
     for (size_t i = 0; i < GLFWextensionsCount; i++)
     {
         GLFWRequiredExtensions[i] = GLFWextensionsString[i];
-        std::cout << GLFWextensionsString[i] << std::endl;
+        //std::cout << GLFWextensionsString[i] << std::endl;
     }
 
     if (InstanceCreateInfo.EnableValidationLayers)
@@ -139,8 +139,6 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateVulkanInstance(
     std::vector<VkExtensionProperties> Extensions(ExtensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &ExtensionCount, Extensions.data());
 
-    std::cout << "Available extensions: " << std::endl;
-
     unsigned int FoundExtensionsCount = 0;
     for (const auto& extension : Extensions)
     {
@@ -151,7 +149,6 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateVulkanInstance(
                 FoundExtensionsCount++;
             }
         }
-        std::cout << '\t' << extension.extensionName << std::endl;
     }
 
     if (FoundExtensionsCount != GLFWRequiredExtensions.size())

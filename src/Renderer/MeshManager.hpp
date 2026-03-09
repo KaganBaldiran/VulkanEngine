@@ -32,6 +32,14 @@ namespace RENDERER
         RENDERER_CORE::MemoryRegion IndexRegion;
         SCENE::BoundingBoxAABB BoundingBox;
         SCENE::Material MeshMaterial;
+        uint32_t PageIndex;
+    };
+
+    struct BufferPageAllocationInfo
+    {
+        uint32_t PageIndex = 0;
+        RENDERER_CORE::MemoryRegion VertexRegion;
+        RENDERER_CORE::MemoryRegion IndexRegion;
     };
 
     //Intermediate import data target.
@@ -111,9 +119,17 @@ namespace RENDERER
             uint32_t FrameIndex
         );
 
+        BufferPageAllocationInfo AllocateFromGeometryBuffers(
+            size_t VertexSize,
+            size_t IndexSize,
+            uint32_t FrameIndex
+        );
+
         //Central Geometry Buffers
         std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT * 2> VertexBuffers;
         std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT * 2> IndexBuffers;
+
+        std::array<std::vector<RENDERER_CORE::BufferAllocator>, MAX_FRAMES_IN_FLIGHT> GeometryBufferPages;
 
         std::array<bool, MAX_FRAMES_IN_FLIGHT> VertexBufferSet;
         std::array<bool, MAX_FRAMES_IN_FLIGHT> IndexBufferSet;
