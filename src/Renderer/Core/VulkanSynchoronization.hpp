@@ -72,13 +72,52 @@ namespace RENDERER_CORE
 		VkImageAspectFlags AspectMask = VK_IMAGE_ASPECT_COLOR_BIT
 	);
 
-	class TimelineSync
+	class Fence
 	{
 	public:
-		TimelineSync();
-		~TimelineSync();
-
-	private:
-
+		Fence(VkDevice LogicalDevice, VkFenceCreateFlags Flags);
+		Fence() = default;
+		void Create(VkDevice LogicalDevice, VkFenceCreateFlags Flags);
+		void Destroy(VkDevice LogicalDevice);
+		VkFence Handle = VK_NULL_HANDLE;
 	};
+
+	class Semaphore
+	{
+	public:
+		Semaphore() = default;
+		Semaphore(VkDevice LogicalDevice);
+		void Create(VkDevice LogicalDevice);
+		void Destroy(VkDevice LogicalDevice);
+		VkSemaphore Handle = VK_NULL_HANDLE;
+	};
+
+	class TimelineSemaphore
+	{
+	public:
+		TimelineSemaphore() = default;
+		TimelineSemaphore(VkDevice LogicalDevice, uint64_t InitialValue);
+		void Create(VkDevice LogicalDevice, uint64_t InitialValue);
+		void Destroy(VkDevice LogicalDevice);
+
+		uint64_t GetSemaphoreCounterValue(VkDevice LogicalDevice);
+		void Signal(VkDevice LogicalDevice, uint64_t SignalValue);
+
+		VkSemaphore Handle = VK_NULL_HANDLE;
+	};
+
+	void WaitSemaphores(
+		VkDevice LogicalDevice,
+		VkSemaphore* Semaphores, 
+		uint32_t SemaphoreCount,
+		uint64_t *WaitValues,
+		uint64_t TimeOut = UINT64_MAX
+	);
+
+	VkTimelineSemaphoreSubmitInfo TimelineSemaphoreSubmitInfo(
+		uint64_t* WaitSemaphoreValues,
+		uint32_t WaitSemaphoreValueCount,
+		uint64_t* SignalSemaphoreValues,
+		uint32_t SignalSemaphoreValueCount
+	);
 }

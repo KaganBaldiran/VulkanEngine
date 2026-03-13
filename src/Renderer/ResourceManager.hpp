@@ -3,6 +3,7 @@
 #include "MeshManager.hpp"
 
 #include "Core/VulkanSynchoronization.hpp"
+#include "Core/VulkanDevice.hpp"
 #include "../Scene/PersistentSceneStagingBuffer.hpp"
 #include "../Common/StableVector.hpp"
 #include "../Common/DestructionQueue.hpp"
@@ -20,8 +21,12 @@ namespace RENDERER
 
 	struct CopyOperationEntry
 	{
+		RENDERER_CORE::QueueType QueueType;
 		RENDERER_CORE::BufferCopyInfo CopyInfo;
 		RENDERER_CORE::MemoryBufferBarrierState BufferState;
+
+		RENDERER_CORE::Semaphore Semaphore;
+		std::vector<uint32_t> DependentOperations;
 	};
 	using CopyOperationList = COMMON::StableVector<CopyOperationEntry>;
 
@@ -43,8 +48,6 @@ namespace RENDERER
 		void SubmitModelImports();
 		void WaitModelImportsIdle();
 		void WaitTextureImportsIdle();
-
-		
 	private:
 		std::array<SCENE::PersistentStagingBuffer,MAX_FRAMES_IN_FLIGHT> StagingBuffers;
 		std::array<CopyOperationList,MAX_FRAMES_IN_FLIGHT> CopyInfos;
@@ -52,6 +55,7 @@ namespace RENDERER
 
 		//Creates the requested list or/and returns index to the respective copy info list
 		size_t RequestCopyOperation(
+			RENDERER_CORE::QueueType QueueType,
 			VkBuffer DestinationBuffer,
 			uint32_t FrameIndex,
 			VkPipelineStageFlags2 SrcStageMask,

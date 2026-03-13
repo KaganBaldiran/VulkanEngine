@@ -4,7 +4,11 @@
 #include "VulkanUtils.hpp" 
 #include <functional>
 #include <vector>
+#include <array>
 #include <map>
+
+#include "VulkanSynchoronization.hpp"
+#include "../../Common/CommonDefinitions.hpp"
 
 namespace RENDERER_CORE
 {
@@ -17,29 +21,10 @@ namespace RENDERER_CORE
 		VkSemaphore RenderFinishedSemaphore;
 		VkFence Fence;
 		VkFenceCreateFlags FenceCreateFlag;
+		uint64_t TimelineCounterTarget = 0;
 	};
 	void AllocateFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameSyncObjects>& DestinationObjects);
 	void DestroyFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameSyncObjects>& DestinationObjects);
-
-	class Semaphore
-	{
-	public:
-		Semaphore(VkDevice LogicalDevice);
-		Semaphore() = default;
-		void Create(VkDevice LogicalDevice);
-		void Destroy(VkDevice LogicalDevice);
-		VkSemaphore Handle = VK_NULL_HANDLE;
-	};
-
-	class Fence
-	{
-	public:
-		Fence(VkDevice LogicalDevice, VkFenceCreateFlags Flags);
-		Fence() = default;
-		void Create(VkDevice LogicalDevice, VkFenceCreateFlags Flags);
-		void Destroy(VkDevice LogicalDevice);
-		VkFence Handle = VK_NULL_HANDLE;
-	};
 
 	void SubmitQueue(
 		VkQueue& Queue,
@@ -47,7 +32,8 @@ namespace RENDERER_CORE
 		const std::vector<VkPipelineStageFlags>& WaitDstStageMask,
 		const std::vector<VkCommandBuffer>& CommandBuffers,
 		const std::vector<VkSemaphore>& SignalSemaphores,
-		VkFence Fence
+		VkFence Fence,
+		void* pNext = nullptr
 	);
 
 	VkResult PresentQueue(
@@ -97,4 +83,30 @@ namespace RENDERER_CORE
 		bool HaveDepthAttachment = false;
 	};
 
+	class FrameManager
+	{
+	public:
+		FrameManager() = default;
+		FrameManager(VkDevice LogicalDevice, VkCommandPool DestinationCommandPool);
+		void Create(VkDevice LogicalDevice, VkCommandPool DestinationCommandPool);
+		void Destroy(VkDevice LogicalDevice);
+
+		VkCommandBuffer BeginFrame(
+			VkDevice LogicalDevice,
+			VkSwapchainKHR DestinationSwapChain,
+			TimelineSemaphore& TimelineSemaphore
+		);
+		VkResult EndFrame(
+			VkDevice LogicalDevice,
+			VkQueue PresentQueue,
+			VkSwapchainKHR DestinationSwapChain,
+			Window& Window
+		);
+		
+		std::array<FrameSyncObjects, MAX_FRAMES_IN_FLIGHT> SyncObjects;
+		std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> CommandBuffers;
+		uint32_t CurrentFrame = 0;
+		uint32_t ImageIndex = 0;
+	private:
+	}; 
 }

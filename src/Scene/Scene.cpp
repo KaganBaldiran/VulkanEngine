@@ -44,6 +44,7 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,RENDERER::R
     {
         auto& CurrentCopyOperationIndices = SceneCopyInfoIndices[i];
         CurrentCopyOperationIndices[INDIRECT_COPY] = ResourceManager.RequestCopyOperation(
+            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             MeshBuffers.SceneBuffers.IndirectBuffers[i].Buffer.BufferObject,
             i,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,
@@ -53,6 +54,7 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,RENDERER::R
         );
 
         CurrentCopyOperationIndices[DRAWMETA_COPY] = ResourceManager.RequestCopyOperation(
+            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             MeshBuffers.SceneBuffers.DrawMetaDataBuffer[i].Buffer.BufferObject,
             i,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,
@@ -62,6 +64,7 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,RENDERER::R
         );
 
         CurrentCopyOperationIndices[TEXTUREINDEX_COPY] = ResourceManager.RequestCopyOperation(
+            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             MeshBuffers.SceneBuffers.TexturesIndexBuffers[i].Buffer.BufferObject,
             i,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,
@@ -71,6 +74,7 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,RENDERER::R
         );
 
         CurrentCopyOperationIndices[TRANSFORMATION_MATRIX_COPY] = ResourceManager.RequestCopyOperation(
+            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             MeshBuffers.SceneBuffers.ModelMatricesBuffers[i].Buffer.Buffer.BufferObject,
             i,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,

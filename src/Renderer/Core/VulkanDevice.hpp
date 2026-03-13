@@ -90,6 +90,16 @@ namespace RENDERER_CORE
     private:
     };
 
+    enum QueueType
+    {
+        QUEUE_TYPE_PRESENT = 0,
+        QUEUE_TYPE_GRAPHICS = 1,
+        QUEUE_TYPE_TRANSFER = 2,
+        QUEUE_TYPE_COMPUTE = 3,
+        QUEUE_TYPE_GRAPHICS_COMPUTE = 4,
+        QUEUE_TYPE_SIZE
+    };
+
     class DeviceContext
     {
     public:
@@ -106,6 +116,8 @@ namespace RENDERER_CORE
 
         VkDevice LogicalDevice;
         VkPhysicalDevice PhysicalDevice;
+
+        VkQueue GetQueue(QueueType Type);
 
         VkQueue PresentQueue = VK_NULL_HANDLE;
         VkQueue GraphicsQueue = VK_NULL_HANDLE;

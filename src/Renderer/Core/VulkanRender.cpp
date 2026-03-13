@@ -1,6 +1,9 @@
 #include "VulkanRender.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanWindow.hpp"
+#include "VulkanCommandBuffer.hpp"
+#include "VulkanCommandPool.hpp"
+#include "VulkanUtils.hpp"
 
 void RENDERER_CORE::AllocateFrameSyncObjects(VkDevice& LogicalDevice, std::vector<FrameSyncObjects>& DestinationObjects)
 {
@@ -38,11 +41,13 @@ void RENDERER_CORE::SubmitQueue(
     const std::vector<VkPipelineStageFlags>& WaitDstStageMask,
     const std::vector<VkCommandBuffer>& CommandBuffers,
     const std::vector<VkSemaphore>& SignalSemaphores,
-    VkFence Fence
+    VkFence Fence,
+    void* pNext
 )
 {
     VkSubmitInfo SubmitInfo{};
     SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    SubmitInfo.pNext = pNext;
     SubmitInfo.waitSemaphoreCount = static_cast<uint32_t>(WaitSemaphores.size());
     SubmitInfo.pWaitSemaphores = WaitSemaphores.empty() ? nullptr : WaitSemaphores.data();
     SubmitInfo.pWaitDstStageMask = WaitDstStageMask.empty() ? nullptr : WaitDstStageMask.data();
@@ -98,8 +103,7 @@ void RENDERER_CORE::RenderFrame(
     vkWaitForFences(LogicalDevice, 1, &SyncObject.Fence, VK_TRUE, UINT64_MAX);
 
     uint32_t ImageIndex;
-    VkResult Result = vkAcquireNextImageKHR(LogicalDevice, DestinationSwapChain.swapChain, UINT64_MAX, SyncObject.ImageAvailableSemaphore, VK_NULL_HANDLE, &ImageIndex);
-
+    VkResult Result = vkAcquireNextImageKHR(LogicalDevice, DestinationSwapChain.Handle, UINT64_MAX, SyncObject.ImageAvailableSemaphore, VK_NULL_HANDLE, &ImageIndex);
     if (Result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         OnSwapChainRecreate();
@@ -128,7 +132,7 @@ void RENDERER_CORE::RenderFrame(
 
     Result = RENDERER_CORE::PresentQueue(
         PresentQueue,
-        {DestinationSwapChain.swapChain},
+        {DestinationSwapChain.Handle},
         {SyncObject.RenderFinishedSemaphore},
         { ImageIndex },
         {CommandBuffer}
@@ -208,49 +212,103 @@ void RENDERER_CORE::DynamicRenderingPass::EndRendering(const VkCommandBuffer& Co
     vkCmdEndRendering(CommandBuffer);
 }
 
-RENDERER_CORE::Semaphore::Semaphore(VkDevice LogicalDevice)
+VkCommandBuffer RENDERER_CORE::FrameManager::BeginFrame(
+     VkDevice LogicalDevice,
+     VkSwapchainKHR DestinationSwapChain,
+     TimelineSemaphore& TimelineSemaphore
+)
 {
-    Create(LogicalDevice);
-}
-
-RENDERER_CORE::Fence::Fence(VkDevice LogicalDevice, VkFenceCreateFlags Flags)
-{
-    Create(LogicalDevice, Flags);
-}
-
-void RENDERER_CORE::Fence::Create(VkDevice LogicalDevice,VkFenceCreateFlags Flags)
-{
-    VkFenceCreateInfo FenceCreateInfo{};
-    FenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    FenceCreateInfo.flags = Flags;
-
-    if (vkCreateFence(LogicalDevice, &FenceCreateInfo, nullptr, &Handle) != VK_SUCCESS)
+    auto& CommandBuffer = CommandBuffers[CurrentFrame];
+    auto& SyncObject = SyncObjects[CurrentFrame];
+    //vkWaitForFences(LogicalDevice, 1, &SyncObject.Fence, VK_TRUE, UINT64_MAX);
+    if (SyncObject.TimelineCounterTarget > 0)
     {
-        throw std::runtime_error("Failed to create the semaphores and the fence!");
+        WaitSemaphores(LogicalDevice, &TimelineSemaphore.Handle, 1, &SyncObject.TimelineCounterTarget);
     }
+
+   // uint32_t ImageIndex;
+    VkResult Result = vkAcquireNextImageKHR(LogicalDevice, DestinationSwapChain, UINT64_MAX, SyncObject.ImageAvailableSemaphore, VK_NULL_HANDLE, &ImageIndex);
+    if (Result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        return VK_NULL_HANDLE;
+    }
+    else if (Result != VK_SUCCESS && Result != VK_SUBOPTIMAL_KHR)
+    {
+        throw std::runtime_error("Failed to acquire swap chain image!");
+    }
+    //vkResetFences(LogicalDevice, 1, &SyncObject.Fence);
+    vkResetCommandBuffer(CommandBuffer, 0);
+
+    return CommandBuffer;
 }
 
-void RENDERER_CORE::Semaphore::Create(VkDevice LogicalDevice)
+RENDERER_CORE::FrameManager::FrameManager(VkDevice LogicalDevice, VkCommandPool DestinationCommandPool)
+{
+    Create(LogicalDevice, DestinationCommandPool);
+}
+
+void RENDERER_CORE::FrameManager::Create(VkDevice LogicalDevice,VkCommandPool DestinationCommandPool)
 {
     VkSemaphoreCreateInfo SemaphoreCreateInfo{};
     SemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    if (vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &Handle) != VK_SUCCESS)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        throw std::runtime_error("Failed to create the semaphores and the fence!");
+        auto& SyncObject = SyncObjects[i];
+        SyncObject.FenceCreateFlag = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkFenceCreateInfo FenceCreateInfo{};
+        FenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        FenceCreateInfo.flags = SyncObject.FenceCreateFlag;
+
+        if (vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &SyncObject.ImageAvailableSemaphore) != VK_SUCCESS ||
+            vkCreateSemaphore(LogicalDevice, &SemaphoreCreateInfo, nullptr, &SyncObject.RenderFinishedSemaphore) != VK_SUCCESS ||
+            vkCreateFence(LogicalDevice, &FenceCreateInfo, nullptr, &SyncObject.Fence) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create the semaphores and the fence!");
+        }
+
+    }
+    VULKAN_ASSERT_RESULT(RENDERER_CORE::AllocateCommandBuffers(DestinationCommandPool, LogicalDevice, CommandBuffers.data(),CommandBuffers.size()));
+}
+
+VkResult RENDERER_CORE::FrameManager::EndFrame(
+    VkDevice LogicalDevice,
+    VkQueue PresentQueue,
+    VkSwapchainKHR DestinationSwapChain,
+    Window& Window
+)
+{
+    auto& CommandBuffer = CommandBuffers[CurrentFrame];
+    auto& SyncObject = SyncObjects[CurrentFrame];
+
+    VkResult Result = RENDERER_CORE::PresentQueue(
+        PresentQueue,
+        { DestinationSwapChain },
+        { SyncObject.RenderFinishedSemaphore },
+        { ImageIndex },
+        { CommandBuffer }
+    );
+
+    if (Result == VK_ERROR_OUT_OF_DATE_KHR || Result == VK_SUBOPTIMAL_KHR || Window.FrameBufferResizedCallback)
+    {
+        Window.FrameBufferResizedCallback = false;
+        return Result;
+    }
+    else if (Result != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to acquire swap chain image!");
+    }
+    CurrentFrame = (CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    return Result;
+}
+
+void RENDERER_CORE::FrameManager::Destroy(VkDevice LogicalDevice)
+{
+    for (auto& SyncObjects : SyncObjects)
+    {
+        vkDestroySemaphore(LogicalDevice, SyncObjects.ImageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(LogicalDevice, SyncObjects.RenderFinishedSemaphore, nullptr);
+        vkDestroyFence(LogicalDevice, SyncObjects.Fence, nullptr);
     }
 }
 
-void RENDERER_CORE::Semaphore::Destroy(VkDevice LogicalDevice)
-{
-    if (!Handle) return;
-    vkDestroySemaphore(LogicalDevice, Handle, nullptr);
-    Handle = VK_NULL_HANDLE;
-}
-
-void RENDERER_CORE::Fence::Destroy(VkDevice LogicalDevice)
-{
-    if (!Handle) return;
-    vkDestroyFence(LogicalDevice, Handle, nullptr);
-    Handle = VK_NULL_HANDLE;
-}

@@ -406,3 +406,38 @@ void RENDERER_CORE::DeviceContext::Destroy()
 {
     vkDestroyDevice(LogicalDevice, nullptr);
 }
+
+VkQueue RENDERER_CORE::DeviceContext::GetQueue(QueueType Type)
+{
+    switch (Type)
+    {
+        case QUEUE_TYPE_PRESENT:
+        {
+            return PresentQueue;
+            break;
+        }
+        case QUEUE_TYPE_GRAPHICS:
+        {
+            return GraphicsQueue;
+            break;
+        }
+        case QUEUE_TYPE_TRANSFER:
+        {
+            return TransferQueue;
+            break;
+        }
+        case QUEUE_TYPE_COMPUTE:
+        {
+            return ComputeQueue;
+            break;
+        }
+        case QUEUE_TYPE_GRAPHICS_COMPUTE:
+        {
+            return GraphicsComputeQueue;
+            break;
+        }
+        default:
+            return VK_NULL_HANDLE;
+            break;
+    }
+}

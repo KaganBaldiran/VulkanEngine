@@ -142,8 +142,8 @@ void RENDERER_CORE::SwapChain::Destroy(VkDevice& LogicalDevice)
         vkDestroyImageView(LogicalDevice,SwapChainImagesViews[i], nullptr);
     }
 
-    vkDestroySwapchainKHR(LogicalDevice, swapChain, nullptr);
-    swapChain = VK_NULL_HANDLE;
+    vkDestroySwapchainKHR(LogicalDevice, Handle, nullptr);
+    Handle = VK_NULL_HANDLE;
 }
 
 void RENDERER_CORE::SwapChain::Create(
@@ -153,7 +153,7 @@ void RENDERER_CORE::SwapChain::Create(
     GLFWwindow* Window
 )
 {
-    if (swapChain) return;
-    VULKAN_ASSERT_RESULT(CreateSwapChain(PhysicalDevice, LogicalDevice, Surface, Window, swapChain, SwapChainImages, SurfaceFormat, PresentMode, Extent));
+    if (Handle) return;
+    VULKAN_ASSERT_RESULT(CreateSwapChain(PhysicalDevice, LogicalDevice, Surface, Window, Handle, SwapChainImages, SurfaceFormat, PresentMode, Extent));
     VULKAN_ASSERT_RESULT(CreateSwapChainImageViews(SwapChainImages, SwapChainImagesViews,SwapChainImagesBarrierStates, SurfaceFormat.format, LogicalDevice));
 }

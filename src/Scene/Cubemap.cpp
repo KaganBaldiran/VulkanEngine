@@ -161,7 +161,7 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 		HDRIfilePath,
 		RendererContext.DeviceContext.PhysicalDevice,
 		RendererContext.DeviceContext.LogicalDevice,
-		RendererContext.CommandPool.commandPool,
+		RendererContext.CommandPool.Handle,
 		RendererContext.DeviceContext.GraphicsQueue,
 		HdriTextureData
 	);
@@ -313,7 +313,7 @@ void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RE
 	RENDERER_CORE::ExecuteSingleTimeCommand(
 		RendererContext.DeviceContext.LogicalDevice,
 		RenderTask,
-		RendererContext.CommandPool.commandPool,
+		RendererContext.CommandPool.Handle,
 		RendererContext.DeviceContext.GraphicsQueue
 	);
 

@@ -192,7 +192,7 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 		RENDERER_CORE::CopyBuffer(
 			{ StaticLightCopyInfo },
 			RendererContext->DeviceContext.LogicalDevice,
-			RendererContext->CommandPool.commandPool,
+			RendererContext->CommandPool.Handle,
 			RendererContext->DeviceContext.GraphicsQueue
 		);
 

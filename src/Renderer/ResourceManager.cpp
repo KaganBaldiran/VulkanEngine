@@ -65,6 +65,7 @@ void RENDERER::ResourceManager::WaitTextureImportsIdle()
 }
 
 size_t RENDERER::ResourceManager::RequestCopyOperation(
+	RENDERER_CORE::QueueType QueueType,
 	VkBuffer DestinationBuffer, 
 	uint32_t FrameIndex,
 	VkPipelineStageFlags2 SrcStageMask,
@@ -123,7 +124,7 @@ void RENDERER::ResourceManager::HandleCopyOperations(
 	for (auto& PendingOperationIndex : PendingCopyOperations[FrameIndex])
 	{
 		if (!CopyInfos[FrameIndex].valid(PendingOperationIndex)) continue;
-		auto& [CopyInfo, BufferBarrierState] = CopyInfos[FrameIndex][PendingOperationIndex];
+		auto& [QueueType,CopyInfo,BufferBarrierState,Semaphore,DependentOperations] = CopyInfos[FrameIndex][PendingOperationIndex];
 		if (CopyInfo.CopyRegions.empty()) continue;
 
 		vkCmdCopyBuffer(

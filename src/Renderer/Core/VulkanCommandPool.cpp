@@ -12,7 +12,7 @@ void RENDERER_CORE::CommandPool::Create(uint32_t QueueFamilyIndex, VkDevice& Log
     CommandPoolCreateInfo.flags = Flags;
     CommandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
 
-    VkResult result = vkCreateCommandPool(LogicalDevice, &CommandPoolCreateInfo, nullptr, &commandPool);
+    VkResult result = vkCreateCommandPool(LogicalDevice, &CommandPoolCreateInfo, nullptr, &Handle);
     if (result != VK_SUCCESS) {
         throw std::runtime_error("vkCreateCommandPool failed with error: " + std::to_string(result));
     }
@@ -20,7 +20,7 @@ void RENDERER_CORE::CommandPool::Create(uint32_t QueueFamilyIndex, VkDevice& Log
 
 void RENDERER_CORE::CommandPool::Destroy(VkDevice &LogicalDevice)
 {
-    if (commandPool == VK_NULL_HANDLE) return;
-    vkDestroyCommandPool(LogicalDevice,commandPool,nullptr);
+    if (Handle == VK_NULL_HANDLE) return;
+    vkDestroyCommandPool(LogicalDevice,Handle,nullptr);
 }
 

@@ -15,6 +15,40 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::AllocateCommandBuffers(VkCommandPool&
     return VULKAN_SUCCESS;
 }
 
+RENDERER_CORE::VulkanResult RENDERER_CORE::AllocateCommandBuffers(
+    VkCommandPool& CommandPool,
+    VkDevice& LogicalDevice,
+    VkCommandBuffer* DestinationCommandBuffers,
+    uint32_t CommandBufferCount, 
+    VkCommandBufferLevel Level
+)
+{
+    VkCommandBufferAllocateInfo AllocCreateInfo{};
+    AllocCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    AllocCreateInfo.commandPool = CommandPool;
+    AllocCreateInfo.level = Level;
+    AllocCreateInfo.commandBufferCount = CommandBufferCount;
+
+    if (vkAllocateCommandBuffers(LogicalDevice, &AllocCreateInfo, DestinationCommandBuffers) != VK_SUCCESS)
+    {
+        return { VK_INCOMPLETE,"Failed to allocate command buffers" };
+    }
+    return VULKAN_SUCCESS;
+}
+
+void RENDERER_CORE::BeginCommandBuffer(VkCommandBuffer CommandBuffer,VkCommandBufferUsageFlags Flags,VkCommandBufferInheritanceInfo *InheritanceInfo)
+{
+    VkCommandBufferBeginInfo CommandBufferBeginInfo{};
+    CommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    CommandBufferBeginInfo.flags = Flags;
+    CommandBufferBeginInfo.pInheritanceInfo = InheritanceInfo;
+
+    if (vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to record command buffer");
+    }
+}
+
 void RENDERER_CORE::ExecuteSingleTimeCommand(VkDevice &LogicalDevice,std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandPool& Pool, VkQueue& Queue)
 {
     VkFence Fence{};

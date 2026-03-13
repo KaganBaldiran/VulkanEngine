@@ -7,7 +7,6 @@
 
 namespace RENDERER_CORE
 {
-
     struct VulkanInstanceCreateInfo
     {
         uint32_t ApplicationVersion;

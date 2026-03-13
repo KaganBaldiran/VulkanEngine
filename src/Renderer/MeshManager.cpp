@@ -391,7 +391,7 @@ void RENDERER::MeshManager::UpdateGeometryEntries(uint32_t FrameIndex)
     RENDERER_CORE::CopyBuffer(
         CopyInfos,
         RendererContext->DeviceContext.LogicalDevice,
-        RendererContext->CommandPool.commandPool,
+        RendererContext->CommandPool.Handle,
         RendererContext->DeviceContext.GraphicsQueue
     );
 
@@ -520,7 +520,7 @@ void RENDERER::MeshManager::HandleGeometryBufferReallocationCopy(
         RENDERER_CORE::CopyBuffer(
             CopyInfos,
             RendererContext->DeviceContext.LogicalDevice,
-            RendererContext->CommandPool.commandPool,
+            RendererContext->CommandPool.Handle,
             RendererContext->DeviceContext.GraphicsQueue
         );
 

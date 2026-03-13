@@ -70,7 +70,7 @@ void RENDERER::TextureManager::SubmitImport()
                 NewRawImageData,
                 RendererContextPtr->DeviceContext.PhysicalDevice,
                 RendererContextPtr->DeviceContext.LogicalDevice,
-                TempCommandPool.commandPool,
+                TempCommandPool.Handle,
                 RendererContextPtr->DeviceContext.GraphicsQueue,
                 DestinationTextureData.Data,
                 Mutex

@@ -43,7 +43,7 @@ namespace RENDERER_CORE
             GLFWwindow* Window
         );
 
-        VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+        VkSwapchainKHR Handle = VK_NULL_HANDLE;
         std::vector<VkImage> SwapChainImages;
         std::vector<VkImageView> SwapChainImagesViews;
         std::vector<ImageBarrierState> SwapChainImagesBarrierStates;

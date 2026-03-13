@@ -70,7 +70,7 @@ namespace RENDERER
         void Destroy() override;
 
         bool EnablePhysicsDebugDrawing;
-        RendererContext* rendererContext = nullptr;
+        RendererContext* RendererContextPtr = nullptr;
       
         //References
         VkDevice LogicalDevice;
@@ -93,8 +93,12 @@ namespace RENDERER
         RENDERER_CORE::GraphicsPipeline PhysicsDebugGraphicsPipeline;
         RENDERER_CORE::PipelineBarrier2 PipelineBarrier2;
 
+        RENDERER_CORE::TimelineSemaphore TimelineSemaphore;
+        uint64_t GlobalTimelineCounter = 0;
         std::vector<RENDERER_CORE::FrameSyncObjects> SyncObjects;
         uint32_t CurrentFrame = 0;
+
+        RENDERER_CORE::FrameManager FrameManager;
 
         RENDERER_CORE::ComputePipeline TestPipeline;
         RENDERER_CORE::PersistentBuffer TestBuffer;

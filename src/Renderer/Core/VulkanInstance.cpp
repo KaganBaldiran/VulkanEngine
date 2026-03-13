@@ -30,7 +30,7 @@ void RENDERER_CORE::PopulateMessagerCreateInfo(VkDebugUtilsMessengerCreateInfoEX
 {
     CreateInfo = {};
     CreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    CreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    CreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
     CreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     CreateInfo.pfnUserCallback = debugCallback;
 }
@@ -189,6 +189,7 @@ RENDERER_CORE::Instance::Instance(VulkanInstanceCreateInfo &CreateInfo)
 void RENDERER_CORE::Instance::Create(VulkanInstanceCreateInfo& CreateInfo)
 {
     this->EnableValidationLayers = CreateInfo.EnableValidationLayers;
+    this->ValidationLayers = CreateInfo.ValidationLayersToEnable;
     VULKAN_ASSERT_RESULT(RENDERER_CORE::CreateVulkanInstance(CreateInfo, ValidationLayers, instance, nullptr));
     RENDERER_CORE::SetupDebugMessenger(instance, CreateInfo.EnableValidationLayers, ValidationLayers, DebugMessenger);
 }

@@ -225,7 +225,7 @@ void RENDERER::RendererContext::Create(
     RENDERER_CORE::UploadDataToDeviceLocalBuffer(
         DeviceContext.LogicalDevice,
         DeviceContext.PhysicalDevice,
-        CommandPool.commandPool,
+        CommandPool.Handle,
         DeviceContext.GraphicsQueue,
         QuadVertices,
         sizeof(QuadVertices),
@@ -237,7 +237,7 @@ void RENDERER::RendererContext::Create(
     RENDERER_CORE::UploadDataToDeviceLocalBuffer(
         DeviceContext.LogicalDevice,
         DeviceContext.PhysicalDevice,
-        CommandPool.commandPool,
+        CommandPool.Handle,
         DeviceContext.GraphicsQueue,
         skyboxVertices,
         sizeof(skyboxVertices),

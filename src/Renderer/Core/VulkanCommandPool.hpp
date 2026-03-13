@@ -20,7 +20,7 @@ namespace RENDERER_CORE
 			VkCommandPoolCreateFlags Flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
 		);
 		void Destroy(VkDevice& LogicalDevice);
-		VkCommandPool commandPool;
+		VkCommandPool Handle;
 	private:
 	};
 }
