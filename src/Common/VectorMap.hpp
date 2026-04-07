@@ -6,11 +6,11 @@
 
 namespace COMMON
 {
-	template<typename Key,typename Value>
+	template<typename Key,typename Value,typename Hash = std::hash<Key>>
 	class VectorMap
 	{
 	public:
-		void Insert(const Key& Key,const Value& Value)
+		void insert(const Key& Key,const Value& Value)
 		{
 			auto [Iterator, Inserted] = KeyIndexMap.emplace(Key, Data.size());
 			if (!Inserted) return;
@@ -18,14 +18,14 @@ namespace COMMON
 			Iterator->second = Data.size() - 1;
  		}
 
-		std::pair<Key,Value>* Find(const Key& Key)
+		std::pair<Key,Value>* find(const Key& Key)
 		{
 			auto Iterator = KeyIndexMap.find(Key);
 			if (Iterator == KeyIndexMap.end()) return nullptr;
 			return &Data[Iterator->second];
 		}
 
-		void Erase(const Key& Key)
+		void erase(const Key& Key)
 		{
 			auto Iterator = KeyIndexMap.find(Key);
 			if (Iterator == KeyIndexMap.end()) return;
@@ -41,25 +41,25 @@ namespace COMMON
 			KeyIndexMap.erase(Iterator);
 		}
 
-		size_t Size()
+		size_t size()
 		{
 			return Data.size();
 		}
 
-		void Reserve(size_t NewCapacity) 
+		void reserve(size_t NewCapacity) 
 		{
 			Data.reserve(NewCapacity);
 			KeyIndexMap.reserve(NewCapacity);
 		}
 
-		void Clear()
+		void clear()
 		{
 			Data.clear();
 			KeyIndexMap.clear();
 		}
 
 		template <typename CompareFunc>
-		void Sort(CompareFunc CompareFunction)
+		void sort(CompareFunc CompareFunction)
 		{
 			std::sort(Data.begin(), Data.end(), CompareFunction);
 			for (size_t i = 0; i < Data.size(); i++)
@@ -81,9 +81,9 @@ namespace COMMON
 
 		auto begin() { return Data.begin(); };
 		auto end() { return Data.end(); };
-		std::vector<std::pair<Key, Value>>& GetData() { return Data; };
+		std::vector<std::pair<Key, Value>>& getData() { return Data; };
 	private:
 		std::vector<std::pair<Key,Value>> Data;
-		std::unordered_map<Key, size_t> KeyIndexMap;
+		std::unordered_map<Key, size_t, Hash> KeyIndexMap;
 	};
 }

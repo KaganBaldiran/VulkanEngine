@@ -36,7 +36,7 @@ namespace RENDERER
 
 	struct TextureDataEntry
 	{
-		RENDERER_CORE::TextureData Data;
+		RENDERER_CORE::ImageData Data;
 		std::array<size_t,MAX_FRAMES_IN_FLIGHT> DescriptorSlots;
 	};
 

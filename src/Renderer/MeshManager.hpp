@@ -102,7 +102,7 @@ namespace RENDERER
 
         void CreateGeometryBuffers(
             RENDERER::RendererContext* RendererContext,
-            RENDERER_CORE::PersistentBufferAllocator& StagingBuffer,
+            RENDERER_CORE::BufferAllocator& StagingBuffer,
             bool VertexBufferReallocated,
             bool IndexBufferReallocated,
             bool VertexBufferAllocatedFirstTime,

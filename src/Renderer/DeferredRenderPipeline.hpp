@@ -38,6 +38,7 @@ namespace RENDERER
 	private:
 		void RenderScene(
             SCENE::Scene& Scene, 
+            SCENE::Camera3D& Camera,
             VkCommandBuffer& CommandBuffer,
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame,
@@ -49,24 +50,43 @@ namespace RENDERER
             bool ClearDepth,
             bool ClearColorAttachment
         ) override;
+
+        void QueueRenderTasks(
+            FrameGraph& FrameGraph,
+            SCENE::Scene& Scene,
+            SCENE::Camera3D& Camera,
+            VkCommandBuffer CommandBuffer,
+            uint32_t CurrentImageIndex,
+            uint32_t CurrentFrame,
+            RENDERER_CORE::ImageData& DepthImageImage,
+            RENDERER_CORE::ImageData& DstColorRenderTargetImage,
+            GeometryBuffer& FrameGbuffer,
+            VkDescriptorSet GeometrybufferDescriptorSet,
+            bool EnableDepthTesting,
+            bool ClearDepth,
+            bool ClearColorAttachment
+        ) override;
+
 		void OnResize(uint32_t Width, uint32_t Height) override;
         void RenderGeometryPass(
             SCENE::Scene& Scene,
-            VkCommandBuffer& CommandBuffer,
+            SCENE::Camera3D& Camera,
+            VkCommandBuffer CommandBuffer,
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame,
-            VkImageView& DepthImage,
+            VkImageView DepthImage,
             GeometryBuffer& Gbuffers,
             bool EnableDepthTesting,
             bool ClearDepth
         );
         void RenderLightingPass(
             SCENE::Scene& Scene,
-            VkCommandBuffer& CommandBuffer,
+            SCENE::Camera3D& Camera,
+            VkCommandBuffer CommandBuffer,
             uint32_t CurrentImageIndex,
             uint32_t CurrentFrame,
-            VkImageView &DstRenderTargetImageView,
-            VkDescriptorSet& GeometrybufferDescriptorSet,
+            VkImageView DstRenderTargetImageView,
+            VkDescriptorSet GeometrybufferDescriptorSet,
             bool ClearColorAttachment
         );
         glm::mat4 PreviousProjViewMatrix;

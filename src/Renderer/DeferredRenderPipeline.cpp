@@ -80,6 +80,7 @@ void RENDERER::DeferredRenderPipeline::CompileCustomPipeline(std::string ShadePi
 
 void RENDERER::DeferredRenderPipeline::RenderScene(
     SCENE::Scene& Scene,
+    SCENE::Camera3D& Camera,
     VkCommandBuffer& CommandBuffer,
     uint32_t CurrentImageIndex,
     uint32_t CurrentFrame,
@@ -92,25 +93,12 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
     bool ClearColorAttachment
 )
 {
-    if (!Scene.MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame] || !Scene.ResourceManagerPtr)
+    if (!Scene.MeshBuffers.Buffers.EnabledMeshCount[CurrentFrame] || !Scene.ResourceManagerPtr)
     {
         return;
     };
 
-    if (glfwGetKey(RendererContextPtr->Window.window, GLFW_KEY_P) == GLFW_RELEASE) AllowPress = true;
-    if (glfwGetKey(RendererContextPtr->Window.window, GLFW_KEY_P) == GLFW_PRESS && AllowPress)
-    {
-        IsCamera1 = !IsCamera1;
-        AllowPress = false;
-    }
-
-    if (glfwGetKey(RendererContextPtr->Window.window, GLFW_KEY_L) == GLFW_PRESS)
-    {
-        CameraDirection = Scene.Camera->CameraDirection;
-        CameraPosition = Scene.Camera->CameraPosition;
-    }
-
-    std::array<RENDERER_CORE::TextureData*, 4> GbufferAttachments = {
+    std::array<RENDERER_CORE::ImageData*, 4> GbufferAttachments = {
         &FrameGbuffer.NormalAttachment,
         &FrameGbuffer.PositionAttachment,
         &FrameGbuffer.AlbedoAttachment,
@@ -132,6 +120,7 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
     PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
     RenderGeometryPass(
         Scene, 
+        Camera,
         CommandBuffer, 
         CurrentImageIndex, 
         CurrentFrame, 
@@ -156,6 +145,7 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
 
     RenderLightingPass(
         Scene, 
+        Camera,
         CommandBuffer, 
         CurrentImageIndex, 
         CurrentFrame,
@@ -163,6 +153,147 @@ void RENDERER::DeferredRenderPipeline::RenderScene(
         GeometrybufferDescriptorSet,
         ClearColorAttachment
     );
+}
+
+void RENDERER::DeferredRenderPipeline::QueueRenderTasks(
+    FrameGraph& FrameGraph, 
+    SCENE::Scene& Scene, 
+    SCENE::Camera3D& Camera, 
+    VkCommandBuffer CommandBuffer, 
+    uint32_t CurrentImageIndex, 
+    uint32_t CurrentFrame, 
+    RENDERER_CORE::ImageData& DepthImageImage,
+    RENDERER_CORE::ImageData& DstColorRenderTargetImage, 
+    GeometryBuffer& FrameGbuffer, 
+    VkDescriptorSet GeometrybufferDescriptorSet, 
+    bool EnableDepthTesting, 
+    bool ClearDepth, 
+    bool ClearColorAttachment
+)
+{
+    if (!Scene.MeshBuffers.Buffers.EnabledMeshCount[CurrentFrame] || !Scene.ResourceManagerPtr)
+    {
+        return;
+    };
+
+    FrameGraph.AppendTask({
+
+        [&,CurrentFrame](RENDERER::PassBuilder& Builder) {
+            std::array<RENDERER_CORE::ImageData*, 4> GbufferAttachments = {
+                &FrameGbuffer.NormalAttachment,
+                &FrameGbuffer.PositionAttachment,
+                &FrameGbuffer.AlbedoAttachment,
+                &FrameGbuffer.RoughnessMetallicAttachment
+            };
+
+            for (auto& Attachment : GbufferAttachments)
+            {
+                Builder.Write(
+                    Attachment,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+                );
+            }
+
+            Builder.Write(
+                &DepthImageImage,
+                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_IMAGE_ASPECT_DEPTH_BIT
+            );
+
+            auto& SceneBuffers = Scene.MeshBuffers.Buffers;
+            auto& IndirectBuffer = SceneBuffers.IndirectBuffers[CurrentFrame].Buffer;
+            auto& DrawMetaDataBuffer = SceneBuffers.DrawMetaDataBuffer[CurrentFrame].Buffer;
+            auto& ModelMatricesBuffer = SceneBuffers.ModelMatricesBuffers[CurrentFrame].Buffer;
+            auto& VisibilityIndexBuffer = SceneBuffers.CullBuffers.VisibilityIndexBuffers[CurrentFrame].Buffer;
+            auto& TexturesIndexBuffer = SceneBuffers.TexturesIndexBuffers[CurrentFrame].Buffer;
+            Builder.Read(&IndirectBuffer, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT);
+            Builder.Read(&VisibilityIndexBuffer, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
+            Builder.Read(&DrawMetaDataBuffer, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
+            Builder.Read(&ModelMatricesBuffer, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
+            Builder.Read(&TexturesIndexBuffer, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
+        },
+
+        [&Scene, &Camera, CurrentImageIndex, &DepthImageImage, 
+        &FrameGbuffer, EnableDepthTesting, ClearDepth, this](VkCommandBuffer CommandBuffer,uint32_t CurrentFrame) {
+           // std::cout << "Pass [GbufferPass_Internal] is being executed..." << std::endl;
+
+            RenderGeometryPass(
+                Scene,
+                Camera,
+                CommandBuffer,
+                CurrentImageIndex,
+                CurrentFrame,
+                DepthImageImage.ImageView,
+                FrameGbuffer,
+                EnableDepthTesting,
+                ClearDepth
+            );
+        },
+
+        "GbufferPass_Internal"
+    });
+
+    FrameGraph.AppendTask({
+
+         [&,CurrentFrame](RENDERER::PassBuilder& Builder) {
+            std::array<RENDERER_CORE::ImageData*, 4> GbufferAttachments = {
+                &FrameGbuffer.NormalAttachment,
+                &FrameGbuffer.PositionAttachment,
+                &FrameGbuffer.AlbedoAttachment,
+                &FrameGbuffer.RoughnessMetallicAttachment
+            };
+
+            for (auto& Attachment : GbufferAttachments)
+            {
+                Builder.Read(
+                    Attachment,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                    VK_ACCESS_2_SHADER_READ_BIT
+                );
+            }
+
+            auto& SceneBuffers = Scene.MeshBuffers.Buffers;
+            auto& SceneLightManager = Scene.LightManager;
+
+            auto& StaticLightBuffer = SceneLightManager.StaticLightSSBOs[CurrentFrame].Buffer;
+            auto& DynamicLightBuffer = SceneLightManager.DynamicLightSSBOs[CurrentFrame].Buffer;
+            auto& TexturesIndexBuffer = SceneBuffers.TexturesIndexBuffers[CurrentFrame].Buffer;
+            Builder.Read(&StaticLightBuffer, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
+            Builder.Read(&DynamicLightBuffer, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
+            Builder.Read(&TexturesIndexBuffer, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
+
+            Builder.Write(
+                &DstColorRenderTargetImage,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+            );
+         },
+
+        [&Scene, &Camera, CurrentImageIndex, CurrentFrame, 
+        &DstColorRenderTargetImage, GeometrybufferDescriptorSet, 
+        ClearColorAttachment, this](VkCommandBuffer CommandBuffer,uint32_t FrameIndex) {
+            //std::cout << "Pass [LightingPass_Internal] is being executed..." << std::endl;
+           
+            RenderLightingPass(
+                Scene,
+                Camera,
+                CommandBuffer,
+                CurrentImageIndex,
+                FrameIndex,
+                DstColorRenderTargetImage.ImageView,
+                GeometrybufferDescriptorSet,
+                ClearColorAttachment
+            );
+        },
+
+        "LightingPass_Internal"
+    });
 }
 
 void RENDERER::DeferredRenderPipeline::Destroy()
@@ -184,17 +315,18 @@ void RENDERER::DeferredRenderPipeline::OnResize(uint32_t Width, uint32_t Height)
 }
 
 void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
-    SCENE::Scene& Scene, 
-    VkCommandBuffer& CommandBuffer,
+    SCENE::Scene& Scene,
+    SCENE::Camera3D& Camera,
+    VkCommandBuffer CommandBuffer,
     uint32_t CurrentImageIndex,
     uint32_t CurrentFrame,
-    VkImageView& DepthImage,
+    VkImageView DepthImage,
     GeometryBuffer &Gbuffers,
     bool EnableDepthTesting,
     bool ClearDepth
 )
 {
-    const size_t PerformanceModeEnabledMeshCount = Scene.MeshBuffers.Entries[CurrentFrame].MeshEntries.Size();
+    const size_t PerformanceModeEnabledMeshCount = Scene.MeshBuffers.Entries[CurrentFrame].MeshEntries.size();
     if (!(PerformanceModeEnabledMeshCount)) return;
 
     std::array<VkClearValue, 4> ClearColors{};
@@ -273,7 +405,7 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
 
     if (IsCamera1)
     {
-        ProjViewMatrix = Scene.Camera->ProjectionMatrix * Scene.Camera->ViewMatrix;
+        ProjViewMatrix = Camera.ProjectionMatrix * Camera.ViewMatrix;
     }
     else
     {
@@ -320,7 +452,7 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
         {
             vkCmdDrawIndexedIndirect(
                 CommandBuffer,
-                Scene.MeshBuffers.SceneBuffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
+                Scene.MeshBuffers.Buffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
                 Offset,
                 PageMeshCount.MeshCount,
                 sizeof(SCENE::ExtendedIndirectCommand)
@@ -332,7 +464,7 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
             {
                 vkCmdDrawIndexedIndirect(
                     CommandBuffer,
-                    Scene.MeshBuffers.SceneBuffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
+                    Scene.MeshBuffers.Buffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
                     Offset + j * sizeof(SCENE::ExtendedIndirectCommand),
                     1,
                     sizeof(SCENE::ExtendedIndirectCommand)
@@ -347,11 +479,12 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
 
 void RENDERER::DeferredRenderPipeline::RenderLightingPass(
     SCENE::Scene& Scene, 
-    VkCommandBuffer& CommandBuffer,
+    SCENE::Camera3D& Camera,
+    VkCommandBuffer CommandBuffer,
     uint32_t CurrentImageIndex, 
     uint32_t CurrentFrame, 
-    VkImageView& DstRenderTargetImageView,
-    VkDescriptorSet &GeometrybufferDescriptorSet,
+    VkImageView DstRenderTargetImageView,
+    VkDescriptorSet GeometrybufferDescriptorSet,
     bool ClearColorAttachment
 )
 {
@@ -397,8 +530,8 @@ void RENDERER::DeferredRenderPipeline::RenderLightingPass(
 
     if (IsCamera1)
     {
-       lightingPassUboData.CameraDirection = Scene.Camera->CameraDirection;
-       lightingPassUboData.CameraPosition = Scene.Camera->CameraPosition;
+       lightingPassUboData.CameraDirection = Camera.CameraDirection;
+       lightingPassUboData.CameraPosition = Camera.CameraPosition;
     }
     else
     {

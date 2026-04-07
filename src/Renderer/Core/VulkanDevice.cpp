@@ -216,7 +216,9 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
     VkQueue& GraphicsComputeQueue,
     float QueuePriority,
     VkBaseOutStructure* FeaturesToEnable,
-    std::vector<const char*> ExtensionsToEnable
+    std::vector<const char*> ExtensionsToEnable,
+    bool EnableValidationLayers,
+    std::vector<const char*> ValidationLayersToEnable
 )
 {
     RENDERER_CORE::QueueFamilyIndices indices = RENDERER_CORE::FindQueueFamilies(PhysicalDevice, Surface);
@@ -251,6 +253,16 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateLogicalDevice(
     DeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(ExtensionsToEnable.size());
     DeviceCreateInfo.ppEnabledExtensionNames = ExtensionsToEnable.data();
     DeviceCreateInfo.pNext = FeaturesToEnable;
+
+    if (EnableValidationLayers)
+    {
+        DeviceCreateInfo.ppEnabledLayerNames = ValidationLayersToEnable.data();
+        DeviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(ValidationLayersToEnable.size());
+    }
+    else
+    {
+        DeviceCreateInfo.enabledLayerCount = 0;
+    }
 
     if (vkCreateDevice(PhysicalDevice, &DeviceCreateInfo, nullptr, &LogicalDevice) != VK_SUCCESS)
     {
@@ -397,8 +409,10 @@ void RENDERER_CORE::DeviceContext::Create(VulkanDeviceCreateInfo& CreateInfo, Vk
         TransferQueue,
         GraphicsComputeQueue,
         CreateInfo.QueuePriority,
-        FeatureLine->pNext,
-        SupportedExtensionNames
+        reinterpret_cast<VkBaseOutStructure*>(&AccelerationStructureFeatures),
+        SupportedExtensionNames,
+        CreateInfo.EnableValidationLayers,
+        CreateInfo.ValidationLayersToEnable
     ));
 }
 

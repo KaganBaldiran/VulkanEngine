@@ -97,7 +97,7 @@ void RENDERER_CORE::PipelineBarrier2::ExecutePipelineBarrier(VkCommandBuffer Com
 
 void RENDERER_CORE::SafeImageBarrier(
 	VkImage& Image,
-	ImageBarrierState &State,
+	BarrierState &State,
 	PipelineBarrier2& Barrier,
 	VkImageLayout DestinationLayout,
 	VkPipelineStageFlags2 DstStage,
@@ -107,11 +107,11 @@ void RENDERER_CORE::SafeImageBarrier(
 	VkImageAspectFlags AspectMask
 )
 {
-	if (State.ImageLayout != DestinationLayout || State.Stage != DstStage || State.AccessMask != DstAccesMask)
+	if (State.ImageLayout != DestinationLayout || State.StageMask != DstStage || State.AccessMask != DstAccesMask)
 	{
 		Barrier.AppendImageMemoryBarrier(
 			Image,
-			State.Stage,
+			State.StageMask,
 			DstStage,
 			State.AccessMask,
 			DstAccesMask,
@@ -121,7 +121,7 @@ void RENDERER_CORE::SafeImageBarrier(
 			DstQueueFamilyIndex,
 			AspectMask
 		);
-		State.Stage = DstStage;
+		State.StageMask = DstStage;
 		State.ImageLayout = DestinationLayout;
 		State.AccessMask = DstAccesMask;
 	}

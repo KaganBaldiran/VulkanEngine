@@ -18,12 +18,17 @@ namespace RENDERER
 {
 	class DeferredRenderPipeline;
 	class Renderer;
+	class FrameGraph;
 
 	struct CopyOperationEntry
 	{
 		RENDERER_CORE::QueueType QueueType;
-		RENDERER_CORE::BufferCopyInfo CopyInfo;
-		RENDERER_CORE::MemoryBufferBarrierState BufferState;
+		//RENDERER_CORE::BufferCopyInfo CopyInfo;
+
+		std::vector<VkBufferCopy> CopyRegions;
+		VkBuffer SourceBuffer = VK_NULL_HANDLE;
+		RENDERER_CORE::Buffer* DestinationBuffer = nullptr;
+		//RENDERER_CORE::MemoryBufferBarrierState BufferState;
 
 		RENDERER_CORE::Semaphore Semaphore;
 		std::vector<uint32_t> DependentOperations;
@@ -56,12 +61,12 @@ namespace RENDERER
 		//Creates the requested list or/and returns index to the respective copy info list
 		size_t RequestCopyOperation(
 			RENDERER_CORE::QueueType QueueType,
-			VkBuffer DestinationBuffer,
-			uint32_t FrameIndex,
-			VkPipelineStageFlags2 SrcStageMask,
+			RENDERER_CORE::Buffer* DestinationBuffer,
+			uint32_t FrameIndex
+	/*		VkPipelineStageFlags2 SrcStageMask,
 			VkPipelineStageFlags2 DstStageMask,
 			VkAccessFlags2 SrcAccessMask,
-			VkAccessFlags2 DstAccessMask
+			VkAccessFlags2 DstAccessMask*/
 		);
 		RENDERER::ResourceManager::CopyOperationEntry* GetCopyOperationEntry(const size_t& Index, const uint32_t& FrameIndex);
 		void SetCopyOperationDirty(size_t Index, uint32_t FrameIndex);
@@ -69,6 +74,12 @@ namespace RENDERER
 			VkCommandBuffer& CommandBuffer,
 			size_t FrameIndex,
 			RENDERER_CORE::PipelineBarrier2& PipelineBarrier2
+		);
+
+		void QueueCopyOperations(
+			VkCommandBuffer& CommandBuffer,
+			size_t FrameIndex,
+			FrameGraph &FrameGraph
 		);
 
 		MeshManager MeshManager;

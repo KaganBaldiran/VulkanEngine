@@ -7,14 +7,13 @@
 #include <stdexcept>
 #include <vulkan/vk_enum_string_helper.h>
 
-void RENDERER_CORE::PersistentBuffer::Destroy(VkDevice& LogicalDevice)
+void RENDERER_CORE::UnMapBuffer(VkDevice& LogicalDevice, Buffer& DestinationBuffer)
 {
-    if (MappedMemory)
+    if (DestinationBuffer.MappedMemory)
     {
-        vkUnmapMemory(LogicalDevice, Buffer.BufferMemory);
-        MappedMemory = nullptr;
+        vkUnmapMemory(LogicalDevice, DestinationBuffer.BufferMemory);
+        DestinationBuffer.MappedMemory = nullptr;
     }
-    Buffer.Destroy(LogicalDevice);
 }
 
 uint32_t RENDERER_CORE::FindMemoryType(VkPhysicalDevice &PhysicalDevice,uint32_t TypeFilter, VkMemoryPropertyFlags Properties)
@@ -31,7 +30,15 @@ uint32_t RENDERER_CORE::FindMemoryType(VkPhysicalDevice &PhysicalDevice,uint32_t
     }
 }
 
-void RENDERER_CORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& LogicalDevice,VkDeviceSize Size, VkBufferUsageFlags Usage, VkMemoryPropertyFlags Properties, Buffer& DestinationBuffer,VkMemoryAllocateFlags AllocateFlags)
+void RENDERER_CORE::CreateBuffer(
+    VkPhysicalDevice &PhysicalDevice,
+    VkDevice& LogicalDevice,
+    VkDeviceSize Size, 
+    VkBufferUsageFlags Usage, 
+    VkMemoryPropertyFlags Properties, 
+    Buffer& DestinationBuffer,
+    VkMemoryAllocateFlags AllocateFlags
+)
 {
     VkBufferCreateInfo BufferCreateInfo{};
     BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -74,18 +81,19 @@ void RENDERER_CORE::CreateBuffer(VkPhysicalDevice &PhysicalDevice,VkDevice& Logi
     );
 }
 
-void RENDERER_CORE::Buffer::Destroy(VkDevice &LogicalDevice)
+void RENDERER_CORE::DestroyBuffer(VkDevice &LogicalDevice,Buffer &DestinationBuffer)
 {
-    auto BufferPtr = reinterpret_cast<uintptr_t>(BufferObject);
-    if (BufferMemory != VK_NULL_HANDLE)
+    UnMapBuffer(LogicalDevice, DestinationBuffer);
+    auto BufferPtr = reinterpret_cast<uintptr_t>(DestinationBuffer.BufferObject);
+    if (DestinationBuffer.BufferMemory != VK_NULL_HANDLE)
     {
-        vkFreeMemory(LogicalDevice, BufferMemory, nullptr);
-        BufferMemory = VK_NULL_HANDLE; 
+        vkFreeMemory(LogicalDevice, DestinationBuffer.BufferMemory, nullptr);
+        DestinationBuffer.BufferMemory = VK_NULL_HANDLE;
     }
-    if (BufferObject != VK_NULL_HANDLE)
+    if (DestinationBuffer.BufferObject != VK_NULL_HANDLE)
     {
-        vkDestroyBuffer(LogicalDevice, BufferObject, nullptr);
-        BufferObject = VK_NULL_HANDLE; 
+        vkDestroyBuffer(LogicalDevice, DestinationBuffer.BufferObject, nullptr);
+        DestinationBuffer.BufferObject = VK_NULL_HANDLE;
     }
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Buffer[address(" + std::to_string(BufferPtr) + ")] destroyed!"));
 }
@@ -175,7 +183,8 @@ void RENDERER_CORE::UploadDataToDeviceLocalBuffer(VkDevice LogicalDevice, VkPhys
         Queue
     );
 
-    StagingBuffer.Destroy(LogicalDevice);
+    RENDERER_CORE::DestroyBuffer(LogicalDevice, StagingBuffer);
+    //StagingBuffer.Destroy(LogicalDevice);
 }
 
 void RENDERER_CORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDevice PhysicalDevice, VkCommandPool CommandPool, VkQueue Queue, const void* Data, VkDeviceSize Size, RENDERER_CORE::Buffer& DestinationBuffer, VkBufferUsageFlags UsageFlags)
@@ -197,7 +206,8 @@ void RENDERER_CORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice
         Queue
     );
 
-    StagingBuffer.Destroy(LogicalDevice);
+    RENDERER_CORE::DestroyBuffer(LogicalDevice, StagingBuffer);
+    //StagingBuffer.Destroy(LogicalDevice);
 }
 
 uint64_t RENDERER_CORE::GetBufferDeviceAddress(VkDevice& LogicalDevice,const Buffer& Buffer)
@@ -209,12 +219,12 @@ uint64_t RENDERER_CORE::GetBufferDeviceAddress(VkDevice& LogicalDevice,const Buf
     return 0;
 }
 
-void RENDERER_CORE::PersistentBuffer::Map(VkDevice& LogicalDevice, VkDeviceSize Offset, VkDeviceSize Size, VkMemoryMapFlags Flags)
+void RENDERER_CORE::MapBuffer(Buffer& DestinationBuffer, VkDevice& LogicalDevice, VkDeviceSize Offset, VkDeviceSize Size, VkMemoryMapFlags Flags)
 {
-    if (vkMapMemory(LogicalDevice, Buffer.BufferMemory, Offset, Size, Flags, &MappedMemory) != VK_SUCCESS)
+    if (vkMapMemory(LogicalDevice, DestinationBuffer.BufferMemory, Offset, Size, Flags, &DestinationBuffer.MappedMemory) != VK_SUCCESS)
     {
         LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, std::string("Failed mapping memory [address(" +
-            std::to_string(reinterpret_cast<uintptr_t>(Buffer.BufferMemory)) + ")]"));
+            std::to_string(reinterpret_cast<uintptr_t>(DestinationBuffer.BufferMemory)) + ")]"));
         throw std::runtime_error("Unable to map memory!");
     }
 }

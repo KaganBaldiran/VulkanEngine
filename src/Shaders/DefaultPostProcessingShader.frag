@@ -58,5 +58,6 @@ void main()
    // outColor = vec4(mix(vec3(0.0f,0.0f,0.0f),Scene.xyz,OulineSq),1.0f);
 
     vec4 Scene = texture(SceneColor,OutUVcoords).xyzw;
+    //outColor = vec4(1.0,0.0,1.0,1.0f);
     outColor = vec4(Scene.xyz,1.0f);
 }

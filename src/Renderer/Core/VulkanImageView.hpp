@@ -28,7 +28,7 @@ namespace RENDERER_CORE
     VulkanResult CreateSwapChainImageViews(
         std::vector<VkImage>& swapChainImages,
         std::vector<VkImageView>& swapChainImageViews,
-        std::vector<RENDERER_CORE::ImageBarrierState>& swapChainBarrierStates,
+        std::vector<RENDERER_CORE::BarrierState>& swapChainBarrierStates,
         VkFormat surfaceFormat,
         VkDevice& logicalDevice
     );

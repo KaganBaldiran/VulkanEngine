@@ -31,7 +31,7 @@ VkImageView RENDERER_CORE::CreateImageView(VkImage& Image, VkFormat Format,VkIma
 RENDERER_CORE::VulkanResult RENDERER_CORE::CreateSwapChainImageViews(
     std::vector<VkImage>& swapChainImages,
     std::vector<VkImageView>& swapChainImageViews,
-    std::vector<RENDERER_CORE::ImageBarrierState>& swapChainBarrierStates,
+    std::vector<RENDERER_CORE::BarrierState>& swapChainBarrierStates,
     VkFormat surfaceFormat,
     VkDevice& logicalDevice
 )

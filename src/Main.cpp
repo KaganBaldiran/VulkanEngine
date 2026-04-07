@@ -11,6 +11,7 @@
 #include "Physics/PhysicsContext.hpp"
 #include "Common/MemoryArenaAllocator.hpp"
 #include "Renderer/ShadowMapManager.hpp"
+#include "Renderer/RenderGraph.hpp"
 
 #include <random>
 #include <chrono>
@@ -25,7 +26,7 @@ int main()
         }
 
         RENDERER::RendererSettings RendererSettings{};
-        RendererSettings.EnableValidationLayers = true;
+        RendererSettings.EnableValidationLayers = false;
         RendererSettings.BuildRayTracingAccelerationStructures = true;
 
         RENDERER::RendererContext RendererContext(1000,800,"HelloWorld",RendererSettings);
@@ -50,7 +51,7 @@ int main()
         RENDERER::ResourceManager ResourceManager(RendererContext);
 
         ResourceManager.AppendModelImportTask({ &Quad , "Resources\\Quad.fbx" });
-        ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
+        //ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
        // ResourceManager.AppendModelImportTask({ &SponzaModel , "Resources\\sponza.obj" });
         //ResourceManager.AppendModelImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
         //ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
@@ -132,14 +133,7 @@ int main()
         Sponza.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         Shovel.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
 
-        SCENE::CameraFreeModeInfo ModeInfo;
-        //ModeInfo.KeyBindings.BackKey = GLFW_KEY_W;
-        //ModeInfo.KeyBindings.ForwardKey = GLFW_KEY_S;
-
-        SCENE::CameraSettingsInfo CameraSettings{};
-        CameraSettings.Mode = SCENE::CAMERA_MODE_FREE_CAMERA;
-        CameraSettings.CameraModeInfo = &ModeInfo;
-        SCENE::Camera3D Camera(RendererContext.Window, CameraSettings);
+       
 
         SCENE::Cubemap Cubemap0(RendererContext, 1024, 1024);
         SCENE::ImportHDRI("resources\\boma_4k.hdr", Cubemap0, RendererContext);
@@ -213,10 +207,7 @@ int main()
         );
 
         Scene0.LinkCubemap(Cubemap0);
-        Scene0.LinkCamera(Camera);
-
         Scene1.LinkCubemap(Cubemap0);
-        Scene1.LinkCamera(Camera);
 
         
 
@@ -255,7 +246,6 @@ int main()
 
         PhyContext.DynamicsWorld->addRigidBody(GroundRigidBody.get());
 
-
         VKPHYSICS::DebugDrawer PhysicsDebugDrawer;
 
 
@@ -263,9 +253,10 @@ int main()
         PhyContext.DynamicsWorld->setDebugDrawer(&PhysicsDebugDrawer);
         Scene0.DebugDrawer = &PhysicsDebugDrawer;
          */
+       
+
         auto Stats = RendererContext.QueryMemoryStats();
         std::cout << "Memory usage is " << Stats.TotalUsedBytes / (1024.0f * 1024.0f) << "/" << Stats.TotalBudgetBytes / (1024.0f * 1024.0f) << "(" << Stats.UsageRate << "%)." << std::endl;
-
 
         std::string ShadeFunction =
             "vec3 ShadePixel(in vec3 CameraPosition,in vec3 CameraDirection,in vec3 Normal, in vec3 Position, in vec3 Albedo, in float Roughness, in float Metallic, in float Time) \n\
@@ -279,18 +270,60 @@ int main()
         DeferredPipeline.CompileCustomPipeline(ShadeFunction, "CustomShader0");
         RENDERER::DeferredRenderPipeline DeferredPipelineNormal(RendererContext);
 
+        VkViewport Viewport0{};
+        Viewport0.x = 0.0f;
+        Viewport0.y = 0.0f;
+        Viewport0.width = static_cast<float>(RendererContext.SwapChain.Extent.width);
+        Viewport0.height = static_cast<float>(RendererContext.SwapChain.Extent.height);
+        Viewport0.minDepth = 0.0f;
+        Viewport0.maxDepth = 1.0f;
+
+        VkRect2D Scissor0{};
+        Scissor0.offset = { static_cast<int32_t>(RendererContext.SwapChain.Extent.width * 0.5),0 };
+        Scissor0.extent = { RendererContext.SwapChain.Extent.width / 2,RendererContext.SwapChain.Extent.height };
+
+        VkViewport Viewport1{};
+        Viewport1.x = 0.0f;
+        Viewport1.y = 0.0f;
+        Viewport1.width = static_cast<float>(RendererContext.SwapChain.Extent.width);
+        Viewport1.height = static_cast<float>(RendererContext.SwapChain.Extent.height);
+        Viewport1.minDepth = 0.0f;
+        Viewport1.maxDepth = 1.0f;
+
+        VkRect2D Scissor1{};
+        Scissor1.offset = { 0,0 };
+        Scissor1.extent = { RendererContext.SwapChain.Extent.width ,RendererContext.SwapChain.Extent.height };
+
+        SCENE::CameraFreeModeInfo ModeInfo;
+        //ModeInfo.KeyBindings.BackKey = GLFW_KEY_W;
+        //ModeInfo.KeyBindings.ForwardKey = GLFW_KEY_S;
+
+        SCENE::CameraSettingsInfo CameraSettings{};
+        CameraSettings.Mode = SCENE::CAMERA_MODE_FREE_CAMERA;
+        CameraSettings.CameraModeInfo = &ModeInfo;
+        SCENE::Camera3D Camera(RendererContext.Window, CameraSettings);
+
         RENDERER::RenderPassConfiguration PassConfiguration0{};
         PassConfiguration0.Name = "DeferredPass";
         PassConfiguration0.Pipeline = &DeferredPipelineNormal;
         PassConfiguration0.Scene = &Scene0;
         PassConfiguration0.EnableDepthTesting = true;
+        PassConfiguration0.Camera = &Camera;
+        PassConfiguration0.Scissor = (Scissor1);
+        PassConfiguration0.Viewport = (Viewport0);
         Renderer.AddRenderPass(PassConfiguration0);
+
+        SCENE::Camera3D Camera1;
+        Camera1.Create(RendererContext.Window, CameraSettings);
 
         RENDERER::RenderPassConfiguration PassConfiguration1{};
         PassConfiguration1.Name = "DeferredPass1";
         PassConfiguration1.Pipeline = &DeferredPipelineNormal;
         PassConfiguration1.Scene = &Scene1;
         PassConfiguration1.EnableDepthTesting = true;
+        PassConfiguration1.Scissor = (Scissor1);
+        PassConfiguration1.Viewport = (Viewport1);
+        PassConfiguration1.Camera = &Camera1;
         Renderer.AddRenderPass(PassConfiguration1);
 
         float DeltaTime = 0.0f;
@@ -361,6 +394,8 @@ int main()
                 2000.0f,
                 45.0f
             );
+
+            Camera1.CameraDirection = -Camera.CameraDirection;
 
            // auto Stats = RendererContext.QueryMemoryStats();
            // std::cout << "Memory usage is " << Stats.TotalUsedBytes / (1024.0f * 1024.0f) << "/" << Stats.TotalBudgetBytes / (1024.0f * 1024.0f) << "(" << Stats.UsageRate << "%)." << std::endl;

@@ -12,22 +12,23 @@
 
 namespace RENDERER_CORE
 {
-	struct TextureData
+	struct ImageData
 	{
 		VkImage Image = VK_NULL_HANDLE;
 		VkDeviceMemory ImageMemory = VK_NULL_HANDLE;
 		VkSampler Sampler = VK_NULL_HANDLE;
 		VkImageView ImageView = VK_NULL_HANDLE;
-		ImageBarrierState BarrierState{};
+		BarrierState BarrierState;
 		void Destroy(VkDevice& LogicalDevice);
 	};
 
-	struct TextureDataMultipleSamplerViews
+	struct ImageDataMultipleSamplerViews
 	{
 		VkImage Image = VK_NULL_HANDLE;
 		VkDeviceMemory ImageMemory = VK_NULL_HANDLE;
 		std::vector<VkSampler> Samplers;
 		std::vector<VkImageView> ImageViews;
+		BarrierState BarrierState;
 
 		void Destroy(VkDevice& LogicalDevice);
 	};
@@ -81,7 +82,7 @@ namespace RENDERER_CORE
     void TransitionImageLayout(VkCommandBuffer& DstCommandBuffer, VkImage& Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkAccessFlags SrcAccessMask,
         VkAccessFlags DstAccessMask, VkPipelineStageFlags SrcStage, VkPipelineStageFlags DstStage, VkImageAspectFlags AspectMask, uint32_t LayerCount = 1,uint32_t BaseArrayLayer = 0);
     void CreateTextureSampler(VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkSampler& DestinationSampler, VkFilter Filter, VkSamplerAddressMode AddressMode,VkSamplerMipmapMode MipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR);
-	void CreateTextureImage(const char* ImageFilePath, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture);
-	void CreateTextureImage(RawImageData &ImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture);
-	void CreateTextureImageAsync(RawImageData &ImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, TextureData& DestinationTexture,std::mutex &Mutex);
+	void CreateTextureImage(const char* ImageFilePath, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, ImageData& DestinationTexture);
+	void CreateTextureImage(RawImageData &RawImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, ImageData& DestinationTexture);
+	void CreateTextureImageAsync(RawImageData &RawImageData, VkPhysicalDevice& PhysicalDevice, VkDevice& LogicalDevice, VkCommandPool& CommandPool, VkQueue& GraphicsQueue, ImageData& DestinationTexture,std::mutex &Mutex);
 }

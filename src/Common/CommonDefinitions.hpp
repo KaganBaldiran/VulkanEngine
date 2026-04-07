@@ -28,11 +28,9 @@ constexpr size_t GeometryBufferPageSize = 1024 * 1024 * 64;
 #endif
 //}
 
-
 //Frame indexes
 constexpr uint32_t FRAME_INDEX_ALL_FRAMES = std::numeric_limits<uint32_t>::max();
 constexpr uint32_t FRAME_INDEX_0 = 0;
 constexpr uint32_t FRAME_INDEX_1 = 1;
 constexpr uint32_t FRAME_INDEX_2 = 2;
 constexpr uint32_t FRAME_INDEX_3 = 3;
-

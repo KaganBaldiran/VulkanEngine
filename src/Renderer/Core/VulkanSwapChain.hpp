@@ -46,7 +46,7 @@ namespace RENDERER_CORE
         VkSwapchainKHR Handle = VK_NULL_HANDLE;
         std::vector<VkImage> SwapChainImages;
         std::vector<VkImageView> SwapChainImagesViews;
-        std::vector<ImageBarrierState> SwapChainImagesBarrierStates;
+        std::vector<BarrierState> SwapChainImagesBarrierStates;
         VkSurfaceFormatKHR SurfaceFormat;
         VkPresentModeKHR PresentMode;
         VkExtent2D Extent;

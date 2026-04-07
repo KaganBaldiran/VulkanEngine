@@ -19,11 +19,11 @@ void SCENE::LightManager::Destroy(VkDevice& LogicalDevice)
 {
 	for (auto& DynamicLightSSBO : this->DynamicLightSSBOs)
 	{
-		DynamicLightSSBO.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+		RENDERER_CORE::DestroyBuffer(RendererContext->DeviceContext.LogicalDevice, DynamicLightSSBO.Buffer);
 	}
 	for (auto& StaticLightSSBO : this->StaticLightSSBOs)
 	{
-		StaticLightSSBO.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+		RENDERER_CORE::DestroyBuffer(RendererContext->DeviceContext.LogicalDevice, StaticLightSSBO.Buffer);
 	}
 }
 
@@ -79,7 +79,7 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 	std::vector<RENDERER_CORE::DescriptorSetWriteBuffer> DescriptorWrites;
 	if (IsStaticLightBufferReallocated)
 	{
-		StaticLightBuffer.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+		RENDERER_CORE::DestroyBuffer(RendererContext->DeviceContext.LogicalDevice, StaticLightBuffer.Buffer);
 		RENDERER_CORE::CreateBuffer(
 			RendererContext->DeviceContext.PhysicalDevice,
 			RendererContext->DeviceContext.LogicalDevice,
@@ -92,17 +92,17 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 	}
 	if (IsDynamicLightBufferReallocated)
 	{
-		DynamicLightBuffer.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+		RENDERER_CORE::DestroyBuffer(RendererContext->DeviceContext.LogicalDevice, DynamicLightBuffer.Buffer);
 		RENDERER_CORE::CreateBuffer(
 			RendererContext->DeviceContext.PhysicalDevice,
 			RendererContext->DeviceContext.LogicalDevice,
 			DynamicLightBufferAllocator.GetCapacity(),
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			DynamicLightBuffer.Buffer.Buffer
+			DynamicLightBuffer.Buffer
 		);
-		DynamicLightBuffer.Buffer.Map(RendererContext->DeviceContext.LogicalDevice, 0, DynamicLightBufferAllocator.GetCapacity(), 0);
-		DescriptorWrites.emplace_back(DynamicLightBuffer.Buffer.Buffer , DynamicLightBufferAllocator.GetCapacity(), 1, TargetDescriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		RENDERER_CORE::MapBuffer(DynamicLightBuffer.Buffer, RendererContext->DeviceContext.LogicalDevice, 0, DynamicLightBufferAllocator.GetCapacity(), 0);
+		DescriptorWrites.emplace_back(DynamicLightBuffer.Buffer , DynamicLightBufferAllocator.GetCapacity(), 1, TargetDescriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	}
 	RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.LogicalDevice, DescriptorWrites, {});
 
@@ -113,7 +113,7 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 		throw std::runtime_error("Faulty staging buffer!");
 	}
 
-	RENDERER_CORE::PersistentBuffer StagingBuffer{};
+	RENDERER_CORE::Buffer StagingBuffer{};
 	RENDERER_CORE::VirtualArenaAllocator StagingBufferAllocator(StaticLightStagingBufferSize);
 	uint8_t* StagingBufferPtr = nullptr;
 	if (StaticLightStagingBufferSize)
@@ -122,9 +122,9 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 			RendererContext->DeviceContext.PhysicalDevice,
 			RendererContext->DeviceContext.LogicalDevice,
 			StaticLightStagingBufferSize,
-			StagingBuffer.Buffer
+			StagingBuffer
 		);
-		StagingBuffer.Map(RendererContext->DeviceContext.LogicalDevice, 0, StaticLightStagingBufferSize, 0);
+		RENDERER_CORE::MapBuffer(StagingBuffer, RendererContext->DeviceContext.LogicalDevice, 0, StaticLightStagingBufferSize, 0);
 		StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.MappedMemory);
 		if (!StagingBufferPtr)
 		{
@@ -134,7 +134,7 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 	}
 
 	RENDERER_CORE::BufferCopyInfo StaticLightCopyInfo{};
-	StaticLightCopyInfo.SourceBuffer = StagingBuffer.Buffer.BufferObject;
+	StaticLightCopyInfo.SourceBuffer = StagingBuffer.BufferObject;
 	StaticLightCopyInfo.DestinationBuffer = StaticLightBuffer.Buffer.BufferObject;
 	if (StagingBufferPtr && StaticLightStagingBufferSize)
 	{
@@ -196,6 +196,6 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 			RendererContext->DeviceContext.GraphicsQueue
 		);
 
-		StagingBuffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+		RENDERER_CORE::DestroyBuffer(RendererContext->DeviceContext.LogicalDevice, StagingBuffer);
 	}
 }

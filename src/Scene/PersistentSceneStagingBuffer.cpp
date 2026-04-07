@@ -57,14 +57,15 @@ void SCENE::PersistentStagingBuffer::AllocateSceneStagingBuffer(
         }
         StagingBuffer.Allocator.Allocate(RequiredStagingBufferSize - StagingBuffer.Allocator.GetTotalFreeSpace());
 
-        StagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+        RENDERER_CORE::DestroyBuffer(RendererContext->DeviceContext.LogicalDevice,StagingBuffer.Buffer);
+        //StagingBuffer.Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
         RENDERER_CORE::CreateStagingBuffer(
             RendererContext->DeviceContext.PhysicalDevice,
             RendererContext->DeviceContext.LogicalDevice,
             StagingBuffer.Allocator.GetCapacity(),
-            StagingBuffer.Buffer.Buffer
+            StagingBuffer.Buffer
         );
-        StagingBuffer.Buffer.Map(RendererContext->DeviceContext.LogicalDevice, 0, StagingBuffer.Allocator.GetCapacity(), 0);
+        RENDERER_CORE::MapBuffer(StagingBuffer.Buffer, RendererContext->DeviceContext.LogicalDevice, 0, StagingBuffer.Allocator.GetCapacity(), 0);
         StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.Buffer.MappedMemory);
 
         if (Space)

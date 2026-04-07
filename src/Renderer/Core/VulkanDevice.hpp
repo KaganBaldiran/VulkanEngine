@@ -30,6 +30,8 @@ namespace RENDERER_CORE
         //std::vector<const char*> DeviceExtensionsToEnable;
         float QueuePriority = 1.0f;
         void* FeaturesToEnable = nullptr;
+        bool EnableValidationLayers = 0;
+        std::vector<const char*> ValidationLayersToEnable;
     };
 
     struct QueueFamilyIndices {
@@ -75,7 +77,9 @@ namespace RENDERER_CORE
         VkQueue& GraphicsComputeQueue,
         float QueuePriority,
         VkBaseOutStructure* FeaturesToEnable,
-        std::vector<const char*> ExtensionsToEnable
+        std::vector<const char*> ExtensionsToEnable,
+        bool EnableValidationLayers,
+        std::vector<const char*> ValidationLayersToEnable
     );
 
     class Surface

@@ -3,6 +3,7 @@
 #include <glfw3.h>
 #include <vector>
 
+#include "VulkanSynchoronization.hpp"
 #include "../../Common/MemoryArenaAllocator.hpp"
 
 namespace RENDERER_CORE
@@ -14,23 +15,24 @@ namespace RENDERER_CORE
 	{
 		VkBuffer BufferObject = VK_NULL_HANDLE;
 		VkDeviceMemory BufferMemory = VK_NULL_HANDLE;
-
-		void Destroy(VkDevice &LogicalDevice);
-	};
-
-	struct PersistentBuffer
-	{
-		RENDERER_CORE::Buffer Buffer;
 		void* MappedMemory = nullptr;
 
-		void Map(
+		/*
+		VkPipelineStageFlags2 StageMask = VK_PIPELINE_STAGE_2_NONE;
+		VkAccessFlags2 AccessMask = VK_ACCESS_2_NONE;
+		uint32_t QueueFamily = 0;
+		*/
+
+		BarrierState BarrierState;
+
+	/*	void Map(
 			VkDevice& LogicalDevice,
 			VkDeviceSize Offset,
 			VkDeviceSize Size,
 			VkMemoryMapFlags Flags
 		);
-
-		void Destroy(VkDevice& LogicalDevice);
+		void UnMap(VkDevice& LogicalDevice);
+		void Destroy(VkDevice &LogicalDevice);*/
 	};
 
 	uint32_t FindMemoryType(VkPhysicalDevice& PhysicalDevice, uint32_t TypeFilter, VkMemoryPropertyFlags Properties);
@@ -51,6 +53,17 @@ namespace RENDERER_CORE
 		Buffer& DestinationBuffer,
 		VkMemoryAllocateFlags AllocateFlags = 0
 	);
+
+	void MapBuffer(
+		Buffer& DestinationBuffer,
+		VkDevice& LogicalDevice,
+		VkDeviceSize Offset,
+		VkDeviceSize Size,
+		VkMemoryMapFlags Flags
+	);
+	void UnMapBuffer(VkDevice& LogicalDevice, Buffer& DestinationBuffer);
+	void DestroyBuffer(VkDevice& LogicalDevice, Buffer& DestinationBuffer);
+
 	void CopyBuffer(
 		VkBuffer SourceBuffer,
 		VkBuffer DestinationBuffer,
@@ -135,13 +148,5 @@ namespace RENDERER_CORE
 		RENDERER_CORE::Buffer Buffer;
 		RENDERER_CORE::VirtualArenaAllocator Allocator;
 		inline void Create() { Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 10); }; 
-	};
-
-	//Persistent Buffer with a virtual allocator plugged into it
-	struct PersistentBufferAllocator
-	{
-		RENDERER_CORE::PersistentBuffer Buffer;
-		RENDERER_CORE::VirtualArenaAllocator Allocator;
-		inline void Create() { Allocator.Create(0, RENDERER_CORE::MEMORY_SIZE_KILOBYTE * 5); };
 	};
 }

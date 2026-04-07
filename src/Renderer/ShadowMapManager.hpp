@@ -168,7 +168,7 @@ namespace RENDERER
 			VkDescriptorSet TargetDescriptorSet
 		);
 
-		std::array<RENDERER_CORE::TextureDataMultipleSamplerViews,MAX_FRAMES_IN_FLIGHT> ShadowMapTextures;
+		std::array<RENDERER_CORE::ImageDataMultipleSamplerViews,MAX_FRAMES_IN_FLIGHT> ShadowMapTextures;
 		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> CascadedShadowMapsMetaDataBuffers;
 		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> CascadedShadowMapsDataBuffers;
 		glm::ivec2 PageSize;

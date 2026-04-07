@@ -51,10 +51,9 @@ namespace SCENE
 		void AppendOrUpdateLights(LightAppendOrUpdateInfo &Info);
 		void EraseLights(LightEraseInfo &Info);
 		std::array<LightEntryManager, MAX_FRAMES_IN_FLIGHT> LightEntries;
-	private:
 		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> StaticLightSSBOs;
-		std::array<RENDERER_CORE::PersistentBufferAllocator, MAX_FRAMES_IN_FLIGHT> DynamicLightSSBOs;
-
+		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> DynamicLightSSBOs;
+	private:
 		RENDERER::RendererContext* RendererContext;
 	};
 }

@@ -39,6 +39,7 @@ void COMMON::Logger::ConsoleLog(const LogMessage& Message)
 	case LOG_SEVERITY_WARNING: std::cout << "[Warning]: "; break;
 	case LOG_SEVERITY_ERROR: std::cout << "[Error]: "; break;
 	case LOG_SEVERITY_VERBOSE: std::cout << "[Verbose]: "; break;
+	case LOG_SEVERITY_DEBUG: std::cout << "[Debug]: "; break;
 	default: std::cout << "[Unknown]: "; break;
 	}
 	std::cout << Message.Message << std::endl;
@@ -58,6 +59,7 @@ void COMMON::Logger::FileFlush()
 		case LOG_SEVERITY_WARNING: FinalMessage += "[Warning]: "; break;
 		case LOG_SEVERITY_ERROR:   FinalMessage += "[Error]: "; break;
 		case LOG_SEVERITY_VERBOSE: FinalMessage += "[Verbose]: "; break;
+		case LOG_SEVERITY_DEBUG: FinalMessage += "[Debug]: "; break;
 		default: FinalMessage += "[Unknown]: "; break;
 		}
 		FinalMessage += Message.first.Message + "\n";

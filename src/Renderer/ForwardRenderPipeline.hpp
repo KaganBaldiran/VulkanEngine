@@ -23,6 +23,7 @@ namespace RENDERER
 	protected:
 		void RenderScene(
 			SCENE::Scene& Scene,
+			SCENE::Camera3D& Camera,
 			VkCommandBuffer& CommandBuffer,
 			uint32_t CurrentImageIndex,
 			uint32_t CurrentFrame,

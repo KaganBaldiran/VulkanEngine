@@ -1,6 +1,7 @@
 #include "ResourceManager.hpp"
 
-#include "../Renderer/RendererContext.hpp"
+#include "RendererContext.hpp"
+#include "RenderGraph.hpp"
 
 RENDERER::ResourceManager::ResourceManager(RENDERER::RendererContext& RendererContext)
 {
@@ -29,7 +30,9 @@ void RENDERER::ResourceManager::Destroy()
 	if (IsDestroyed) return;
 	for (uint32_t i = 0; i < StagingBuffers.size(); i++)
 	{
-		StagingBuffers[i].StagingBuffer.Buffer.Destroy(RendererContextPtr->DeviceContext.LogicalDevice);
+		RENDERER_CORE::DestroyBuffer(RendererContextPtr->DeviceContext.LogicalDevice, 
+											StagingBuffers[i].StagingBuffer.Buffer);
+		//StagingBuffers[i].StagingBuffer.Buffer.Destroy(RendererContextPtr->DeviceContext.LogicalDevice);
 	}
 	IsDestroyed = true;
 }
@@ -66,12 +69,12 @@ void RENDERER::ResourceManager::WaitTextureImportsIdle()
 
 size_t RENDERER::ResourceManager::RequestCopyOperation(
 	RENDERER_CORE::QueueType QueueType,
-	VkBuffer DestinationBuffer, 
-	uint32_t FrameIndex,
-	VkPipelineStageFlags2 SrcStageMask,
-	VkPipelineStageFlags2 DstStageMask,
-	VkAccessFlags2 SrcAccessMask,
-	VkAccessFlags2 DstAccessMask
+	RENDERER_CORE::Buffer* DestinationBuffer,
+	uint32_t FrameIndex
+	/*		VkPipelineStageFlags2 SrcStageMask,
+			VkPipelineStageFlags2 DstStageMask,
+			VkAccessFlags2 SrcAccessMask,
+			VkAccessFlags2 DstAccessMask*/
 )
 {
 	auto& CurrentCopyInfoList = CopyInfos[FrameIndex];
@@ -79,27 +82,18 @@ size_t RENDERER::ResourceManager::RequestCopyOperation(
 	if (DestinationBuffer != VK_NULL_HANDLE)
 	{
 		Iterator = std::find_if(CurrentCopyInfoList.begin(), CurrentCopyInfoList.end(), [&](CopyOperationEntry& Info) {
-			return Info.CopyInfo.DestinationBuffer == DestinationBuffer;
+			return Info.DestinationBuffer == DestinationBuffer;
 		});
 	}
 	//No such copy operation entry exists, create one.
 	if (Iterator == CurrentCopyInfoList.end())
 	{
 		CopyOperationEntry NewEntry{};
-		NewEntry.CopyInfo.DestinationBuffer = DestinationBuffer;
-		NewEntry.CopyInfo.SourceBuffer = StagingBuffers[FrameIndex].StagingBuffer.Buffer.Buffer.BufferObject;
-		NewEntry.BufferState.SrcStageMask = SrcStageMask;
-		NewEntry.BufferState.DstStageMask = DstStageMask;
-		NewEntry.BufferState.SrcAccessMask = SrcAccessMask;
-		NewEntry.BufferState.DstAccessMask = DstAccessMask;
+		NewEntry.DestinationBuffer = DestinationBuffer;
+		NewEntry.SourceBuffer = StagingBuffers[FrameIndex].StagingBuffer.Buffer.BufferObject;
 		CurrentCopyInfoList.push_back(std::move(NewEntry));
 		return CurrentCopyInfoList.size() - 1;
 	}
-	//If not at least update the buffer barrier state
-	Iterator->BufferState.SrcStageMask = SrcStageMask;
-	Iterator->BufferState.DstStageMask = DstStageMask;
-	Iterator->BufferState.SrcAccessMask = SrcAccessMask;
-	Iterator->BufferState.DstAccessMask = DstAccessMask;
 	return std::distance(CurrentCopyInfoList.begin(), Iterator);
 }
 
@@ -124,16 +118,17 @@ void RENDERER::ResourceManager::HandleCopyOperations(
 	for (auto& PendingOperationIndex : PendingCopyOperations[FrameIndex])
 	{
 		if (!CopyInfos[FrameIndex].valid(PendingOperationIndex)) continue;
-		auto& [QueueType,CopyInfo,BufferBarrierState,Semaphore,DependentOperations] = CopyInfos[FrameIndex][PendingOperationIndex];
-		if (CopyInfo.CopyRegions.empty()) continue;
+		auto& [QueueType, CopyRegions, SourceBuffer, DestinationBuffer,Semaphore,DependentOperations] = CopyInfos[FrameIndex][PendingOperationIndex];
+		if (CopyRegions.empty()) continue;
 
 		vkCmdCopyBuffer(
 			CommandBuffer,
-			StagingBuffers[FrameIndex].StagingBuffer.Buffer.Buffer.BufferObject, //TODO Too much redirection man, gotta do something about this
-			CopyInfo.DestinationBuffer,
-			static_cast<uint32_t>(CopyInfo.CopyRegions.size()),
-			CopyInfo.CopyRegions.data()
+			StagingBuffers[FrameIndex].StagingBuffer.Buffer.BufferObject, //TODO Too much redirection man, gotta do something about this
+			DestinationBuffer->BufferObject,
+			static_cast<uint32_t>(CopyRegions.size()),
+			CopyRegions.data()
 		);
+		/*
 		//Buffer memory barrier to make it visible
 		PipelineBarrier2.AppendBufferMemoryBarrier(
 			CopyInfo.DestinationBuffer,
@@ -144,10 +139,60 @@ void RENDERER::ResourceManager::HandleCopyOperations(
 			BufferBarrierState.SrcAccessMask,
 			BufferBarrierState.DstAccessMask
 		);
-		CopyInfo.CopyRegions.clear();
+		*/
+		CopyRegions.clear();
 	}
 	PendingCopyOperations[FrameIndex].clear();
 	auto& StagingBufferAllocator = StagingBuffers[FrameIndex].StagingBuffer.Allocator;
 	StagingBufferAllocator.Reset(StagingBufferAllocator.GetCapacity());
+}
+
+void RENDERER::ResourceManager::QueueCopyOperations(VkCommandBuffer& CommandBuffer, size_t FrameIndex, FrameGraph& FrameGraph)
+{
+	if (PendingCopyOperations[FrameIndex].empty()) return;
+
+	FrameGraph.AppendTask({
+
+		[this, FrameIndex](RENDERER::PassBuilder& Builder) {
+			for (auto& PendingOperationIndex : PendingCopyOperations[FrameIndex])
+			{
+				if (!CopyInfos[FrameIndex].valid(PendingOperationIndex)) continue;
+				auto& [QueueType, CopyRegions, SourceBuffer, DestinationBuffer,Semaphore,DependentOperations] = CopyInfos[FrameIndex][PendingOperationIndex];
+				if (CopyRegions.empty()) continue;
+
+				Builder.Write(
+					DestinationBuffer,
+					VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+					VK_ACCESS_2_TRANSFER_WRITE_BIT
+				);
+			};
+		},
+
+		[this, FrameIndex](VkCommandBuffer CommandBuffer,uint32_t CurrentFrame) {
+			//std::cout << "Pass [CopyOperations_Internal] is being executed..." << std::endl;
+
+			for (auto& PendingOperationIndex : PendingCopyOperations[FrameIndex])
+			{
+				if (!CopyInfos[FrameIndex].valid(PendingOperationIndex)) continue;
+				auto& [QueueType, CopyRegions, SourceBuffer, DestinationBuffer, Semaphore, DependentOperations] = CopyInfos[FrameIndex][PendingOperationIndex];
+				if (CopyRegions.empty()) continue;
+
+				vkCmdCopyBuffer(
+					CommandBuffer,
+					StagingBuffers[FrameIndex].StagingBuffer.Buffer.BufferObject,
+					DestinationBuffer->BufferObject,
+					static_cast<uint32_t>(CopyRegions.size()),
+					CopyRegions.data()
+				);
+			}
+
+			PendingCopyOperations[FrameIndex].clear();
+			auto& StagingBufferAllocator = StagingBuffers[FrameIndex].StagingBuffer.Allocator;
+			StagingBufferAllocator.Reset(StagingBufferAllocator.GetCapacity());
+		},
+
+		"CopyOperations_Internal"
+	});
+
 }
 

@@ -2,10 +2,12 @@
 #include <iostream>
 #include "Core/VulkanCommandBuffer.hpp"
 #include "../Common/Handle.hpp"
+#include "RenderGraph.hpp"
 
 namespace SCENE
 {
 	class Scene;
+	class Camera3D;
 }
 
 namespace RENDERER
@@ -30,6 +32,7 @@ namespace RENDERER
 	protected:
 		virtual void RenderScene(
 			SCENE::Scene& Scene,
+			SCENE::Camera3D& Camera,
 			VkCommandBuffer& CommandBuffer,
 			uint32_t CurrentImageIndex,
 			uint32_t CurrentFrame,
@@ -37,6 +40,22 @@ namespace RENDERER
 			VkImageView& DstColorRenderTargetImageViews,
 			GeometryBuffer& FrameGbuffer,
 			VkDescriptorSet& GeometrybufferDescriptorSet,
+			bool EnableDepthTesting,
+			bool ClearDepth,
+			bool ClearColorAttachment
+		) = 0;
+
+		virtual void QueueRenderTasks(
+			FrameGraph &FrameGraph,
+			SCENE::Scene& Scene,
+			SCENE::Camera3D& Camera,
+			VkCommandBuffer CommandBuffer,
+			uint32_t CurrentImageIndex,
+			uint32_t CurrentFrame,
+			RENDERER_CORE::ImageData& DepthImageImage,
+			RENDERER_CORE::ImageData& DstColorRenderTargetImage,
+			GeometryBuffer& FrameGbuffer,
+			VkDescriptorSet GeometrybufferDescriptorSet,
 			bool EnableDepthTesting,
 			bool ClearDepth,
 			bool ClearColorAttachment
@@ -54,5 +73,8 @@ namespace RENDERER
 		RenderPipeline* Pipeline;
 		bool EnableDepthTesting;
 		SCENE::Scene* Scene;
+		VkViewport Viewport;
+		VkRect2D Scissor;
+		SCENE::Camera3D* Camera;
 	};
 }

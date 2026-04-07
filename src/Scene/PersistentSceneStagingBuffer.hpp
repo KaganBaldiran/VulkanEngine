@@ -26,6 +26,6 @@ namespace SCENE
 			size_t RequiredStagingBufferSize,
 			RENDERER::RendererContext* RendererContext
 		);
-	    RENDERER_CORE::PersistentBufferAllocator StagingBuffer;
+	    RENDERER_CORE::BufferAllocator StagingBuffer;
 	};
 }

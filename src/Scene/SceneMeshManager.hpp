@@ -107,7 +107,7 @@ namespace SCENE
 			{
 				for (size_t i = 0; i < BufferSetCount; i++)
 				{
-					VisibilityIndexBuffers[i].Buffer.Destroy(LogicalDevice);
+					RENDERER_CORE::DestroyBuffer(LogicalDevice, VisibilityIndexBuffers[i].Buffer);
 				}
 			}
 		};
@@ -117,7 +117,7 @@ namespace SCENE
 		{
 			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> IndirectBuffers;
 			MeshFrustumCullBuffers<BufferSetCount> CullBuffers;
-			std::array<RENDERER_CORE::PersistentBufferAllocator, BufferSetCount> ModelMatricesBuffers;
+			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> ModelMatricesBuffers;
 			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> DrawMetaDataBuffer;
 			std::array<RENDERER_CORE::BufferAllocator, BufferSetCount> TexturesIndexBuffers;
 
@@ -142,10 +142,10 @@ namespace SCENE
 			{
 				for (size_t i = 0; i < BufferSetCount; i++)
 				{
-					IndirectBuffers[i].Buffer.Destroy(LogicalDevice);
-					ModelMatricesBuffers[i].Buffer.Destroy(LogicalDevice);
-					DrawMetaDataBuffer[i].Buffer.Destroy(LogicalDevice);
-					TexturesIndexBuffers[i].Buffer.Destroy(LogicalDevice);
+					RENDERER_CORE::DestroyBuffer(LogicalDevice, IndirectBuffers[i].Buffer);
+					RENDERER_CORE::DestroyBuffer(LogicalDevice, ModelMatricesBuffers[i].Buffer);
+					RENDERER_CORE::DestroyBuffer(LogicalDevice, DrawMetaDataBuffer[i].Buffer);
+					RENDERER_CORE::DestroyBuffer(LogicalDevice, TexturesIndexBuffers[i].Buffer);
 					//CullBuffers.MeshVisibilityCountBuffers[i].Buffer.Destroy(LogicalDevice);
 					//CullBuffers.CulledIndirectBuffers[i].Destroy(LogicalDevice);
 					//CullBuffers.CulledDrawMetaDataBuffer[i].Destroy(LogicalDevice);
@@ -243,7 +243,7 @@ namespace SCENE
 		void Create(RENDERER::ResourceManager& ResourceManager,RENDERER::RendererContext& RendererContext, size_t BufferAllocationStep);
 		void Destroy(VkDevice& LogicalDevice);
 
-		INTERNAL::MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> SceneBuffers;
+		INTERNAL::MeshDrawArenaBufferGroup<MAX_FRAMES_IN_FLIGHT> Buffers;
 
 		uint32_t CurrentBalancedBuffer = 0;
 		std::array<INTERNAL::EntryManager,MAX_FRAMES_IN_FLIGHT> Entries;

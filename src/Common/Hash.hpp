@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 
 namespace COMMON
 {
@@ -7,4 +8,13 @@ namespace COMMON
 		return Hash0 ^ (Hash1 + 0x9e3779b9 + (Hash0 << 6) + (Hash0 >> 2));
 	}
 	size_t HashNextPtrChain(void* Next);
+		
+	template<typename T>
+	struct PairHash
+	{
+		size_t operator()(const std::pair<T, T>& Pair) const
+		{
+			return CombineHash(std::hash<T>{}(Pair.first), std::hash<T>{}(Pair.second));
+		}
+	};
 }

@@ -85,6 +85,8 @@ void RENDERER::RendererContext::Create(
     WindowCreateInfo.WindowsName = WindowName;
     Window.Create(WindowCreateInfo);
 
+    std::vector<const char*> ValidationLayersToEnable = { "VK_LAYER_KHRONOS_validation" };
+
     RENDERER_CORE::VulkanInstanceCreateInfo InstanceCreateInfo{};
     InstanceCreateInfo.APIVersion = VK_API_VERSION_1_3;
     InstanceCreateInfo.ApplicationName = "Application";
@@ -92,13 +94,15 @@ void RENDERER::RendererContext::Create(
     InstanceCreateInfo.EngineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
     InstanceCreateInfo.EngineName = "No Engine";
     InstanceCreateInfo.EnableValidationLayers = EnableValidationLayers;
-    InstanceCreateInfo.ValidationLayersToEnable = { "VK_LAYER_KHRONOS_validation" };
+    InstanceCreateInfo.ValidationLayersToEnable = ValidationLayersToEnable;
     Instance.Create(InstanceCreateInfo);
 
     Surface.Create(Instance.instance, Window.window);
 
     RENDERER_CORE::VulkanDeviceCreateInfo DeviceCreateInfo{};
     DeviceCreateInfo.QueuePriority = 1.0f;
+    DeviceCreateInfo.EnableValidationLayers = EnableValidationLayers;
+    DeviceCreateInfo.ValidationLayersToEnable = ValidationLayersToEnable;
 
     DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
         VK_KHR_RAY_QUERY_EXTENSION_NAME,
@@ -336,8 +340,8 @@ void RENDERER::RendererContext::Destroy()
     
     HDRIrenderPassDescriptorPool.Destroy(DeviceContext.LogicalDevice);
     
-    QuadVertexBuffer.Destroy(DeviceContext.LogicalDevice);
-    CubeVertexBuffer.Destroy(DeviceContext.LogicalDevice);
+    RENDERER_CORE::DestroyBuffer(DeviceContext.LogicalDevice, QuadVertexBuffer);
+    RENDERER_CORE::DestroyBuffer(DeviceContext.LogicalDevice, CubeVertexBuffer);
 
     CommandPool.Destroy(DeviceContext.LogicalDevice);
     Surface.Destroy(Instance.instance);

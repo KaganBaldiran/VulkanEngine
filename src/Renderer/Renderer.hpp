@@ -29,11 +29,13 @@
 #include "../Scene/Cubemap.hpp"
 
 #include "../Common/DestructionQueue.hpp"
+#include "../Common/Hash.hpp"
 
 #include "GeometryBuffer.hpp"
 #include "RendererContext.hpp"
 #include "RenderPipeline.hpp"
 #include "DeferredRenderPipeline.hpp"
+#include "RenderGraph.hpp"
 
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btVector3.h>
@@ -66,6 +68,9 @@ namespace RENDERER
 
         void AddRenderPass(RenderPassConfiguration RenderPass);
         void RemoveRenderPass(std::string RenderPassName);
+
+        void AddRenderTask(FrameGraphTask RenderTask);
+
         void RenderFrame();
         void Destroy() override;
 
@@ -78,12 +83,12 @@ namespace RENDERER
         uint32_t GraphicsQueueIndex;
 
         std::vector<VkCommandBuffer> CommandBuffers;
-        std::vector<RENDERER_CORE::PersistentBuffer> PhysicsDebugLineVertexBuffers;
+        std::vector<RENDERER_CORE::Buffer> PhysicsDebugLineVertexBuffers;
         int MaxLines;
         VkDeviceSize PhysicsDebugLineVertexBuffersize;
 
-        std::array<RENDERER_CORE::TextureData, MAX_FRAMES_IN_FLIGHT> DepthImages;
-        std::array<RENDERER_CORE::TextureData, MAX_FRAMES_IN_FLIGHT> ColorRenderAttachmentImages;
+        std::array<RENDERER_CORE::ImageData, MAX_FRAMES_IN_FLIGHT> DepthImages;
+        std::array<RENDERER_CORE::ImageData, MAX_FRAMES_IN_FLIGHT> ColorRenderAttachmentImages;
         std::array<GeometryBuffer, MAX_FRAMES_IN_FLIGHT> Gbuffers;
 
         RENDERER_CORE::DescriptorPool DescriptorPool;
@@ -99,9 +104,10 @@ namespace RENDERER
         uint32_t CurrentFrame = 0;
 
         RENDERER_CORE::FrameManager FrameManager;
+        RENDERER::FrameGraph FrameGraph;
 
         RENDERER_CORE::ComputePipeline TestPipeline;
-        RENDERER_CORE::PersistentBuffer TestBuffer;
+        RENDERER_CORE::Buffer TestBuffer;
         RENDERER_CORE::Descriptor<1> TestDescriptor;
         bool ShouldTest = true;
 
@@ -149,12 +155,26 @@ namespace RENDERER
         );
 
         std::vector<RenderPassConfiguration> RenderPasses;
-        std::queue<std::function<void(VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)>> RenderTasks;
+        COMMON::VectorMap<std::pair<uint64_t, uint64_t>, std::pair<SCENE::Scene*,SCENE::Camera3D*>,COMMON::PairHash<uint64_t>> UniqueSceneCameraPairs;
     };
 
     struct Matrixes {
         glm::mat4 ViewMatrix;
         glm::mat4 ProjectionMatrix;
+    };
+
+    struct Viewport {
+        float X;
+        float Y;
+        float Width;
+        float Height;
+        float MinDepth;
+        float MaxDepth;
+    };
+
+    struct Scissor {
+        VkOffset2D Offset;
+        VkExtent2D Extent;
     };
 }
 

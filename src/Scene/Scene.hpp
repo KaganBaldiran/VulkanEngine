@@ -118,7 +118,7 @@ namespace SCENE
 	// Scene doesn't hold the actual geometry(mesh) data, it merely holds the data that is required to use the existing geometries.
 	// The data includes indirect draw commands, meta data (material and model matrix indexes),texture descriptor indexes and model matrixes
 	// The linked resources don't actually know about the scene 
-	class Scene : COMMON::Destructible
+	class Scene : COMMON::Destructible,COMMON::Handle
 	{
 		friend class RENDERER::Renderer;
 		friend class ResourceDependencyManager;
@@ -146,10 +146,9 @@ namespace SCENE
 
 		VKPHYSICS::DebugDrawer* DebugDrawer = nullptr;
 		Cubemap* SceneCubeMap;
-		Camera3D* Camera;
+		//Camera3D* Camera;
 
 		void LinkCubemap(Cubemap& DestinationCubeMap);
-		void LinkCamera(Camera3D &Camera);
 
 		void DestroyMeshBuffers();
 

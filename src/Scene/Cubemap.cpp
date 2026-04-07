@@ -156,7 +156,7 @@ void SCENE::Cubemap::CreateConvolutionTexture(RENDERER::RendererContext& Rendere
 
 void SCENE::ImportHDRI(const char* HDRIfilePath, Cubemap& DestinationCubeMap, RENDERER::RendererContext& RendererContext)
 {
-	RENDERER_CORE::TextureData HdriTextureData;
+	RENDERER_CORE::ImageData HdriTextureData;
 	RENDERER_CORE::CreateTextureImage(
 		HDRIfilePath,
 		RendererContext.DeviceContext.PhysicalDevice,

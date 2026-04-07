@@ -215,8 +215,10 @@ void RENDERER::ShadowMapManager::Destroy()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        CascadedShadowMapsDataBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
-        CascadedShadowMapsMetaDataBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+        RENDERER_CORE::DestroyBuffer(RendererContext->DeviceContext.LogicalDevice, CascadedShadowMapsDataBuffers[i].Buffer);
+        RENDERER_CORE::DestroyBuffer(RendererContext->DeviceContext.LogicalDevice, CascadedShadowMapsMetaDataBuffers[i].Buffer);
+        //CascadedShadowMapsDataBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
+        //CascadedShadowMapsMetaDataBuffers[i].Buffer.Destroy(RendererContext->DeviceContext.LogicalDevice);
         ShadowMapTextures[i].Destroy(RendererContext->DeviceContext.LogicalDevice);
     }
 }
@@ -308,11 +310,11 @@ void RENDERER::ShadowMapManager::AppendCascadedShadowMap(
     StagingBuffer.AllocateSceneStagingBuffer(TotalStagingBufferSize, RendererContext);
     CreateShadowMapTextures(CurrentTexturePacker.GetPageCount(), FrameIndex, TargetDescriptorSet);
 
-    bool IsThereMetaDataCopyInfos = CopyInfos[0]->CopyInfo.CopyRegions.empty();
-    bool IsThereDataCopyInfos = CopyInfos[1]->CopyInfo.CopyRegions.empty();
+    bool IsThereMetaDataCopyInfos = CopyInfos[0]->CopyRegions.empty();
+    bool IsThereDataCopyInfos = CopyInfos[1]->CopyRegions.empty();
 
-    if (!IsThereMetaDataCopyInfos && MetaDataBufferReallocated) CopyInfos[0]->CopyInfo.CopyRegions.clear();
-    if (!IsThereDataCopyInfos && DataBufferReallocated) CopyInfos[1]->CopyInfo.CopyRegions.clear();
+    if (!IsThereMetaDataCopyInfos && MetaDataBufferReallocated) CopyInfos[0]->CopyRegions.clear();
+    if (!IsThereDataCopyInfos && DataBufferReallocated) CopyInfos[1]->CopyRegions.clear();
 
     uint8_t* StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.StagingBuffer.Buffer.MappedMemory);
     if (!StagingBufferPtr) throw std::runtime_error("Unable to map the staging buffer! exitting...");
@@ -335,7 +337,7 @@ void RENDERER::ShadowMapManager::AppendCascadedShadowMap(
                 CopyRegion.dstOffset = Entry.MetaDataMemoryRegion.Offset;
                 CopyRegion.size = Entry.MetaDataMemoryRegion.Size;
                 CopyRegion.srcOffset = Entry.StagingMetaDataMemoryRegion.Offset;
-                CopyInfos[0]->CopyInfo.CopyRegions.push_back(std::move(CopyRegion));
+                CopyInfos[0]->CopyRegions.push_back(std::move(CopyRegion));
             }
             if (DataBufferReallocated || Entry.RequiresUpload)
             {
@@ -352,7 +354,7 @@ void RENDERER::ShadowMapManager::AppendCascadedShadowMap(
                     CopyRegion.dstOffset = CascadeEntry.MemoryRegion.Offset;
                     CopyRegion.size = CascadeEntry.StagingMemoryRegion.Size;
                     CopyRegion.srcOffset = CascadeEntry.StagingMemoryRegion.Offset;
-                    CopyInfos[1]->CopyInfo.CopyRegions.push_back(std::move(CopyRegion));
+                    CopyInfos[1]->CopyRegions.push_back(std::move(CopyRegion));
                 }
             } 
             Entry.RequiresUpload = false;
@@ -379,7 +381,7 @@ void RENDERER::ShadowMapManager::AppendCascadedShadowMap(
                 CopyRegion.dstOffset = Entry.MetaDataMemoryRegion.Offset;
                 CopyRegion.size = Entry.MetaDataMemoryRegion.Size;
                 CopyRegion.srcOffset = Entry.StagingMetaDataMemoryRegion.Offset;
-                CopyInfos[0]->CopyInfo.CopyRegions.push_back(std::move(CopyRegion));
+                CopyInfos[0]->CopyRegions.push_back(std::move(CopyRegion));
             }
             for (auto& CascadeEntry : Entry.CascadeEntries)
             {
@@ -394,7 +396,7 @@ void RENDERER::ShadowMapManager::AppendCascadedShadowMap(
                 CopyRegion.dstOffset = CascadeEntry.MemoryRegion.Offset;
                 CopyRegion.size = CascadeEntry.StagingMemoryRegion.Size;
                 CopyRegion.srcOffset = CascadeEntry.StagingMemoryRegion.Offset;
-                CopyInfos[1]->CopyInfo.CopyRegions.push_back(std::move(CopyRegion));
+                CopyInfos[1]->CopyRegions.push_back(std::move(CopyRegion));
             }
             Entry.RequiresUpload = false; 
         }

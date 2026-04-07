@@ -5,7 +5,7 @@
 
 namespace RENDERER_CORE
 {
-	struct TextureData;
+	struct ImageData;
 
 	class PipelineBarrier2
 	{
@@ -48,8 +48,16 @@ namespace RENDERER_CORE
 	struct ImageBarrierState
 	{
 		VkImageLayout ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		VkPipelineStageFlags2 Stage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-		VkAccessFlags2 AccessMask = 0;
+		VkPipelineStageFlags2 Stage = VK_PIPELINE_STAGE_2_NONE;
+		VkAccessFlags2 AccessMask = VK_ACCESS_2_NONE;
+	};
+
+	struct BarrierState
+	{
+		VkImageLayout ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkPipelineStageFlags2 StageMask = VK_PIPELINE_STAGE_2_NONE;
+		VkAccessFlags2 AccessMask = VK_ACCESS_2_NONE;
+		uint32_t QueueFamily = VK_QUEUE_FAMILY_IGNORED;
 	};
 
 	struct MemoryBufferBarrierState
@@ -62,7 +70,7 @@ namespace RENDERER_CORE
 
 	void SafeImageBarrier(
 		VkImage& Image,
-		ImageBarrierState& State,
+		BarrierState& State,
 		PipelineBarrier2& Barrier,
 		VkImageLayout DestinationLayout,
 		VkPipelineStageFlags2 DstStage,

@@ -10,10 +10,10 @@ namespace RENDERER
 {
     struct GeometryBuffer
     {
-        RENDERER_CORE::TextureData PositionAttachment;
-        RENDERER_CORE::TextureData AlbedoAttachment;
-        RENDERER_CORE::TextureData RoughnessMetallicAttachment;
-        RENDERER_CORE::TextureData NormalAttachment;
+        RENDERER_CORE::ImageData PositionAttachment;
+        RENDERER_CORE::ImageData AlbedoAttachment;
+        RENDERER_CORE::ImageData RoughnessMetallicAttachment;
+        RENDERER_CORE::ImageData NormalAttachment;
 
         void Create(
             VkPhysicalDevice& PhysicalDevice,

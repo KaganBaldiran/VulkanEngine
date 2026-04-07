@@ -43,7 +43,7 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,RENDERER::R
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         auto& CurrentCopyOperationIndices = SceneCopyInfoIndices[i];
-        CurrentCopyOperationIndices[INDIRECT_COPY] = ResourceManager.RequestCopyOperation(
+       /* CurrentCopyOperationIndices[INDIRECT_COPY] = ResourceManager.RequestCopyOperation(
             RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             MeshBuffers.SceneBuffers.IndirectBuffers[i].Buffer.BufferObject,
             i,
@@ -75,12 +75,36 @@ void SCENE::Scene::Create(RENDERER::RendererContext& RendererContext,RENDERER::R
 
         CurrentCopyOperationIndices[TRANSFORMATION_MATRIX_COPY] = ResourceManager.RequestCopyOperation(
             RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
-            MeshBuffers.SceneBuffers.ModelMatricesBuffers[i].Buffer.Buffer.BufferObject,
+            MeshBuffers.SceneBuffers.ModelMatricesBuffers[i].Buffer.BufferObject,
             i,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
             VK_ACCESS_2_TRANSFER_WRITE_BIT,
             VK_ACCESS_2_SHADER_READ_BIT
+        );*/
+
+        CurrentCopyOperationIndices[INDIRECT_COPY] = ResourceManager.RequestCopyOperation(
+            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
+            &MeshBuffers.Buffers.IndirectBuffers[i].Buffer,
+            i
+        );
+
+        CurrentCopyOperationIndices[DRAWMETA_COPY] = ResourceManager.RequestCopyOperation(
+            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
+            &MeshBuffers.Buffers.DrawMetaDataBuffer[i].Buffer,
+            i
+        );
+
+        CurrentCopyOperationIndices[TEXTUREINDEX_COPY] = ResourceManager.RequestCopyOperation(
+            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
+            &MeshBuffers.Buffers.TexturesIndexBuffers[i].Buffer,
+            i
+        );
+
+        CurrentCopyOperationIndices[TRANSFORMATION_MATRIX_COPY] = ResourceManager.RequestCopyOperation(
+            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
+            &MeshBuffers.Buffers.ModelMatricesBuffers[i].Buffer,
+            i
         );
     }
 
@@ -151,11 +175,6 @@ void SCENE::Scene::LinkCubemap(Cubemap& DestinationCubeMap)
                                                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, SceneDescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         RENDERER_CORE::WriteDescriptorSets(RendererContext->DeviceContext.LogicalDevice, {}, { CubemapTextureWrite });
     }
-}
-
-void SCENE::Scene::LinkCamera(Camera3D& Camera)
-{
-    this->Camera = &Camera;
 }
 
 void SCENE::Scene::DestroyMeshBuffers()

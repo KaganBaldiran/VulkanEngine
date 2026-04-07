@@ -14,6 +14,7 @@
 #include <array>
 #include <queue>
 #include <future>
+#include <chrono>
 
 #include "../Common/Log.hpp"
 #include "MaterialManager.hpp"
@@ -183,9 +184,10 @@ void RENDERER::Renderer::Create(RendererContext& DestinationRendererContext, boo
                 PhysicsDebugLineVertexBuffersize,
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                PhysicsDebugLineVertexBuffer.Buffer
+                PhysicsDebugLineVertexBuffer
             );
-            PhysicsDebugLineVertexBuffer.Map(LogicalDevice, 0, PhysicsDebugLineVertexBuffersize, 0);
+            RENDERER_CORE::MapBuffer(PhysicsDebugLineVertexBuffer, LogicalDevice, 
+                                          0, PhysicsDebugLineVertexBuffersize, 0);
         }
     }
 
@@ -212,6 +214,8 @@ void RENDERER::Renderer::AddRenderPass(RenderPassConfiguration RenderPass)
     if (RenderPassIterator == RenderPasses.end())
     {
         RenderPasses.push_back(RenderPass);
+        UniqueSceneCameraPairs.insert({ RenderPass.Scene->GetHandleID() ,
+                                     RenderPass.Camera->GetHandleID() }, { RenderPass.Scene,RenderPass.Camera });
     }
     else
     {
@@ -226,9 +230,14 @@ void RENDERER::Renderer::RemoveRenderPass(std::string RenderPassName)
     auto RenderPassIterator = std::find_if(RenderPasses.begin(), RenderPasses.end(), [&RenderPassName](RenderPassConfiguration& Pass) {
            return Pass.Name == RenderPassName;
     });
-    if (RenderPassIterator != RenderPasses.end()) RenderPasses.erase(RenderPassIterator);
+    if (RenderPassIterator != RenderPasses.end()) 
+    { 
+        UniqueSceneCameraPairs.erase({ RenderPassIterator->Scene->GetHandleID(), RenderPassIterator->Camera->GetHandleID() });
+        RenderPasses.erase(RenderPassIterator); 
+    }
 }
 
+/*
 void RENDERER::Renderer::RenderFrame()
 {
     VkCommandBuffer MainCommandBuffer = FrameManager.BeginFrame(RendererContextPtr->DeviceContext.LogicalDevice, RendererContextPtr->SwapChain.Handle,TimelineSemaphore);
@@ -240,24 +249,25 @@ void RENDERER::Renderer::RenderFrame()
     uint32_t CurrentImageIndex = FrameManager.ImageIndex;
     RENDERER_CORE::BeginCommandBuffer(MainCommandBuffer);
 
+    VkViewport Viewport1{};
+    Viewport1.x = 0.0f;
+    Viewport1.y = 0.0f;
+    Viewport1.width = static_cast<float>(RendererContextPtr->SwapChain.Extent.width);
+    Viewport1.height = static_cast<float>(RendererContextPtr->SwapChain.Extent.height);
+    Viewport1.minDepth = 0.0f;
+    Viewport1.maxDepth = 1.0f;
+
+    VkRect2D Scissor1{};
+    Scissor1.offset = { 0,0 };
+    Scissor1.extent = { RendererContextPtr->SwapChain.Extent.width ,RendererContextPtr->SwapChain.Extent.height };
+
+    //vkCmdSetViewport(MainCommandBuffer, 0, 1, &Viewport1);
+    //vkCmdSetScissor(MainCommandBuffer, 0, 1, &Scissor1);
+
     auto& CurrentSyncObjects = FrameManager.SyncObjects[CurrentFrame];
 
     GlobalTimelineCounter++;
     CurrentSyncObjects.TimelineCounterTarget = GlobalTimelineCounter;
-
-    VkViewport Viewport{};
-    Viewport.x = 0.0f;
-    Viewport.y = -0.0f;
-    Viewport.width = static_cast<float>(RendererContextPtr->SwapChain.Extent.width);
-    Viewport.height = static_cast<float>(RendererContextPtr->SwapChain.Extent.height);
-    Viewport.minDepth = 0.0f;
-    Viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(MainCommandBuffer, 0, 1, &Viewport);
-
-    VkRect2D Scissor{};
-    Scissor.offset = { 0,0 };
-    Scissor.extent = RendererContextPtr->SwapChain.Extent;
-    vkCmdSetScissor(MainCommandBuffer, 0, 1, &Scissor);
 
     //Transition the current swap chain image into color attachment
     auto& SwapChainBarrierState = RendererContextPtr->SwapChain.SwapChainImagesBarrierStates[CurrentImageIndex];
@@ -298,13 +308,13 @@ void RENDERER::Renderer::RenderFrame()
     PipelineBarrier2.ExecutePipelineBarrier(MainCommandBuffer);
 
     bool EnableCulling = true;
+
     //Passes that reset the culled buffers
-    for (uint32_t i = 0; i < RenderPasses.size(); i++)
+    for (auto SceneCameraPair : UniqueSceneCameraPairs)
     {
-        RenderPassConfiguration& RenderPass = RenderPasses[i];
         DispatchComputeResetCulling(
-            *RenderPass.Scene,
-            *RenderPass.Scene->Camera,
+            *SceneCameraPair.second.first,
+            *SceneCameraPair.second.second,
             MainCommandBuffer,
             CurrentImageIndex,
             CurrentFrame,
@@ -315,12 +325,11 @@ void RENDERER::Renderer::RenderFrame()
     PipelineBarrier2.ExecutePipelineBarrier(MainCommandBuffer);
 
     //Culling passes
-    for (uint32_t i = 0; i < RenderPasses.size(); i++)
+    for (auto SceneCameraPair : UniqueSceneCameraPairs)
     {
-        RenderPassConfiguration& RenderPass = RenderPasses[i];
         DispatchComputeCulling(
-            *RenderPass.Scene,
-            *RenderPass.Scene->Camera,
+            *SceneCameraPair.second.first,
+            *SceneCameraPair.second.second,
             MainCommandBuffer,
             CurrentImageIndex,
             CurrentFrame,
@@ -335,8 +344,13 @@ void RENDERER::Renderer::RenderFrame()
     {
         bool IsFirstOne = i == 0;
         RenderPassConfiguration& RenderPass = RenderPasses[i];
+
+        vkCmdSetViewport(MainCommandBuffer, 0, 1, &RenderPass.Viewport);
+        vkCmdSetScissor(MainCommandBuffer, 0, 1, &RenderPass.Scissor);
+
         RenderPass.Pipeline->RenderScene(
             *RenderPass.Scene,
+            *RenderPass.Camera,
             MainCommandBuffer,
             CurrentImageIndex,
             CurrentFrame,
@@ -418,125 +432,137 @@ void RENDERER::Renderer::RenderFrame()
     }
     CurrentFrame = FrameManager.CurrentFrame;
 }
-/*
+*/
+
 void RENDERER::Renderer::RenderFrame()
 {
-    VkCommandBuffer MainCommandBuffer = FrameManager.BeginFrame(RendererContextPtr->DeviceContext.LogicalDevice, RendererContextPtr->SwapChain.Handle);
+    VkCommandBuffer MainCommandBuffer = FrameManager.BeginFrame(RendererContextPtr->DeviceContext.LogicalDevice, RendererContextPtr->SwapChain.Handle, TimelineSemaphore);
     if (MainCommandBuffer == VK_NULL_HANDLE)
     {
         OnRecreateSwapChain();
         return;
     }
     uint32_t CurrentImageIndex = FrameManager.ImageIndex;
+    RENDERER_CORE::BeginCommandBuffer(MainCommandBuffer);
 
-    VkCommandBufferBeginInfo CommandBufferBeginInfo{};
-    CommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    CommandBufferBeginInfo.flags = 0;
-    CommandBufferBeginInfo.pInheritanceInfo = nullptr;
+    VkViewport Viewport1{};
+    Viewport1.x = 0.0f;
+    Viewport1.y = 0.0f;
+    Viewport1.width = static_cast<float>(RendererContextPtr->SwapChain.Extent.width);
+    Viewport1.height = static_cast<float>(RendererContextPtr->SwapChain.Extent.height);
+    Viewport1.minDepth = 0.0f;
+    Viewport1.maxDepth = 1.0f;
 
-    if (vkBeginCommandBuffer(MainCommandBuffer, &CommandBufferBeginInfo) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to record command buffer");
-    }
+    VkRect2D Scissor1{};
+    Scissor1.offset = { 0,0 };
+    Scissor1.extent = { RendererContextPtr->SwapChain.Extent.width ,RendererContextPtr->SwapChain.Extent.height };
 
-    VkViewport Viewport{};
-    Viewport.x = 0.0f;
-    Viewport.y = -0.0f;
-    Viewport.width = static_cast<float>(RendererContextPtr->SwapChain.Extent.width);
-    Viewport.height = static_cast<float>(RendererContextPtr->SwapChain.Extent.height);
-    Viewport.minDepth = 0.0f;
-    Viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(MainCommandBuffer, 0, 1, &Viewport);
+    auto& CurrentSyncObjects = FrameManager.SyncObjects[CurrentFrame];
 
-    VkRect2D Scissor{};
-    Scissor.offset = { 0,0 };
-    Scissor.extent = RendererContextPtr->SwapChain.Extent;
-    vkCmdSetScissor(MainCommandBuffer, 0, 1, &Scissor);
+    GlobalTimelineCounter++;
+    CurrentSyncObjects.TimelineCounterTarget = GlobalTimelineCounter;
 
     //Transition the current swap chain image into color attachment
     auto& SwapChainBarrierState = RendererContextPtr->SwapChain.SwapChainImagesBarrierStates[CurrentImageIndex];
-    RENDERER_CORE::SafeImageBarrier(
-        RendererContextPtr->SwapChain.SwapChainImages[CurrentImageIndex],
-        SwapChainBarrierState,
-        PipelineBarrier2,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
-    );
+    auto& SwapChainImageHandle = RendererContextPtr->SwapChain.SwapChainImages[CurrentImageIndex];
+    RENDERER_CORE::ImageData SwapChainImage;
+    SwapChainImage.BarrierState = SwapChainBarrierState;
+    SwapChainImage.Image = SwapChainImageHandle;
 
-    RENDERER_CORE::SafeImageBarrier(
-        ColorRenderAttachmentImages[CurrentFrame].Image,
-        ColorRenderAttachmentImages[CurrentFrame].BarrierState,
-        PipelineBarrier2,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
-    );
-
-    RENDERER_CORE::SafeImageBarrier(
-        DepthImages[CurrentFrame].Image,
-        DepthImages[CurrentFrame].BarrierState,
-        PipelineBarrier2,
-        VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_IMAGE_ASPECT_DEPTH_BIT
-    );
     //Resource copying passes
     for (uint32_t i = 0; i < RenderPasses.size(); i++)
     {
-        RenderPasses[i].Scene->ResourceManagerPtr->HandleCopyOperations(MainCommandBuffer, CurrentFrame, PipelineBarrier2);
+        RenderPasses[i].Scene->ResourceManagerPtr->QueueCopyOperations(MainCommandBuffer, CurrentFrame, FrameGraph);
     }
-    PipelineBarrier2.ExecutePipelineBarrier(MainCommandBuffer);
 
     bool EnableCulling = true;
-    //Passes that reset the culled buffers
-    for (uint32_t i = 0; i < RenderPasses.size(); i++)
-    {
-        RenderPassConfiguration& RenderPass = RenderPasses[i];
-        DispatchComputeResetCulling(
-            *RenderPass.Scene,
-            *RenderPass.Scene->Camera,
-            MainCommandBuffer,
-            CurrentImageIndex,
-            CurrentFrame,
-            PipelineBarrier2,
-            EnableCulling
-        );
-    }
-    PipelineBarrier2.ExecutePipelineBarrier(MainCommandBuffer);
 
-    //Culling passes
-    for (uint32_t i = 0; i < RenderPasses.size(); i++)
-    {
-        RenderPassConfiguration& RenderPass = RenderPasses[i];
-        DispatchComputeCulling(
-            *RenderPass.Scene,
-            *RenderPass.Scene->Camera,
-            MainCommandBuffer,
-            CurrentImageIndex,
-            CurrentFrame,
-            PipelineBarrier2,
-            EnableCulling
-        );
-    }
-    PipelineBarrier2.ExecutePipelineBarrier(MainCommandBuffer);
+    FrameGraph.AppendTask({
+          [&](RENDERER::PassBuilder& Builder) {
+
+              for (auto SceneCameraPair : UniqueSceneCameraPairs)
+              {
+                    auto& IndirectBuffer = SceneCameraPair.second.first->MeshBuffers.Buffers.IndirectBuffers[CurrentFrame].Buffer; //TODO wth
+                    Builder.Write(&IndirectBuffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT);
+              }
+          },
+
+          [&](VkCommandBuffer CommandBuffer,uint32_t CurrentFrame) {
+             // std::cout << "Pass [ResetCullingPass_Internal] is being executed..." << std::endl;
+
+              for (auto SceneCameraPair : UniqueSceneCameraPairs)
+              {
+                  DispatchComputeResetCulling(
+                      *SceneCameraPair.second.first,
+                      *SceneCameraPair.second.second,
+                      MainCommandBuffer,
+                      CurrentImageIndex,
+                      CurrentFrame,
+                      PipelineBarrier2,
+                      EnableCulling
+                  );
+              }
+          },
+
+          "ResetCullingPass_Internal"
+    });
+
+    FrameGraph.AppendTask({
+           [&](RENDERER::PassBuilder& Builder) {
+
+              for (auto SceneCameraPair : UniqueSceneCameraPairs)
+              {
+                  auto& SceneBuffers = SceneCameraPair.second.first->MeshBuffers.Buffers;
+                  auto& IndirectBuffer = SceneBuffers.IndirectBuffers[CurrentFrame].Buffer; 
+                  auto& DrawMetaDataBuffer = SceneBuffers.DrawMetaDataBuffer[CurrentFrame].Buffer;
+                  auto& ModelMatricesBuffer = SceneBuffers.ModelMatricesBuffers[CurrentFrame].Buffer;
+                  auto& VisibilityIndexBuffer = SceneBuffers.CullBuffers.VisibilityIndexBuffers[CurrentFrame].Buffer;
+                  Builder.Write(&IndirectBuffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT);
+                  Builder.Write(&VisibilityIndexBuffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,VK_ACCESS_2_MEMORY_WRITE_BIT);
+                  Builder.Read(&DrawMetaDataBuffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
+                  Builder.Read(&ModelMatricesBuffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_MEMORY_READ_BIT);
+              }
+          },
+
+          [&](VkCommandBuffer CommandBuffer,uint32_t CurrentFrame) {
+            //std::cout << "Pass [CullingPass_Internal] is being executed..." << std::endl;
+
+            //Culling passes
+            for (auto SceneCameraPair : UniqueSceneCameraPairs)
+            {
+                DispatchComputeCulling(
+                    *SceneCameraPair.second.first,
+                    *SceneCameraPair.second.second,
+                    MainCommandBuffer,
+                    CurrentImageIndex,
+                    CurrentFrame,
+                    PipelineBarrier2,
+                    EnableCulling
+                );
+            }
+          },
+
+          "CullingPass_Internal"
+    });
 
     //Rendering passes
     for (uint32_t i = 0; i < RenderPasses.size(); i++)
     {
         bool IsFirstOne = i == 0;
         RenderPassConfiguration& RenderPass = RenderPasses[i];
-        RenderPass.Pipeline->RenderScene(
+
+        //vkCmdSetViewport(MainCommandBuffer, 0, 1, &RenderPass.Viewport);
+       // vkCmdSetScissor(MainCommandBuffer, 0, 1, &RenderPass.Scissor);
+
+        RenderPass.Pipeline->QueueRenderTasks(
+            FrameGraph,
             *RenderPass.Scene,
+            *RenderPass.Camera,
             MainCommandBuffer,
             CurrentImageIndex,
             CurrentFrame,
-            DepthImages[CurrentFrame].ImageView,
-            //rendererContext->SwapChain.SwapChainImagesViews[CurrentImageIndex],
-            ColorRenderAttachmentImages[CurrentFrame].ImageView,
+            DepthImages[CurrentFrame],
+            ColorRenderAttachmentImages[CurrentFrame],
             Gbuffers[CurrentFrame],
             LightingPassDescriptorSets[CurrentFrame],
             RenderPass.EnableDepthTesting,
@@ -545,56 +571,73 @@ void RENDERER::Renderer::RenderFrame()
         );
     }
 
-    RENDERER_CORE::SafeImageBarrier(
-        ColorRenderAttachmentImages[CurrentFrame].Image,
-        ColorRenderAttachmentImages[CurrentFrame].BarrierState,
-        PipelineBarrier2,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT
-    );
+    FrameGraph.AppendTask({
+          [&](RENDERER::PassBuilder& Builder) {
+               
+                Builder.Read(
+                    &DepthImages[CurrentFrame], 
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                    VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, 
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, 
+                    VK_IMAGE_ASPECT_DEPTH_BIT
+                );
+                Builder.Read(
+                    &ColorRenderAttachmentImages[CurrentFrame],
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT
+                );
+                Builder.Write(
+                    &SwapChainImage,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+                );
+         },
 
-    //Transition depth image into depth attachment
-    RENDERER_CORE::SafeImageBarrier(
-        DepthImages[CurrentFrame].Image,
-        DepthImages[CurrentFrame].BarrierState,
-        PipelineBarrier2,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_IMAGE_ASPECT_DEPTH_BIT
-    );
-    PipelineBarrier2.ExecutePipelineBarrier(MainCommandBuffer);
+         [&](VkCommandBuffer CommandBuffer,uint32_t CurrentFrame) {
+            //std::cout << "Pass [PostProcessPass_Internal] is being executed..." << std::endl;
 
-    //Post process pass that renders the final rendered image onto the swapchain image with effects 
-    RenderPostProcessPass(SCENE::Camera3D(), MainCommandBuffer, CurrentImageIndex, CurrentFrame);
+            //Post process pass that renders the final rendered image onto the swapchain image with effects 
+            RenderPostProcessPass(SCENE::Camera3D(), MainCommandBuffer, CurrentImageIndex, CurrentFrame);
+         },
+
+         "PostProcessPass_Internal"
+    });
+
+    vkCmdSetViewport(MainCommandBuffer, 0, 1, &Viewport1);
+    vkCmdSetScissor(MainCommandBuffer, 0, 1, &Scissor1);
+ 
+    FrameGraph.Compile(CurrentFrame);
+    FrameGraph.Execute(MainCommandBuffer, CurrentFrame);
 
     RENDERER_CORE::SafeImageBarrier(
         RendererContextPtr->SwapChain.SwapChainImages[CurrentImageIndex],
-        SwapChainBarrierState,
+        SwapChainImage.BarrierState,
         PipelineBarrier2,
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         0
     );
     PipelineBarrier2.ExecutePipelineBarrier(MainCommandBuffer);
+    SwapChainBarrierState = SwapChainImage.BarrierState;
 
     if (vkEndCommandBuffer(MainCommandBuffer) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to record command buffer");
     }
 
-    auto& CurrentSyncObjects = FrameManager.SyncObjects[CurrentFrame];
+    uint64_t SignalValues[] = { 0,GlobalTimelineCounter };
+    VkTimelineSemaphoreSubmitInfo TimelineSemaphoreSubmitInfo = RENDERER_CORE::TimelineSemaphoreSubmitInfo(nullptr, 0, SignalValues, 2);
 
     RENDERER_CORE::SubmitQueue(
         RendererContextPtr->DeviceContext.GraphicsQueue,
         { CurrentSyncObjects.ImageAvailableSemaphore },
         { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT },
         { MainCommandBuffer },
-        { CurrentSyncObjects.RenderFinishedSemaphore },
-        CurrentSyncObjects.Fence
+        { CurrentSyncObjects.RenderFinishedSemaphore , TimelineSemaphore.Handle },
+        nullptr,
+        &TimelineSemaphoreSubmitInfo
     );
 
     VkResult Result = FrameManager.EndFrame(
@@ -610,7 +653,7 @@ void RENDERER::Renderer::RenderFrame()
     }
     CurrentFrame = FrameManager.CurrentFrame;
 }
-*/
+
 
 void RENDERER::Renderer::RenderPhysicsDebugPass(SCENE::Scene& Scene, SCENE::Camera3D& Camera, VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame)
 {
@@ -646,12 +689,12 @@ void RENDERER::Renderer::RenderPhysicsDebugPass(SCENE::Scene& Scene, SCENE::Came
 
     vkCmdBindPipeline(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PhysicsDebugGraphicsPipeline.Handle);
 
-    VkBuffer VertexBuffers[] = { PhysicsDebugLineVertexBuffers[CurrentFrame].Buffer.BufferObject };
+    VkBuffer VertexBuffers[] = { PhysicsDebugLineVertexBuffers[CurrentFrame].BufferObject };
     VkDeviceSize Offsets[] = { 0 };
     vkCmdBindVertexBuffers(CommandBuffer, 0, 1, VertexBuffers, Offsets);
     //vkCmdBindDescriptorSets(CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PhysicsDebugGraphicsPipeline.Layout, 0, 1, &GbufferPassDescriptorSets[CurrentFrame], 0, nullptr);
 
-    glm::mat4 Matrices[2] = { Scene.Camera->ViewMatrix , Scene.Camera->ProjectionMatrix };
+    glm::mat4 Matrices[2] = { Camera.ViewMatrix , Camera.ProjectionMatrix };
 
     vkCmdPushConstants(
         CommandBuffer,
@@ -659,7 +702,7 @@ void RENDERER::Renderer::RenderPhysicsDebugPass(SCENE::Scene& Scene, SCENE::Came
         VK_SHADER_STAGE_VERTEX_BIT,
         0,
         sizeof(glm::mat4),
-        &Scene.Camera->ViewMatrix
+        &Camera.ViewMatrix
     );
 
     vkCmdDraw(CommandBuffer,glm::min((int)DebugDrawer->DebugLines.size(), MaxLines), 1, 0, 0);
@@ -763,12 +806,13 @@ void RENDERER::Renderer::CreateTestResources()
         BufferSize,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-        TestBuffer.Buffer
+        TestBuffer
     );
-    TestBuffer.Map(LogicalDevice, 0, BufferSize, 0);
+    RENDERER_CORE::MapBuffer(TestBuffer, LogicalDevice, 0, BufferSize, 0);
+    //TestBuffer.Map(LogicalDevice, 0, BufferSize, 0);
 
     RENDERER_CORE::DescriptorSetWriteBuffer BufferWrite{};
-    BufferWrite.Create(TestBuffer.Buffer, BufferSize, 0, TestDescriptor.DescriptorSets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+    BufferWrite.Create(TestBuffer, BufferSize, 0, TestDescriptor.DescriptorSets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
     RENDERER_CORE::WriteDescriptorSets(LogicalDevice, { BufferWrite }, {});
 }
 
@@ -777,7 +821,7 @@ void RENDERER::Renderer::DestroyTestResources()
     TestPipeline.Destroy(LogicalDevice);
     TestDescriptor.Destroy(LogicalDevice);
     RendererContextPtr->ShaderManager.EraseShaderModule("TestComputeShader", LogicalDevice);
-    TestBuffer.Destroy(LogicalDevice);
+    RENDERER_CORE::DestroyBuffer(LogicalDevice, TestBuffer);
 }
 
 void RENDERER::Renderer::DispatchComputeTest(
@@ -814,8 +858,8 @@ void RENDERER::Renderer::DispatchComputeCulling(
 )
 {
     auto& MeshBuffers = Scene.MeshBuffers;
-    uint32_t EnabledMeshCount = MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame];
-    uint32_t IndirectCommandCount = MeshBuffers.Entries[CurrentFrame].MeshEntries.Size();
+    uint32_t EnabledMeshCount = MeshBuffers.Buffers.EnabledMeshCount[CurrentFrame];
+    uint32_t IndirectCommandCount = MeshBuffers.Entries[CurrentFrame].MeshEntries.size();
     if (!IndirectCommandCount || !EnabledMeshCount || !EnableCulling) return;
     //std::cout << "CurrentFrame: " << CurrentFrame << " EnabledMeshCount: " << EnabledMeshCount << " IndirectCommandCount: " << IndirectCommandCount << std::endl;
     int WorkGroupSize = 64;
@@ -847,8 +891,9 @@ void RENDERER::Renderer::DispatchComputeCulling(
 
     vkCmdDispatch(CommandBuffer, CullingWorkGroupCount, 1, 1);
 
+    /*
     PipelineBarrier2.AppendBufferMemoryBarrier(
-        MeshBuffers.SceneBuffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
+        MeshBuffers.Buffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
         0,
         VK_WHOLE_SIZE,
         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -857,7 +902,7 @@ void RENDERER::Renderer::DispatchComputeCulling(
         VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT
     );
     PipelineBarrier2.AppendBufferMemoryBarrier(
-        MeshBuffers.SceneBuffers.ModelMatricesBuffers[CurrentFrame].Buffer.Buffer.BufferObject,
+        MeshBuffers.Buffers.ModelMatricesBuffers[CurrentFrame].Buffer.BufferObject,
         0,
         VK_WHOLE_SIZE,
         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -866,7 +911,7 @@ void RENDERER::Renderer::DispatchComputeCulling(
         VK_ACCESS_2_MEMORY_READ_BIT
     );
     PipelineBarrier2.AppendBufferMemoryBarrier(
-        MeshBuffers.SceneBuffers.DrawMetaDataBuffer[CurrentFrame].Buffer.BufferObject,
+        MeshBuffers.Buffers.DrawMetaDataBuffer[CurrentFrame].Buffer.BufferObject,
         0,
         VK_WHOLE_SIZE,
         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -875,7 +920,7 @@ void RENDERER::Renderer::DispatchComputeCulling(
         VK_ACCESS_2_MEMORY_READ_BIT
     );
     PipelineBarrier2.AppendBufferMemoryBarrier(
-        MeshBuffers.SceneBuffers.CullBuffers.VisibilityIndexBuffers[CurrentFrame].Buffer.BufferObject,
+        MeshBuffers.Buffers.CullBuffers.VisibilityIndexBuffers[CurrentFrame].Buffer.BufferObject,
         0,
         VK_WHOLE_SIZE,
         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -883,14 +928,15 @@ void RENDERER::Renderer::DispatchComputeCulling(
         VK_ACCESS_2_MEMORY_WRITE_BIT,
         VK_ACCESS_2_MEMORY_READ_BIT
     );
+    */
     //PipelineBarrier2.ExecutePipelineBarrier(CommandBuffer);
 }
 
 void RENDERER::Renderer::DispatchComputeResetCulling(SCENE::Scene& Scene, SCENE::Camera3D& Camera, VkCommandBuffer& CommandBuffer, uint32_t CurrentImageIndex, uint32_t CurrentFrame, RENDERER_CORE::PipelineBarrier2& PipelineBarrier2, bool EnableCulling)
 {
     auto& MeshBuffers = Scene.MeshBuffers;
-    uint32_t EnabledMeshCount = MeshBuffers.SceneBuffers.EnabledMeshCount[CurrentFrame];
-    uint32_t IndirectCommandCount = MeshBuffers.Entries[CurrentFrame].MeshEntries.Size();
+    uint32_t EnabledMeshCount = MeshBuffers.Buffers.EnabledMeshCount[CurrentFrame];
+    uint32_t IndirectCommandCount = MeshBuffers.Entries[CurrentFrame].MeshEntries.size();
     if (!IndirectCommandCount || !EnabledMeshCount || !EnableCulling) return;
     int WorkGroupSize = 64;
 
@@ -914,8 +960,9 @@ void RENDERER::Renderer::DispatchComputeResetCulling(SCENE::Scene& Scene, SCENE:
 
     vkCmdDispatch(CommandBuffer, CullingResetWorkGroupCount, 1, 1);
 
+    /*
     PipelineBarrier2.AppendBufferMemoryBarrier(
-        MeshBuffers.SceneBuffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
+        MeshBuffers.Buffers.IndirectBuffers[CurrentFrame].Buffer.BufferObject,
         0,
         VK_WHOLE_SIZE,
         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -923,6 +970,7 @@ void RENDERER::Renderer::DispatchComputeResetCulling(SCENE::Scene& Scene, SCENE:
         VK_ACCESS_2_MEMORY_WRITE_BIT,
         VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT
     );
+    */
 }
 
 void RENDERER::Renderer::InitializePipelines()
@@ -1155,7 +1203,7 @@ void RENDERER::Renderer::Destroy()
     {
         for (auto& PhysicsDebugLineVertexBuffer : PhysicsDebugLineVertexBuffers)
         {
-            PhysicsDebugLineVertexBuffer.Buffer.Destroy(LogicalDevice);
+            RENDERER_CORE::DestroyBuffer(LogicalDevice, PhysicsDebugLineVertexBuffer);
         }
     }
     
