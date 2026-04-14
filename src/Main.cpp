@@ -29,8 +29,10 @@ int main()
         RendererSettings.EnableValidationLayers = false;
         RendererSettings.BuildRayTracingAccelerationStructures = true;
 
-        RENDERER::RendererContext RendererContext(1000,800,"HelloWorld",RendererSettings);
+        RENDERER::RendererContext RendererContext(1000, 800,"HelloWorld",RendererSettings);
         RENDERER::Renderer Renderer(RendererContext, false);
+        
+        RendererContext.Window.SetFullScreen(true);
 
         SCENE::ModelHandle SponzaModel;
         SCENE::ModelHandle ShovelModel;
@@ -75,12 +77,12 @@ int main()
         SCENE::ModelInstance QuadInstance0(Quad);
         Scene0.LinkModelInstance(QuadInstance0);
 
-
+        /*
         Scene0.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
             FRAME_INDEX_ALL_FRAMES
         );
-
+        */
         ResourceManager.AppendModelImportTask({ &SponzaModel , "Resources\\sponza.obj" });
         ResourceManager.AppendModelImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
         ResourceManager.SubmitModelImports();
@@ -193,19 +195,22 @@ int main()
             Scene0.LinkModelInstance(Shovels[i]);
         }
 
+        /*
         Scene0.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
             FRAME_INDEX_ALL_FRAMES
         );
+        */
 
 
         Scene1.LinkModelInstance(SceneModelInstance);
         Scene1.LinkModelInstance(Shovel1);
+        /*
         Scene1.FlushPendingUpdates(
             SCENE::SCENE_UPDATE_TYPE_ALL_PENDING,
             FRAME_INDEX_ALL_FRAMES
         );
-
+        */
         Scene0.LinkCubemap(Cubemap0);
         Scene1.LinkCubemap(Cubemap0);
 
@@ -301,7 +306,7 @@ int main()
         SCENE::CameraSettingsInfo CameraSettings{};
         CameraSettings.Mode = SCENE::CAMERA_MODE_FREE_CAMERA;
         CameraSettings.CameraModeInfo = &ModeInfo;
-        SCENE::Camera3D Camera(RendererContext.Window, CameraSettings);
+        SCENE::Camera3D Camera(CameraSettings);
 
         RENDERER::RenderPassConfiguration PassConfiguration0{};
         PassConfiguration0.Name = "DeferredPass";
@@ -314,7 +319,7 @@ int main()
         Renderer.AddRenderPass(PassConfiguration0);
 
         SCENE::Camera3D Camera1;
-        Camera1.Create(RendererContext.Window, CameraSettings);
+        Camera1.Create(CameraSettings);
 
         RENDERER::RenderPassConfiguration PassConfiguration1{};
         PassConfiguration1.Name = "DeferredPass1";
@@ -330,7 +335,7 @@ int main()
         float LastFrame = 0.0f;
 
         float CurrentSpriteFrame = 0.0f;
-        while (!glfwWindowShouldClose(RendererContext.Window.window))
+        while (!glfwWindowShouldClose(RendererContext.Window.Handle))
         {
             float CurrentTime = glfwGetTime();
             DeltaTime = CurrentTime - LastFrame;
@@ -378,12 +383,14 @@ int main()
             Scene0.MarkResourceChanged(&Shovel, SCENE::MARK_CHANGED_TYPE_MESH_TRANSFORMATION | SCENE::MARK_CHANGED_TYPE_MESH_MATERIAL, Renderer.CurrentFrame);
             Scene0.MarkResourceChanged(&QuadInstance0, SCENE::MARK_CHANGED_TYPE_MESH_MATERIAL, Renderer.CurrentFrame);
 
+            /*
             Scene0.FlushPendingUpdates(
                 SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_TRANSFORMATIONS |
                 SCENE::SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS |
                 SCENE::SCENE_UPDATE_TYPE_UPDATE_MESH_MATERIALS,
                 Renderer.CurrentFrame
             );
+            */
 
             Camera.Update(
                 RendererContext.Window,
@@ -402,7 +409,6 @@ int main()
 
             Renderer.RenderFrame();
             glfwPollEvents();
-
             //PhysicsDebugDrawer.ClearDebugBuffers();
         }
 

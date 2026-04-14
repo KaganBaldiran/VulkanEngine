@@ -53,7 +53,6 @@ void RENDERER::FrameGraph::AppendTask(FrameGraphTask NewTask)
 	Tasks.push_back(std::move(NewTask));
 }
 
-
 void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 {
 	Nodes.clear();

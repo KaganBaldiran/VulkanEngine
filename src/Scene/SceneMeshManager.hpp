@@ -253,9 +253,9 @@ namespace SCENE
 		void UpdateMeshTransformationsHostVisible(std::vector<ModelInstance*> &UpdateList,uint32_t CurrentFrame);
 		void UpdateMeshTransformationsDeviceLocal(
 			std::vector<ModelInstance*>& UpdateList,
-			uint32_t CurrentFrame,
-			std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
-			SCENE::PersistentStagingBuffer& StagingBuffer
+			uint32_t CurrentFrame
+			//std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
+			//SCENE::PersistentStagingBuffer& StagingBuffer
 		);
 
 		void ResetModels(uint32_t FrameIndex);
@@ -265,18 +265,20 @@ namespace SCENE
 			const uint32_t &FrameIndex,
 			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> &TargetDescriptorSets,
 			PersistentStagingBuffer &StagingBuffer,
-			SceneOptions SceneOptions,
-			std::array<RENDERER::CopyOperationEntry*, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+			SceneOptions SceneOptions
+			//std::array<RENDERER::CopyOperationEntry*, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 		);
 		void EraseModels(MeshEraseInfo Info);
 		void UpdateMaterials(
 			std::vector<SCENE::ModelInstance*>& SceneMaterialUpdateList,
 			uint32_t FrameIndex,
-			VkDescriptorSet& TargetDescriptorSet,
-			PersistentStagingBuffer& StagingBuffer,
-			std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
+			VkDescriptorSet& TargetDescriptorSet
+			//PersistentStagingBuffer& StagingBuffer,
+			//std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 		);
 	private:
+		//std::array<std::vector<ExtendedIndirectCommand>, MAX_FRAMES_IN_FLIGHT> AppendedIndirectCommands;
+
 		RENDERER::ResourceManager* ResourceManagerPtr = nullptr;
 		RENDERER::RendererContext* RendererContext = nullptr;
 	};

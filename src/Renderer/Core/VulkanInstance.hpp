@@ -15,7 +15,8 @@ namespace RENDERER_CORE
         std::string EngineName;
         uint32_t APIVersion;
 
-        bool EnableValidationLayers;
+        bool EnableValidationLayers = false;
+        bool HeadlessMode = false;
         std::vector<const char*> ValidationLayersToEnable;
     };
 

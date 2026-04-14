@@ -176,6 +176,6 @@ void RENDERER_CORE::VirtualArenaAllocator::Reset(size_t Capacity)
 
 size_t RENDERER_CORE::AlignUp(size_t Size, size_t Alignment)
 {
-    //return (Size + Alignment - 1) & ~(Alignment - 1);
+    if (Alignment == 1) return Size;
     return ((Size + Alignment - 1) / Alignment) * Alignment;
 }

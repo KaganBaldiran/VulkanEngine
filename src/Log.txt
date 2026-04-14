@@ -1,28 +1,28 @@
 [Info]: Created window [HelloWorld].
 [Info]: Detected a suitable physical device [name(NVIDIA GeForce RTX 3050 Laptop GPU), device type(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)].
-[Info]: Detected graphics queue [2028454627520].
-[Info]: Detected present queue [2028599107808].
-[Info]: Detected compute queue [2028599107808].
-[Info]: Detected transfer queue [2028456200592].
-[Info]: Detected graphics-compute queue [2028454627520].
-[Info]: Created device [2028450199712].
-[Info]: Created swap chain [2028450014928].
+[Info]: Detected graphics queue [1588435664208].
+[Info]: Detected present queue [1588437801776].
+[Info]: Detected compute queue [1588437801776].
+[Info]: Detected transfer queue [1588437255104].
+[Info]: Detected graphics-compute queue [1588435664208].
+[Info]: Created device [1588431245408].
+[Info]: Created swap chain [1588393090832].
 [Info]: Created descriptor layout [binding count(3)].
 [Info]: Created descriptor layout [binding count(4)].
 [Info]: Created descriptor layout [binding count(1)].
 [Info]: Created descriptor layout [binding count(4)].
 [Info]: Created descriptor layout [binding count(3)].
-[Info]: Buffer[address(2028780717680), size(80), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2028780718080), size(80), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028780718080)] destroyed!
-[Info]: Buffer[address(2028780718080), size(432), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2028780719280), size(432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028780719280)] destroyed!
-[Info]: Shader module created [2028781551680].
-[Info]: Shader module created [2028781561472].
-[Info]: Shader module created [2028781563648].
-[Info]: Shader module created [2028781551136].
-[Info]: Shader module created [2028781557392].
+[Info]: Buffer[address(1588682989808), size(80), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(1588765465536), size(80), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765465536)] destroyed!
+[Info]: Buffer[address(1588765471136), size(432), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(1588765469136), size(432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765469136)] destroyed!
+[Info]: Shader module created [1588761859984].
+[Info]: Shader module created [1588761855088].
+[Info]: Shader module created [1588761858624].
+[Info]: Shader module created [1588761868960].
+[Info]: Shader module created [1588761860528].
 [Info]: Created descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1000)].
 [Info]: Created descriptor layout [binding count(1)].
 [Info]: Created graphics pipeline [0].
@@ -32,16 +32,16 @@
 [Info]: Created descriptor layout [binding count(1)].
 [Info]: Created descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1)].
 [Info]: Created descriptor layout [binding count(1)].
-[Info]: Shader module created [2028781559024].
-[Info]: Shader module created [2028781553856].
+[Info]: Shader module created [1588761855632].
+[Info]: Shader module created [1588761855904].
 [Info]: Created graphics pipeline [0].
-[Info]: Shader module created [2028781549504].
-[Info]: Shader module created [2028781554128].
+[Info]: Shader module created [1588761856448].
+[Info]: Shader module created [1588761856720].
 [Info]: Created graphics pipeline [0].
 [Info]: Created graphics pipeline [0].
-[Info]: Shader module created [2028781557664].
+[Info]: Shader module created [1588761864064].
 [Info]: Created compute pipeline [0].
-[Info]: Shader module created [2028781559568].
+[Info]: Shader module created [1588761858352].
 [Info]: Created compute pipeline [0].
 [Info]: Created descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,20)].
 [Info]: Image created [(1000x800),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
@@ -56,292 +56,255 @@
 [Info]: Image created [(1000x800),format(VK_FORMAT_R32G32_SFLOAT)].
 [Info]: Image created [(1000x800),format(VK_FORMAT_D32_SFLOAT)].
 [Info]: Image created [(1000x800),format(VK_FORMAT_B8G8R8A8_SRGB)].
-[Info]: Shader module created [2028781559840].
-[Info]: Shader module created [2028781554672].
+[Info]: Shader module created [1588761859168].
+[Info]: Shader module created [1588761860800].
 [Info]: Created graphics pipeline [0].
 [Info]: Created descriptor layout [binding count(1)].
 [Info]: Created descriptor pool [(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1)].
-[Info]: Shader module created [2028781564192].
+[Info]: Shader module created [1588761851824].
 [Info]: Created compute pipeline [0].
-[Info]: Buffer[address(2029059348512), size(32), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765466736), size(32), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Renderer initialized!
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588765473136), size(67112960), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588765465936), size(67112960), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Submitted model import [Resources\Quad.fbx].
-[Info]: Models were imported in 0.001559 seconds.
-[Info]: Buffer[address(2029059346912), size(20927952), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Models were imported in 0.001866 seconds.
+[Info]: Buffer[address(1588765468736), size(20927952), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(2822x1854),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2029059346912)] destroyed!
+[Info]: Buffer[address(1588765468736)] destroyed!
 [Info]: Created descriptor pool [(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,18)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,10)].
 [Info]: Created descriptor pool [(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,18)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,10)].
-[Info]: Buffer[address(2029059346912), size(67108864), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_INDEX_BUFFER_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2029059350112), size(320), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2029059350112)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059348912), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059350912), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059345312), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059349312), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059346112), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059350112), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2029059343712), size(67108864), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_INDEX_BUFFER_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2029059344112), size(320), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2029059344112)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059350512), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059344112), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059344512), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787270928), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787272528), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787269728), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
 [Info]: Submitted model import [Resources\sponza.obj].
 [Info]: Submitted model import [Resources\shovel2.obj].
-[Info]: Models were imported in 0.401553 seconds.
-[Info]: Buffer[address(2028787265728), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Models were imported in 0.446186 seconds.
+[Info]: Buffer[address(1588765466336), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(512x512),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787265728)] destroyed!
-[Info]: Buffer[address(2028787267728), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765466336)] destroyed!
+[Info]: Buffer[address(1588765467536), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(512x512),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787272128), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787267728)] destroyed!
+[Info]: Buffer[address(1588765467536)] destroyed!
+[Info]: Buffer[address(1588765469936), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787272128)] destroyed!
-[Info]: Buffer[address(2028787272128), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765469936)] destroyed!
+[Info]: Buffer[address(1588765467536), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765469936), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589008122160), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787268128), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787272128)] destroyed!
-[Info]: Buffer[address(2028787265728), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787268528), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787268128)] destroyed!
-[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787267328), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787266128), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787267728), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787268528)] destroyed!
-[Info]: Buffer[address(2028787268928), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787265328), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787268528), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787265728)] destroyed!
-[Info]: Buffer[address(2028787269328), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589008122960), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Buffer[address(1588765467536)] destroyed!
+[Info]: Buffer[address(1589008123360), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589008122960)] destroyed!
+[Info]: Buffer[address(1589008122160)] destroyed!
+[Info]: Buffer[address(1589008121360), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787267328)] destroyed!
-[Info]: Buffer[address(2028787272928), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787265328)] destroyed!
-[Info]: Buffer[address(2028787268528)] destroyed!
-[Info]: Buffer[address(2028787268928)] destroyed!
-[Info]: Buffer[address(2028787266128)] destroyed!
+[Info]: Buffer[address(1589008122960), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589008119760), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Buffer[address(1589017188288), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589017190288), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Buffer[address(1589017187888), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765467536), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(256x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787269328)] destroyed!
-[Info]: Buffer[address(2028787267728)] destroyed!
-[Info]: Buffer[address(2028787272928)] destroyed!
-[Info]: Buffer[address(2028787272928), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Buffer[address(1589017187088), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589011094144), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Buffer[address(1589017187488), size(1048576), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765469936)] destroyed!
 [Info]: Image created [(256x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Buffer[address(1589008123360)] destroyed!
+[Info]: Buffer[address(1589017187488)] destroyed!
 [Error]: Failed reading texture[C:\Users\kbald\Downloads\wallhaven-lmmeqq_2560x1080.png].
-[Info]: Buffer[address(2028787272928)] destroyed!
-[Info]: Buffer[address(2028787266528), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589017188288)] destroyed!
+[Info]: Buffer[address(1589008121360)] destroyed!
+[Info]: Buffer[address(1589017187888)] destroyed!
+[Info]: Buffer[address(1588765467536)] destroyed!
+[Info]: Buffer[address(1589008122960)] destroyed!
+[Info]: Buffer[address(1589011094144)] destroyed!
+[Info]: Buffer[address(1589017187088)] destroyed!
+[Info]: Buffer[address(1589008122960), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589017190288)] destroyed!
+[Info]: Buffer[address(1589008119760)] destroyed!
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787266528)] destroyed!
-[Info]: Buffer[address(2028787270528), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787270128), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589008122960)] destroyed!
+[Info]: Buffer[address(1588765467536), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
+[Info]: Buffer[address(1588765468736), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765467536)] destroyed!
+[Info]: Buffer[address(1589032017280), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787270528)] destroyed!
-[Info]: Buffer[address(2028787266128), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787270128)] destroyed!
+[Info]: Buffer[address(1588765468736)] destroyed!
+[Info]: Buffer[address(1589032017280)] destroyed!
+[Info]: Buffer[address(1588765468736), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787266128)] destroyed!
-[Info]: Buffer[address(2028787272128), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787268928), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765468736)] destroyed!
+[Info]: Buffer[address(1588765468736), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787272128)] destroyed!
-[Info]: Buffer[address(2028787268928)] destroyed!
-[Info]: Buffer[address(2028787268928), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787268928)] destroyed!
-[Info]: Buffer[address(2028787268128), size(4194304), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Image created [(1024x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787268128)] destroyed!
-[Info]: Buffer[address(2028787272928), size(16777216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765468736)] destroyed!
+[Info]: Buffer[address(1588765467536), size(16777216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765469936), size(16777216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(2048x2048),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787272928)] destroyed!
-[Info]: Buffer[address(2028787268928), size(16777216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(2048x2048),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787268928)] destroyed!
-[Info]: Buffer[address(2028787272128), size(16777216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1589032013280), size(16777216), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(2048x2048),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787272128)] destroyed!
+[Info]: Buffer[address(1588765467536)] destroyed!
+[Info]: Buffer[address(1588765469936)] destroyed!
+[Info]: Buffer[address(1589032013280)] destroyed!
 [Warning]: Attempting to instance a model with no meshes (Model ID:3).
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
 [Info]: Image created [(32x32),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-[Info]: Buffer[address(2028787268928), size(33554432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765466336), size(33554432), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(4096x2048),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787268928)] destroyed!
+[Info]: Buffer[address(1588765466336)] destroyed!
 [Info]: HDRI imported! [resources\boma_4k.hdr]
 [Info]: Image created [(1024x1024),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
 [Info]: Image created [(32x32),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-[Info]: Buffer[address(2028787272128), size(8388608), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588765468736), size(8388608), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
 [Info]: Image created [(2048x1024),format(VK_FORMAT_R8G8B8A8_SRGB)].
-[Info]: Buffer[address(2028787272128)] destroyed!
+[Info]: Buffer[address(1588765468736)] destroyed!
 [Info]: HDRI imported! [resources\rustig_koppie_puresky_2k.hdr]
-[Info]: Buffer[address(2028787268928), size(38557696), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787268928)] destroyed!
-[Info]: Buffer[address(2029059348912)] destroyed!
-[Info]: Buffer[address(2028787268528), size(20480), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2029059350912)] destroyed!
-[Info]: Buffer[address(2028787269328), size(30720), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2029059346112)] destroyed!
-[Info]: Buffer[address(2028787268128), size(30720), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2029059350112)] destroyed!
-[Info]: Buffer[address(2028787271328), size(20480), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2028787268128)] destroyed!
-[Info]: Buffer[address(2028787266528), size(51200), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787270128), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787265728), size(1024), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787272928), size(96), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787272928)] destroyed!
-[Info]: Buffer[address(2028787268928), size(38557696), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787268928)] destroyed!
-[Info]: Buffer[address(2029059350512)] destroyed!
-[Info]: Buffer[address(2028787270528), size(20480), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2029059344112)] destroyed!
-[Info]: Buffer[address(2028787271728), size(30720), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2028787272528)] destroyed!
-[Info]: Buffer[address(2028787272128), size(30720), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787269728)] destroyed!
-[Info]: Buffer[address(2028787265328), size(20480), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(2028787272128)] destroyed!
-[Info]: Buffer[address(2028787272128), size(51200), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787266128), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787267728), size(1024), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787272528), size(96), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028787272528)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787272528), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787268128), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787266928), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787267328), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787269728), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787272928), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028787268928), size(1024), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2029059348912), size(96), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2029059348912)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059344112), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059346112), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059348912), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059350512), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059350112), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2029059350912), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(2028790617360), size(1024), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028790617760), size(96), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
-[Info]: Buffer[address(2028790617760)] destroyed!
-[Info]: Shader module created [2028792588816].
+[Info]: Shader module created [1589024359120].
 [Info]: Created graphics pipeline [0].
 [Info]: Created custom deferred pipeline (CustomShader0).
-[Info]: Created swap chain [2028450014928].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_R32_SINT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_R32G32_SFLOAT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_D32_SFLOAT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_B8G8R8A8_SRGB)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_R32_SINT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_R32G32_SFLOAT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_D32_SFLOAT)].
-[Info]: Image created [(1920x1009),format(VK_FORMAT_B8G8R8A8_SRGB)].
+[Info]: Buffer[address(1588765466336), size(67108864), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_INDEX_BUFFER_BIT|VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588765469936), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588765467536), size(30720), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588765468336), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771196688), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771201888), size(20480), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771198688), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771197088), size(1024), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588771197488), size(96), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588771197488)] destroyed!
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771200688), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771199488), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771197888), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771197488), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771202688), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771202288), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588771199888), size(1024), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588771198288), size(96), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588771198288)] destroyed!
+[Info]: Created swap chain [1588393080512].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_R32_SINT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_R32G32_SFLOAT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_D32_SFLOAT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_B8G8R8A8_SRGB)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_R16G16B16A16_SFLOAT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_R32_SINT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_R32G32_SFLOAT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_D32_SFLOAT)].
+[Info]: Image created [(1920x1080),format(VK_FORMAT_B8G8R8A8_SRGB)].
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762976496), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762977296), size(30720), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762972896), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762977696), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762973696), size(20480), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762972096), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762583440), size(1024), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588762582640), size(96), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588762582640)] destroyed!
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762583840), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762587440), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762587840), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762590240), size(10240), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762588240), size(10240), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762588640), size(1024), usage(VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)] created.
+[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588762582640), size(1024), usage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588762589840), size(96), usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), properties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)] created.
+[Info]: Buffer[address(1588762589840)] destroyed!
 [Info]: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,18)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,10)].
-[Info]: Buffer[address(2028787272528)] destroyed!
-[Info]: Buffer[address(2028787268128)] destroyed!
-[Info]: Buffer[address(2028787266928)] destroyed!
-[Info]: Buffer[address(2028787269728)] destroyed!
-[Info]: Buffer[address(2029059344112)] destroyed!
-[Info]: Buffer[address(2029059346112)] destroyed!
-[Info]: Buffer[address(2029059348912)] destroyed!
-[Info]: Buffer[address(2029059350112)] destroyed!
-[Info]: Buffer[address(2028787267328)] destroyed!
-[Info]: Buffer[address(2029059350512)] destroyed!
-[Info]: Buffer[address(2028787268928)] destroyed!
-[Info]: Buffer[address(2028790617360)] destroyed!
-[Info]: Buffer[address(2028787272928)] destroyed!
-[Info]: Buffer[address(2029059350912)] destroyed!
+[Info]: Buffer[address(1588771200688)] destroyed!
+[Info]: Buffer[address(1588771199488)] destroyed!
+[Info]: Buffer[address(1588771197888)] destroyed!
+[Info]: Buffer[address(1588771202688)] destroyed!
+[Info]: Buffer[address(1588762583840)] destroyed!
+[Info]: Buffer[address(1588762587440)] destroyed!
+[Info]: Buffer[address(1588762587840)] destroyed!
+[Info]: Buffer[address(1588762588240)] destroyed!
+[Info]: Buffer[address(1588771197488)] destroyed!
+[Info]: Buffer[address(1588762590240)] destroyed!
+[Info]: Buffer[address(1588771199888)] destroyed!
+[Info]: Buffer[address(1588762582640)] destroyed!
+[Info]: Buffer[address(1588771202288)] destroyed!
+[Info]: Buffer[address(1588762588640)] destroyed!
 [Info]: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,18)(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,10)].
-[Info]: Buffer[address(2028787268528)] destroyed!
-[Info]: Buffer[address(2028787269328)] destroyed!
-[Info]: Buffer[address(2029059345312)] destroyed!
-[Info]: Buffer[address(2028787271328)] destroyed!
-[Info]: Buffer[address(2028787270528)] destroyed!
-[Info]: Buffer[address(2028787271728)] destroyed!
-[Info]: Buffer[address(2029059344512)] destroyed!
-[Info]: Buffer[address(2028787265328)] destroyed!
-[Info]: Buffer[address(2029059349312)] destroyed!
-[Info]: Buffer[address(2028787270928)] destroyed!
-[Info]: Buffer[address(2028787265728)] destroyed!
-[Info]: Buffer[address(2028787267728)] destroyed!
-[Info]: Buffer[address(2028787270128)] destroyed!
-[Info]: Buffer[address(2028787266128)] destroyed!
-[Info]: Buffer[address(2028787266528)] destroyed!
-[Info]: Buffer[address(2028787272128)] destroyed!
-[Info]: Buffer[address(2029059346912)] destroyed!
-[Info]: Buffer[address(2029059343712)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
-[Info]: Buffer[address(0)] destroyed!
+[Info]: Buffer[address(1588765469936)] destroyed!
+[Info]: Buffer[address(1588765467536)] destroyed!
+[Info]: Buffer[address(1588765468336)] destroyed!
+[Info]: Buffer[address(1588771201888)] destroyed!
+[Info]: Buffer[address(1588762976496)] destroyed!
+[Info]: Buffer[address(1588762977296)] destroyed!
+[Info]: Buffer[address(1588762972896)] destroyed!
+[Info]: Buffer[address(1588762973696)] destroyed!
+[Info]: Buffer[address(1588771196688)] destroyed!
+[Info]: Buffer[address(1588762977696)] destroyed!
+[Info]: Buffer[address(1588771197088)] destroyed!
+[Info]: Buffer[address(1588762583440)] destroyed!
+[Info]: Buffer[address(1588771198688)] destroyed!
+[Info]: Buffer[address(1588762972096)] destroyed!
+[Info]: Buffer[address(1588765473136)] destroyed!
+[Info]: Buffer[address(1588765465936)] destroyed!
+[Info]: Buffer[address(1588765466336)] destroyed!
+[Info]: Mesh manager destroyed!
 [Info]: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,20)].
-[Info]: Destroyed compute pipeline [2029059394496].
+[Info]: Destroyed compute pipeline [1588773356656].
 [Info]: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1)].
-[Info]: Buffer[address(2029059348512)] destroyed!
-[Info]: Destroyed graphics pipeline [2029076086992].
+[Info]: Buffer[address(1588765466736)] destroyed!
+[Info]: Destroyed graphics pipeline [1589039399120].
 [Info]: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1000)].
 [Info]: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1000)].
-[Info]: Destroyed graphics pipeline [2029058654304].
-[Info]: Destroyed graphics pipeline [2028795261024].
-[Info]: Destroyed graphics pipeline [2029059310992].
-[Info]: Destroyed graphics pipeline [2029059351840].
-[Info]: Destroyed graphics pipeline [2028791210048].
-[Info]: Destroyed graphics pipeline [2028795098272].
-[Info]: Destroyed graphics pipeline [2028790120592].
-[Info]: Destroyed compute pipeline [2028795587376].
-[Info]: Destroyed compute pipeline [2028791212688].
+[Info]: Destroyed graphics pipeline [1589006237904].
+[Info]: Destroyed graphics pipeline [1589035674400].
+[Info]: Destroyed graphics pipeline [1589022696336].
+[Info]: Destroyed graphics pipeline [1589023576176].
+[Info]: Destroyed graphics pipeline [1589016024336].
+[Info]: Destroyed graphics pipeline [1588775547952].
+[Info]: Destroyed graphics pipeline [1589026046048].
+[Info]: Destroyed compute pipeline [1588773510176].
+[Info]: Destroyed compute pipeline [1588775550592].
 [Info]: Destroyed descriptor pool [(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1)].
-[Info]: Buffer[address(2028780717680)] destroyed!
-[Info]: Buffer[address(2028780718080)] destroyed!
+[Info]: Buffer[address(1588682989808)] destroyed!
+[Info]: Buffer[address(1588765471136)] destroyed!

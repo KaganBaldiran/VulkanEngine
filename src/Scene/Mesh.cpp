@@ -87,12 +87,14 @@ std::vector<VkVertexInputAttributeDescription> SCENE::Vertex3D::GetAttributeDesc
 std::vector<SCENE::GeometryData> SCENE::Import3DGeometry(const char* FilePath, RENDERER::TextureManager& ImportManager)
 {
     Assimp::Importer Importer;
-    const aiScene* scene = Importer.ReadFile(FilePath,
+    const aiScene* scene = Importer.ReadFile(
+        FilePath,
         aiProcess_CalcTangentSpace |
         aiProcess_Triangulate |
         aiProcess_SortByPType |
         aiProcess_PreTransformVertices |
-        aiProcess_GenSmoothNormals);
+        aiProcess_GenSmoothNormals
+    );
     aiScene* Scene = const_cast<aiScene*>(scene);
 
     if (nullptr == Scene) {
@@ -186,7 +188,6 @@ std::vector<SCENE::GeometryData> SCENE::Import3DGeometry(const char* FilePath, R
     }
     return GeometryDatas;
 }
-
 
 void LoadMaterialTextures(std::string MeshDirectory, RENDERER::TextureManager& ImportManager, aiMaterial* SourceMaterial, aiTextureType Type, uint64_t& MaterialTextureReferenceIndex)
 {

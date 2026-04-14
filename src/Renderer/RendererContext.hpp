@@ -81,6 +81,9 @@ namespace RENDERER
         ShadowTypeHint ShadowType = SHADOW_TYPE_HINT_SHADOW_MAPS;
         bool BuildRayTracingAccelerationStructures = false;
         bool EnableValidationLayers = true;
+        //Hinting the renderer that you intent to use it in headless mode.
+        //Monitor presentation related components like swapchain and surface wont be created.
+        bool HeadlessMode = false;
         std::vector<RENDERER_CORE::DeviceFeature> RequestedDeviceFeatureNodes;
     };
 
@@ -208,5 +211,6 @@ namespace RENDERER
         void UpdateCustomPipelines(RENDERER_CORE::DescriptorSetLayout& Layout,uint32_t FrameIndex);
         void CreatePostProcessingPassPipeline();
         std::array<std::unordered_map<uint64_t, size_t>, MAX_FRAMES_IN_FLIGHT> CustomPipelines;
+        bool IsHeadlessMode = false;
 	};
 }

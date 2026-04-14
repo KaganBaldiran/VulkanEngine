@@ -442,11 +442,11 @@ void RENDERER::DeferredRenderPipeline::RenderGeometryPass(
     {
         auto& PageMeshCount = PageMeshCounts[i];
 
-        VkBuffer GeometryBuffers[] = {MeshManager.GeometryBufferPages[CurrentFrame][i].Buffer.BufferObject};
+        VkBuffer GeometryBuffers[] = {MeshManager.GeometryBufferPages[i].Buffer.BufferObject};
         VkDeviceSize VertexOffsets[] = { 0 };
         vkCmdBindVertexBuffers(CommandBuffer, 0, 1, GeometryBuffers, VertexOffsets);
         VkDeviceSize IndexOffset = 0;
-        vkCmdBindIndexBuffer(CommandBuffer, MeshManager.GeometryBufferPages[CurrentFrame][i].Buffer.BufferObject, IndexOffset, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(CommandBuffer, MeshManager.GeometryBufferPages[i].Buffer.BufferObject, IndexOffset, VK_INDEX_TYPE_UINT32);
 
         if (RendererContextPtr->DeviceContext.DeviceFeatures2.features.multiDrawIndirect)
         {

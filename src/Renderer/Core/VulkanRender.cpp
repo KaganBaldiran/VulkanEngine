@@ -220,13 +220,12 @@ VkCommandBuffer RENDERER_CORE::FrameManager::BeginFrame(
 {
     auto& CommandBuffer = CommandBuffers[CurrentFrame];
     auto& SyncObject = SyncObjects[CurrentFrame];
-    //vkWaitForFences(LogicalDevice, 1, &SyncObject.Fence, VK_TRUE, UINT64_MAX);
+
     if (SyncObject.TimelineCounterTarget > 0)
     {
         WaitSemaphores(LogicalDevice, &TimelineSemaphore.Handle, 1, &SyncObject.TimelineCounterTarget);
     }
 
-   // uint32_t ImageIndex;
     VkResult Result = vkAcquireNextImageKHR(LogicalDevice, DestinationSwapChain, UINT64_MAX, SyncObject.ImageAvailableSemaphore, VK_NULL_HANDLE, &ImageIndex);
     if (Result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -236,7 +235,6 @@ VkCommandBuffer RENDERER_CORE::FrameManager::BeginFrame(
     {
         throw std::runtime_error("Failed to acquire swap chain image!");
     }
-    //vkResetFences(LogicalDevice, 1, &SyncObject.Fence);
     vkResetCommandBuffer(CommandBuffer, 0);
 
     return CommandBuffer;

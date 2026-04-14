@@ -70,9 +70,9 @@ namespace SCENE
 	class Camera3D : public COMMON::Handle
 	{
 	public:
-		Camera3D(RENDERER_CORE::Window &window,CameraSettingsInfo Settings);
+		Camera3D(CameraSettingsInfo Settings);
 		Camera3D() = default;
-		void Create(RENDERER_CORE::Window& window,CameraSettingsInfo Settings);
+		void Create(CameraSettingsInfo Settings);
 		void SetCameraSettings(CameraSettingsInfo Settings);
 		void Update(RENDERER_CORE::Window &window,float Sensitivity,float DeltaTime, glm::vec2 Extent, float Near, float Far,float FOV = 45.0F);
 		void Update(RENDERER_CORE::Window& window, float Sensitivity, float DeltaTime, float Zoom, glm::vec2 Extent, float Near, float Far);

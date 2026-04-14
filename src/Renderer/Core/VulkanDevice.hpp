@@ -31,6 +31,7 @@ namespace RENDERER_CORE
         float QueuePriority = 1.0f;
         void* FeaturesToEnable = nullptr;
         bool EnableValidationLayers = 0;
+        bool HeadlessMode = false;
         std::vector<const char*> ValidationLayersToEnable;
     };
 

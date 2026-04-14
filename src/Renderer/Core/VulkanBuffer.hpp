@@ -16,23 +16,7 @@ namespace RENDERER_CORE
 		VkBuffer BufferObject = VK_NULL_HANDLE;
 		VkDeviceMemory BufferMemory = VK_NULL_HANDLE;
 		void* MappedMemory = nullptr;
-
-		/*
-		VkPipelineStageFlags2 StageMask = VK_PIPELINE_STAGE_2_NONE;
-		VkAccessFlags2 AccessMask = VK_ACCESS_2_NONE;
-		uint32_t QueueFamily = 0;
-		*/
-
 		BarrierState BarrierState;
-
-	/*	void Map(
-			VkDevice& LogicalDevice,
-			VkDeviceSize Offset,
-			VkDeviceSize Size,
-			VkMemoryMapFlags Flags
-		);
-		void UnMap(VkDevice& LogicalDevice);
-		void Destroy(VkDevice &LogicalDevice);*/
 	};
 
 	uint32_t FindMemoryType(VkPhysicalDevice& PhysicalDevice, uint32_t TypeFilter, VkMemoryPropertyFlags Properties);

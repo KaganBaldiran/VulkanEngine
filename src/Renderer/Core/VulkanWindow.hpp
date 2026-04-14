@@ -35,7 +35,10 @@ namespace RENDERER_CORE
         Window() = default;
         void Create(VulkanWindowCreateInfo& CreateInfo);
         void Destroy();
-        GLFWwindow* window;
+        GLFWmonitor* GetMonitor();
+        const GLFWvidmode* GetMonitorVideoMode();
+        void SetFullScreen(bool State);
+        GLFWwindow* Handle;
         uint32_t Width;
         uint32_t Height;
         const char* WindowName;

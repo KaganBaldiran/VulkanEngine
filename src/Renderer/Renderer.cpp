@@ -132,7 +132,6 @@ void RENDERER::Renderer::Create(RendererContext& DestinationRendererContext, boo
         ImageWrites.push_back(std::move(AlbedoTextureWrite));
         ImageWrites.push_back(std::move(RoughnessMetallicTextureWrite));
     
-
         //Post process pass attachments descriptor writes
         RENDERER_CORE::DescriptorSetWriteImage ColorRenderAttachmentTextureWrite(
             ColorRenderAttachmentImages[i].ImageView,
@@ -469,6 +468,14 @@ void RENDERER::Renderer::RenderFrame()
     SwapChainImage.BarrierState = SwapChainBarrierState;
     SwapChainImage.Image = SwapChainImageHandle;
 
+    for (auto &[HandlePair,SceneCameraPair] : UniqueSceneCameraPairs)
+    {
+        SCENE::Scene* Scene = SceneCameraPair.first;
+        Scene->ResourceManagerPtr->MeshManager.UpdateGeometryEntries();
+        Scene->ResourceManagerPtr->TextureManager.UpdateDescriptors(CurrentFrame);
+        Scene->FlushPendingUpdates(SCENE::SCENE_UPDATE_TYPE_ALL_PENDING, CurrentFrame);
+    }
+
     //Resource copying passes
     for (uint32_t i = 0; i < RenderPasses.size(); i++)
     {
@@ -652,6 +659,11 @@ void RENDERER::Renderer::RenderFrame()
         return;
     }
     CurrentFrame = FrameManager.CurrentFrame;
+}
+
+void RENDERER::Renderer::ExecuteTasksHeadless()
+{
+
 }
 
 
@@ -1051,16 +1063,16 @@ void RENDERER::Renderer::InitializePipelines()
 
 void RENDERER::Renderer::OnRecreateSwapChain() {
     int width = 0, height = 0;
-    glfwGetFramebufferSize(RendererContextPtr->Window.window, &width, &height);
+    glfwGetFramebufferSize(RendererContextPtr->Window.Handle, &width, &height);
     while (width == 0 || height == 0)
     {
-        glfwGetFramebufferSize(RendererContextPtr->Window.window, &width, &height);
+        glfwGetFramebufferSize(RendererContextPtr->Window.Handle, &width, &height);
         glfwWaitEvents();
     }
     vkDeviceWaitIdle(LogicalDevice);
 
     RendererContextPtr->SwapChain.Destroy(LogicalDevice);
-    RendererContextPtr->SwapChain.Create(PhysicalDevice, LogicalDevice, RendererContextPtr->Surface.Handle, RendererContextPtr->Window.window);
+    RendererContextPtr->SwapChain.Create(PhysicalDevice, LogicalDevice, RendererContextPtr->Surface.Handle, RendererContextPtr->Window.Handle);
 
     std::vector<RENDERER_CORE::DescriptorSetWriteImage> ImageWrites;
     ImageWrites.reserve(7 * MAX_FRAMES_IN_FLIGHT);

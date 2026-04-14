@@ -94,14 +94,17 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateVulkanInstance(
     CreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     CreateInfo.pApplicationInfo = &AppInfo;
 
-    uint32_t GLFWextensionsCount = 0;
-    const char** GLFWextensionsString = glfwGetRequiredInstanceExtensions(&GLFWextensionsCount);
-
-    std::vector<const char*> GLFWRequiredExtensions(GLFWextensionsCount);
-    for (size_t i = 0; i < GLFWextensionsCount; i++)
+    std::vector<const char*> GLFWRequiredExtensions;
+    if (!InstanceCreateInfo.HeadlessMode)
     {
-        GLFWRequiredExtensions[i] = GLFWextensionsString[i];
-        //std::cout << GLFWextensionsString[i] << std::endl;
+        uint32_t GLFWextensionsCount = 0;
+        const char** GLFWextensionsString = glfwGetRequiredInstanceExtensions(&GLFWextensionsCount);
+
+        GLFWRequiredExtensions.resize(GLFWextensionsCount);
+        for (size_t i = 0; i < GLFWextensionsCount; i++)
+        {
+            GLFWRequiredExtensions[i] = GLFWextensionsString[i];
+        }
     }
 
     if (InstanceCreateInfo.EnableValidationLayers)
@@ -155,12 +158,10 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateVulkanInstance(
     {
         std::cout << "Some of the required extensions seem to be missing!" << std::endl;
     }
-
     if (vkCreateInstance(&CreateInfo, nullptr, &OutInstance) != VK_SUCCESS)
     {
         return { VK_INCOMPLETE, "Failed to create an instance!" };
     }
-
     return VULKAN_SUCCESS;
 }
 

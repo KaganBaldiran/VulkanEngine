@@ -79,11 +79,14 @@ void RENDERER::RendererContext::Create(
     RendererSettings Settings
 )
 {
-    RENDERER_CORE::VulkanWindowCreateInfo WindowCreateInfo{};
-    WindowCreateInfo.WindowInitialHeight = WindowHeight;
-    WindowCreateInfo.WindowInitialWidth = WindowWidth;
-    WindowCreateInfo.WindowsName = WindowName;
-    Window.Create(WindowCreateInfo);
+    if (!Settings.HeadlessMode)
+    {
+        RENDERER_CORE::VulkanWindowCreateInfo WindowCreateInfo{};
+        WindowCreateInfo.WindowInitialHeight = WindowHeight;
+        WindowCreateInfo.WindowInitialWidth = WindowWidth;
+        WindowCreateInfo.WindowsName = WindowName;
+        Window.Create(WindowCreateInfo);
+    }
 
     std::vector<const char*> ValidationLayersToEnable = { "VK_LAYER_KHRONOS_validation" };
 
@@ -95,20 +98,22 @@ void RENDERER::RendererContext::Create(
     InstanceCreateInfo.EngineName = "No Engine";
     InstanceCreateInfo.EnableValidationLayers = EnableValidationLayers;
     InstanceCreateInfo.ValidationLayersToEnable = ValidationLayersToEnable;
+    InstanceCreateInfo.HeadlessMode = Settings.HeadlessMode;
     Instance.Create(InstanceCreateInfo);
 
-    Surface.Create(Instance.instance, Window.window);
+    if (!Settings.HeadlessMode) Surface.Create(Instance.instance, Window.Handle);
 
     RENDERER_CORE::VulkanDeviceCreateInfo DeviceCreateInfo{};
     DeviceCreateInfo.QueuePriority = 1.0f;
     DeviceCreateInfo.EnableValidationLayers = EnableValidationLayers;
     DeviceCreateInfo.ValidationLayersToEnable = ValidationLayersToEnable;
+    DeviceCreateInfo.HeadlessMode = Settings.HeadlessMode;
 
     DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
         VK_KHR_RAY_QUERY_EXTENSION_NAME,
         nullptr,
         false      
-        });
+    });
 
     VkPhysicalDeviceAccelerationStructureFeaturesKHR AccelerationStructureFeatures{};
     AccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
@@ -127,11 +132,14 @@ void RENDERER::RendererContext::Create(
        false
     });
 
-    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        nullptr,
-        true
-    });
+    if (!Settings.HeadlessMode)
+    {
+        DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            nullptr,
+            true
+        });
+    }
 
     VkPhysicalDeviceDynamicRenderingFeaturesKHR DynamicRenderingFeatures{};
     DynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
@@ -178,7 +186,7 @@ void RENDERER::RendererContext::Create(
 
     DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
        std::string(),
-       & PhysicalDeviceDescriptorIndexingFeatures,
+       &PhysicalDeviceDescriptorIndexingFeatures,
        true,
        [&PhysicalDeviceDescriptorIndexingFeatures]() { return PhysicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray == VK_TRUE && 
        PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingPartiallyBound == VK_TRUE || PhysicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount == VK_TRUE
@@ -188,7 +196,7 @@ void RENDERER::RendererContext::Create(
     DeviceCreateInfo.FeaturesToEnable = &DynamicRenderingFeatures;
     DeviceContext.Create(DeviceCreateInfo, Surface.Handle, Instance.instance);
 
-    SwapChain.Create(DeviceContext.PhysicalDevice, DeviceContext.LogicalDevice, Surface.Handle, Window.window);
+    if (!Settings.HeadlessMode) SwapChain.Create(DeviceContext.PhysicalDevice, DeviceContext.LogicalDevice, Surface.Handle, Window.Handle);
     QueueFamilyIndices = RENDERER_CORE::FindQueueFamilies(DeviceContext.PhysicalDevice, Surface.Handle);
 
     CommandPool.Create(QueueFamilyIndices.GraphicsFamily.value(), DeviceContext.LogicalDevice);
@@ -777,3 +785,4 @@ void RENDERER::RendererContext::CreatePostProcessingPassPipeline()
     PipelineCreateInfo.PushConstantRanges = { PushConstantRange };
     DefaultPipelines.PostProcessing = PipelineManager.AppendGraphicsPipeline(PipelineCreateInfo, DeviceContext.LogicalDevice).second;
 }
+

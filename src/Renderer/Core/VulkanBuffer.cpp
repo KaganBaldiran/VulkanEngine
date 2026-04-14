@@ -73,6 +73,7 @@ void RENDERER_CORE::CreateBuffer(
     }
     vkBindBufferMemory(LogicalDevice, DestinationBuffer.BufferObject, DestinationBuffer.BufferMemory, 0);
 
+    DestinationBuffer.BarrierState = BarrierState();
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO,
         std::string("Buffer[address(" + std::to_string(reinterpret_cast<uintptr_t>(DestinationBuffer.BufferObject)) + 
             ")" + ", size(" + std::to_string(MemoryRequirements.size) + 
@@ -95,6 +96,7 @@ void RENDERER_CORE::DestroyBuffer(VkDevice &LogicalDevice,Buffer &DestinationBuf
         vkDestroyBuffer(LogicalDevice, DestinationBuffer.BufferObject, nullptr);
         DestinationBuffer.BufferObject = VK_NULL_HANDLE;
     }
+    DestinationBuffer.BarrierState = BarrierState();
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Buffer[address(" + std::to_string(BufferPtr) + ")] destroyed!"));
 }
 
@@ -184,7 +186,6 @@ void RENDERER_CORE::UploadDataToDeviceLocalBuffer(VkDevice LogicalDevice, VkPhys
     );
 
     RENDERER_CORE::DestroyBuffer(LogicalDevice, StagingBuffer);
-    //StagingBuffer.Destroy(LogicalDevice);
 }
 
 void RENDERER_CORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice, VkPhysicalDevice PhysicalDevice, VkCommandPool CommandPool, VkQueue Queue, const void* Data, VkDeviceSize Size, RENDERER_CORE::Buffer& DestinationBuffer, VkBufferUsageFlags UsageFlags)
@@ -207,7 +208,6 @@ void RENDERER_CORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice
     );
 
     RENDERER_CORE::DestroyBuffer(LogicalDevice, StagingBuffer);
-    //StagingBuffer.Destroy(LogicalDevice);
 }
 
 uint64_t RENDERER_CORE::GetBufferDeviceAddress(VkDevice& LogicalDevice,const Buffer& Buffer)

@@ -5,8 +5,10 @@
 #include "Core/VulkanSynchoronization.hpp"
 #include "Core/VulkanDevice.hpp"
 #include "../Scene/PersistentSceneStagingBuffer.hpp"
+
 #include "../Common/StableVector.hpp"
 #include "../Common/DestructionQueue.hpp"
+#include "../Common/AsyncToken.hpp"
 
 namespace SCENE
 {
@@ -20,20 +22,51 @@ namespace RENDERER
 	class Renderer;
 	class FrameGraph;
 
+	struct DataBlock
+	{
+		uint8_t* DataPtr = nullptr;
+		size_t SizeInBytes = 0;
+
+		std::function<void()> Deleter;
+
+		~DataBlock()
+		{
+			if (Deleter)
+			{
+				Deleter();
+			}
+		}
+
+		DataBlock(const DataBlock&) = delete;
+		DataBlock& operator=(const DataBlock&) = delete;
+		DataBlock() = default;
+	};
+
+	enum CopyOperationFlagBit
+	{
+		COPY_OPERATION_FLAG_NONE = 0,
+		COPY_OPERATION_FLAG_ATOMIC = 1
+	};
+
 	struct CopyOperationEntry
 	{
 		RENDERER_CORE::QueueType QueueType;
-		//RENDERER_CORE::BufferCopyInfo CopyInfo;
 
 		std::vector<VkBufferCopy> CopyRegions;
 		VkBuffer SourceBuffer = VK_NULL_HANDLE;
 		RENDERER_CORE::Buffer* DestinationBuffer = nullptr;
-		//RENDERER_CORE::MemoryBufferBarrierState BufferState;
 
-		RENDERER_CORE::Semaphore Semaphore;
-		std::vector<uint32_t> DependentOperations;
+		std::shared_ptr<DataBlock> Data;
+		size_t CurrentCopyRegionInline = 0;
+		uint32_t Priority = 0;
+		uint64_t TargetSemaphoreValue = 0;
+		std::shared_ptr<COMMON::AsyncToken> State;
+		CopyOperationFlagBit Flags = COPY_OPERATION_FLAG_NONE;
+
+		std::vector<std::shared_ptr<COMMON::AsyncToken>> WaitTokens;
+		std::vector<std::shared_ptr<COMMON::AsyncToken>> SignalTokens;
 	};
-	using CopyOperationList = COMMON::StableVector<CopyOperationEntry>;
+	using CopyOperationList = std::vector<CopyOperationEntry>;
 
 	class ResourceManager : COMMON::Destructible
 	{
@@ -53,23 +86,20 @@ namespace RENDERER
 		void SubmitModelImports();
 		void WaitModelImportsIdle();
 		void WaitTextureImportsIdle();
-	private:
-		std::array<SCENE::PersistentStagingBuffer,MAX_FRAMES_IN_FLIGHT> StagingBuffers;
-		std::array<CopyOperationList,MAX_FRAMES_IN_FLIGHT> CopyInfos;
-		std::array<std::vector<uint32_t>,MAX_FRAMES_IN_FLIGHT> PendingCopyOperations;
 
-		//Creates the requested list or/and returns index to the respective copy info list
-		size_t RequestCopyOperation(
+		void RequestCopyOperation(
+			const std::vector<VkBufferCopy>& CopyRegions,
 			RENDERER_CORE::QueueType QueueType,
 			RENDERER_CORE::Buffer* DestinationBuffer,
-			uint32_t FrameIndex
-	/*		VkPipelineStageFlags2 SrcStageMask,
-			VkPipelineStageFlags2 DstStageMask,
-			VkAccessFlags2 SrcAccessMask,
-			VkAccessFlags2 DstAccessMask*/
+			const std::shared_ptr<DataBlock> &Data,
+			uint32_t Priority = 0,
+			CopyOperationFlagBit Flags = COPY_OPERATION_FLAG_NONE,
+			std::shared_ptr<COMMON::AsyncToken>* WaitTokens = nullptr,
+			uint32_t WaitTokenCount = 0,
+			std::shared_ptr<COMMON::AsyncToken>* SignalTokens = nullptr,
+			uint32_t SignalTokenCount = 0
 		);
-		RENDERER::ResourceManager::CopyOperationEntry* GetCopyOperationEntry(const size_t& Index, const uint32_t& FrameIndex);
-		void SetCopyOperationDirty(size_t Index, uint32_t FrameIndex);
+		
 		void HandleCopyOperations(
 			VkCommandBuffer& CommandBuffer,
 			size_t FrameIndex,
@@ -84,7 +114,13 @@ namespace RENDERER
 
 		MeshManager MeshManager;
 		TextureManager TextureManager;
-	   
+	private:
+		void LoadMemoryChunks(VkCommandBuffer CommandBuffer,uint32_t FrameIndex);
+		bool ShouldSortCopyInfos = true;
+
+		std::array<SCENE::PersistentStagingBuffer, MAX_FRAMES_IN_FLIGHT> StagingBuffers;
+		CopyOperationList CopyOperations;
+   
 		RENDERER::RendererContext* RendererContextPtr = nullptr;
 	};
 }

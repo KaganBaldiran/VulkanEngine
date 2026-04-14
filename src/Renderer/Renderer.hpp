@@ -71,7 +71,12 @@ namespace RENDERER
 
         void AddRenderTask(FrameGraphTask RenderTask);
 
+        //Standard rendering workflow.
+        //Executes the tasks given and presents the image to the window surface.
         void RenderFrame();
+        //Executes the tasks given without presenting.
+        //Meant for headless workflow.
+        void ExecuteTasksHeadless();
         void Destroy() override;
 
         bool EnablePhysicsDebugDrawing;

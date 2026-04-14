@@ -1,12 +1,12 @@
 #include "Camera.hpp"
 #include "../Renderer/Core/VulkanWindow.hpp"
 
-SCENE::Camera3D::Camera3D(RENDERER_CORE::Window& window,CameraSettingsInfo Settings)
+SCENE::Camera3D::Camera3D(CameraSettingsInfo Settings)
 {
-    Create(window,Settings);
+    Create(Settings);
 }
 
-void SCENE::Camera3D::Create(RENDERER_CORE::Window& window,CameraSettingsInfo Settings)
+void SCENE::Camera3D::Create(CameraSettingsInfo Settings)
 {
     CameraPosition = { 0.0f,0.0f,0.0f };
     CameraDirection = { 0.0f,0.0f,-1.0f };
@@ -16,8 +16,8 @@ void SCENE::Camera3D::Create(RENDERER_CORE::Window& window,CameraSettingsInfo Se
     Pitch = 0.0f;
     FOV = 45.0;
 
-    LastX = window.Width / 2.0;
-    LastY = window.Height / 2.0;
+    //LastX = window.Width / 2.0;
+    //LastY = window.Height / 2.0;
     CursorDisabled = true;
     AllowPressExit = true;
     FirstTurn = true;
@@ -179,36 +179,36 @@ void SCENE::Camera3D::UpdateFreeCameraMode(RENDERER_CORE::Window& window, float 
         FirstTurn = false;
     }
 
-    if (glfwGetKey(window.window, KeyBindings.ToggleCameraInputKey) == GLFW_RELEASE) AllowPressExit = true;
+    if (glfwGetKey(window.Handle, KeyBindings.ToggleCameraInputKey) == GLFW_RELEASE) AllowPressExit = true;
 
     CameraRight = glm::normalize(glm::cross(CameraDirection, CameraDirection.y < 0.9999 ? Up : glm::vec3(0.0f, 0.0f, 1.0f)));
     CameraUp = glm::normalize(glm::cross(CameraDirection, CameraRight));
 
-    if (glfwGetKey(window.window, KeyBindings.ForwardKey) == GLFW_PRESS && AllowMove.x)
+    if (glfwGetKey(window.Handle, KeyBindings.ForwardKey) == GLFW_PRESS && AllowMove.x)
     {
         CameraPosition += CameraDirection * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, KeyBindings.BackKey) == GLFW_PRESS && AllowMove.w)
+    if (glfwGetKey(window.Handle, KeyBindings.BackKey) == GLFW_PRESS && AllowMove.w)
     {
         CameraPosition -= CameraDirection * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, KeyBindings.LeftKey) == GLFW_PRESS && AllowMove.y)
+    if (glfwGetKey(window.Handle, KeyBindings.LeftKey) == GLFW_PRESS && AllowMove.y)
     {
         CameraPosition -= CameraRight * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, KeyBindings.RightKey) == GLFW_PRESS && AllowMove.z)
+    if (glfwGetKey(window.Handle, KeyBindings.RightKey) == GLFW_PRESS && AllowMove.z)
     {
         CameraPosition += CameraRight * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, KeyBindings.UpKey) == GLFW_PRESS)
+    if (glfwGetKey(window.Handle, KeyBindings.UpKey) == GLFW_PRESS)
     {
         CameraPosition += Up * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, KeyBindings.DownKey) == GLFW_PRESS)
+    if (glfwGetKey(window.Handle, KeyBindings.DownKey) == GLFW_PRESS)
     {
         CameraPosition -= Up * Sensitivity * DeltaTime;
     }
-    if (glfwGetKey(window.window, KeyBindings.ToggleCameraInputKey) == GLFW_PRESS && AllowPressExit)
+    if (glfwGetKey(window.Handle, KeyBindings.ToggleCameraInputKey) == GLFW_PRESS && AllowPressExit)
     {
         CursorDisabled = !CursorDisabled;
         AllowPressExit = false;
@@ -216,7 +216,7 @@ void SCENE::Camera3D::UpdateFreeCameraMode(RENDERER_CORE::Window& window, float 
 
     if (CursorDisabled)
     {
-        glfwSetInputMode(window.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwSetInputMode(window.Handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
         double Xoffset = window.MousePosition.x - LastX;
         double Yoffset = window.MousePosition.y - LastY;
@@ -242,7 +242,7 @@ void SCENE::Camera3D::UpdateFreeCameraMode(RENDERER_CORE::Window& window, float 
     }
     else
     {
-        glfwSetInputMode(window.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        glfwSetInputMode(window.Handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }
 

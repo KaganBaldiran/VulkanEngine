@@ -31,12 +31,13 @@ RENDERER_CORE::VulkanResult RENDERER_CORE::CreateWindow(GLFWwindow** Window, uin
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    *Window = glfwCreateWindow(Width, Height, WindowName, nullptr, nullptr);
+    *Window = glfwCreateWindow(Width, Height, WindowName,nullptr, nullptr);
     if (Window == NULL)
     {
         LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, std::string("Failed creating window [" + std::string(WindowName) + "]."));
         return { VK_INCOMPLETE,"Unable to create window!" };
     }
+
     LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_INFO, std::string("Created window [" + std::string(WindowName) + "]."));
     return VULKAN_SUCCESS;
 }
@@ -48,13 +49,13 @@ RENDERER_CORE::Window::Window(VulkanWindowCreateInfo& CreateInfo)
 
 void RENDERER_CORE::Window::Create(VulkanWindowCreateInfo& CreateInfo)
 {
-    VULKAN_ASSERT_RESULT(CreateWindow(&window, CreateInfo.WindowInitialWidth, CreateInfo.WindowInitialHeight, CreateInfo.WindowsName.c_str(), FrameBufferResizedCallback));
-    glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, FramebufferResizeCallback);
-    glfwSetCursorPosCallback(window, Mouse_Callback);
-    glfwSetScrollCallback(window, ScrollCallback);
+    VULKAN_ASSERT_RESULT(CreateWindow(&Handle, CreateInfo.WindowInitialWidth, CreateInfo.WindowInitialHeight, CreateInfo.WindowsName.c_str(), FrameBufferResizedCallback));
+    glfwSetWindowUserPointer(Handle, this);
+    glfwSetFramebufferSizeCallback(Handle, FramebufferResizeCallback);
+    glfwSetCursorPosCallback(Handle, Mouse_Callback);
+    glfwSetScrollCallback(Handle, ScrollCallback);
 
-    glfwGetCursorPos(window, &MousePosition.x, &MousePosition.y);
+    glfwGetCursorPos(Handle, &MousePosition.x, &MousePosition.y);
     this->WindowName = CreateInfo.WindowsName.c_str();
     this->Width = CreateInfo.WindowInitialWidth;
     this->Height = CreateInfo.WindowInitialHeight;
@@ -64,7 +65,31 @@ void RENDERER_CORE::Window::Create(VulkanWindowCreateInfo& CreateInfo)
 
 void RENDERER_CORE::Window::Destroy()
 {
-    if (!window) return;
-    glfwDestroyWindow(window);
-    window = nullptr;
+    if (!Handle) return;
+    glfwDestroyWindow(Handle);
+    Handle = nullptr;
+}
+
+GLFWmonitor* RENDERER_CORE::Window::GetMonitor()
+{
+    return glfwGetPrimaryMonitor();  
+}
+
+const GLFWvidmode* RENDERER_CORE::Window::GetMonitorVideoMode()
+{
+    return glfwGetVideoMode(glfwGetPrimaryMonitor());
+}
+
+void RENDERER_CORE::Window::SetFullScreen(bool State)
+{
+    if (State)
+    {
+        const GLFWvidmode* Mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        glfwSetWindowSize(Handle, Mode->width, Mode->height);
+        FrameBufferResizedCallback = true;
+        Width = Mode->width;
+        Height = Mode->height;
+
+        glfwSetWindowMonitor(Handle, glfwGetPrimaryMonitor(), 0, 0, Mode->width, Mode->height, Mode->refreshRate);
+    }
 }

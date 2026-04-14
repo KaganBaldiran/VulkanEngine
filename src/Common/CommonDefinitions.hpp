@@ -22,6 +22,7 @@ constexpr size_t InitialTextureDescriptorSize = 1000;
 //use a page growth system where each page is a separate buffer. In this growth model, a new page is allocated whenever the existing ones are full and can't accommodate
 //any more data.
 constexpr size_t GeometryBufferPageSize = 1024 * 1024 * 64; 
+constexpr size_t PersistentStagingBufferSize = 1024 * 1024 * 64; 
 
 #ifndef GLOBAL_LOG_FILE_PATH 
 #define GLOBAL_LOG_FILE_PATH "Log.txt" 

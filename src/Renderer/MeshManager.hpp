@@ -4,6 +4,7 @@
 
 #include "../Common/DestructionQueue.hpp"
 #include "../Common/CommonDefinitions.hpp"
+#include "../Common/AsyncToken.hpp"
 
 namespace SCENE
 {
@@ -14,6 +15,7 @@ namespace RENDERER
 {
     class TextureManager;
     class RendererContext;
+    class ResourceManager;
     class Renderer;
     class DeferredRenderPipeline;
 
@@ -67,9 +69,9 @@ namespace RENDERER
         friend class RENDERER::Renderer;
         friend class RENDERER::DeferredRenderPipeline;
     public:
-        MeshManager(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext);
+        MeshManager(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext, RENDERER::ResourceManager& ResourceManagerPtr);
         MeshManager() = default;
-        void Create(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext);
+        void Create(TextureManager& ImportManager, RENDERER::RendererContext& RendererContext, RENDERER::ResourceManager& ResourceManagerPtr);
 
         void Destroy() override;
 
@@ -90,6 +92,7 @@ namespace RENDERER
 
         RENDERER_CORE::BufferAllocator& GetCurrentVertexBuffer(uint32_t FrameIndex);
         RENDERER_CORE::BufferAllocator& GetCurrentIndexBuffer(uint32_t FrameIndex);
+        std::vector<std::shared_ptr<COMMON::AsyncToken>> GeometryBufferPageCopyTokens;
     private:
         //Processes the dwelling import results (the intermediary product of the importing process).
         //It processes the geometry data kept in the import results and uploads them on the buffers to be used by the (graphics) device.
@@ -98,11 +101,11 @@ namespace RENDERER
         //Which also means that scenes are closely tied with their respective geometry managers and cannot be switched past their constructions.
         //Although it's not expected to have multiple mesh managers around, it's possible.
         //This function is already called internally within the scenes so there is no need to call it explicitly. 
-        void UpdateGeometryEntries(uint32_t FrameIndex);
+        void UpdateGeometryEntries();
 
         void CreateGeometryBuffers(
             RENDERER::RendererContext* RendererContext,
-            RENDERER_CORE::BufferAllocator& StagingBuffer,
+            //RENDERER_CORE::BufferAllocator& StagingBuffer,
             bool VertexBufferReallocated,
             bool IndexBufferReallocated,
             bool VertexBufferAllocatedFirstTime,
@@ -121,15 +124,16 @@ namespace RENDERER
 
         BufferPageAllocationInfo AllocateFromGeometryBuffers(
             size_t VertexSize,
-            size_t IndexSize,
-            uint32_t FrameIndex
+            size_t IndexSize
+            //uint32_t FrameIndex
         );
 
         //Central Geometry Buffers
         std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT * 2> VertexBuffers;
         std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT * 2> IndexBuffers;
 
-        std::array<std::vector<RENDERER_CORE::BufferAllocator>, MAX_FRAMES_IN_FLIGHT> GeometryBufferPages;
+        //std::array<std::vector<RENDERER_CORE::BufferAllocator>, MAX_FRAMES_IN_FLIGHT> GeometryBufferPages;
+        std::vector<RENDERER_CORE::BufferAllocator> GeometryBufferPages;
 
         std::array<bool, MAX_FRAMES_IN_FLIGHT> VertexBufferSet;
         std::array<bool, MAX_FRAMES_IN_FLIGHT> IndexBufferSet;
@@ -143,10 +147,11 @@ namespace RENDERER
         std::vector<MeshImportResult> MeshImportResults;
 
         //Main storage unit for geometry allocation information
-        std::array<std::unordered_map<size_t, GeometryEntry>,MAX_FRAMES_IN_FLIGHT> GeometryEntries;
-
+        std::unordered_map<size_t, GeometryEntry> GeometryEntries;
+        //std::array<std::unordered_map<size_t, GeometryEntry>,MAX_FRAMES_IN_FLIGHT> GeometryEntries;
         TextureManager* ImportManager = nullptr;
         RENDERER::RendererContext* RendererContext = nullptr;
+        RENDERER::ResourceManager* ResourceManagerPtr = nullptr;
     };
 
     //Destroys and creates the given buffer
