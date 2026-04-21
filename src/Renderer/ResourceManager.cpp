@@ -13,7 +13,7 @@ void RENDERER::ResourceManager::Create(RENDERER::RendererContext& RendererContex
 {
 	RendererContextPtr = &RendererContext;
 
-	this->TextureManager.Create(RendererContext);
+	this->TextureManager.Create(RendererContext,*this);
 	this->MeshManager.Create(TextureManager, RendererContext,*this);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -67,7 +67,7 @@ void RENDERER::ResourceManager::WaitTextureImportsIdle()
 	TextureManager.WaitImportsIdle();
 }
 
-void RENDERER::ResourceManager::RequestCopyOperation(
+void RENDERER::ResourceManager::RequestBufferCopyOperation(
 	const std::vector<VkBufferCopy>& CopyRegions,
 	RENDERER_CORE::QueueType QueueType,
 	RENDERER_CORE::Buffer* DestinationBuffer,
@@ -105,7 +105,7 @@ void RENDERER::ResourceManager::RequestCopyOperation(
 	NewEntry.DestinationBuffer = DestinationBuffer;
 	NewEntry.Priority = Priority;
 	NewEntry.QueueType = QueueType;
-	NewEntry.CopyRegions = CopyRegions;
+	NewEntry.BufferCopyRegions = CopyRegions;
 	NewEntry.SignalTokens = std::move(std::vector<std::shared_ptr<COMMON::AsyncToken>>(SignalTokens, SignalTokens + SignalTokenCount));
 	NewEntry.WaitTokens = std::move(std::vector<std::shared_ptr<COMMON::AsyncToken>>(WaitTokens, WaitTokens + WaitTokenCount));
 	NewEntry.State = std::make_shared<COMMON::AsyncToken>();
@@ -113,52 +113,136 @@ void RENDERER::ResourceManager::RequestCopyOperation(
 	ShouldSortCopyInfos = true;
 }
 
-void RENDERER::ResourceManager::HandleCopyOperations(
-	VkCommandBuffer &CommandBuffer,
-	size_t FrameIndex,
-    RENDERER_CORE::PipelineBarrier2 &PipelineBarrier2
+void RENDERER::ResourceManager::RequestImageCopyOperation(
+	const std::vector<VkBufferImageCopy>& CopyRegions,
+	RENDERER_CORE::QueueType QueueType,
+	RENDERER_CORE::ImageData* DestinationImage,
+	const std::shared_ptr<DataBlock>& Data,
+	RENDERER_CORE::ImageMetaData ImageMetaData,
+	VkImageAspectFlags Aspect,
+	uint32_t Priority, 
+	CopyOperationFlagBit Flags, 
+	RENDERER_CORE::BarrierState OnCompleteTransition,
+	std::shared_ptr<COMMON::AsyncToken>* WaitTokens, 
+	uint32_t WaitTokenCount, 
+	std::shared_ptr<COMMON::AsyncToken>* SignalTokens, 
+	uint32_t SignalTokenCount
 )
 {
-	if (CopyOperations.empty()) return;
-	//Traverse the dirty copy operations
-	for (auto& CopyOperation : CopyOperations)
+	if (!DestinationImage)
 	{
-		if (CopyOperation.CopyRegions.empty()) continue;
-
-		vkCmdCopyBuffer(
-			CommandBuffer,
-			StagingBuffers[FrameIndex].StagingBuffer.Buffer.BufferObject, 
-			CopyOperation.DestinationBuffer->BufferObject,
-			static_cast<uint32_t>(CopyOperation.CopyRegions.size()),
-			CopyOperation.CopyRegions.data()
-		);
-		
-		CopyOperation.CopyRegions.clear();
+		LOG_CONSOLE(COMMON::LOG_SEVERITY_VERBOSE, "Invalid destination buffer for a copy operation!");
+		LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Invalid destination buffer for a copy operation!");
+		throw std::runtime_error("Invalid destination buffer for a copy operation!");
 	}
-	auto& StagingBufferAllocator = StagingBuffers[FrameIndex].StagingBuffer.Allocator;
-	StagingBufferAllocator.Reset(StagingBufferAllocator.GetCapacity());
+	if (!WaitTokens && WaitTokenCount > 0)
+	{
+		LOG_CONSOLE(COMMON::LOG_SEVERITY_ERROR, "Mismatch in given wait token arguments!");
+		LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Mismatch in given wait token arguments!");
+		throw std::runtime_error("Mismatch in given wait token arguments!");
+	}
+	if (!SignalTokens && SignalTokenCount > 0)
+	{
+		LOG_CONSOLE(COMMON::LOG_SEVERITY_ERROR, "Mismatch in given signal token arguments!");
+		LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Mismatch in given signal token arguments!");
+		throw std::runtime_error("Mismatch in given signal token arguments!");
+	}
+
+	CopyOperationEntry NewEntry;
+	NewEntry.Data = Data;
+	NewEntry.Flags = Flags;
+	NewEntry.DestinationImage = DestinationImage;
+	NewEntry.Priority = Priority;
+	NewEntry.QueueType = QueueType;
+	NewEntry.ImageCopyRegions = CopyRegions;
+	NewEntry.Aspect = Aspect;
+	NewEntry.OnCompleteTransition = std::move(OnCompleteTransition);
+	NewEntry.ImageMetaData = std::move(ImageMetaData);
+	NewEntry.SignalTokens = std::move(std::vector<std::shared_ptr<COMMON::AsyncToken>>(SignalTokens, SignalTokens + SignalTokenCount));
+	NewEntry.WaitTokens = std::move(std::vector<std::shared_ptr<COMMON::AsyncToken>>(WaitTokens, WaitTokens + WaitTokenCount));
+	NewEntry.State = std::make_shared<COMMON::AsyncToken>();
+	this->CopyOperations.push_back(std::move(NewEntry));
+	ShouldSortCopyInfos = true;
 }
 
 void RENDERER::ResourceManager::QueueCopyOperations(VkCommandBuffer& CommandBuffer, size_t FrameIndex, FrameGraph& FrameGraph)
 {
 	if (CopyOperations.empty()) return;
 
+	std::shared_ptr<FrameCopyLoad> CopyLoad = std::make_shared<FrameCopyLoad>();
+	LoadMemoryChunks(FrameIndex, CopyLoad->BufferCopyLoads, CopyLoad->ImageCopyLoads);
+	auto& StagingBuffer = StagingBuffers[FrameIndex].StagingBuffer;
+
 	FrameGraph.AppendTask({
-		[this, FrameIndex](RENDERER::PassBuilder& Builder) {
-			for (auto& CopyOperation : CopyOperations)
+		[this, FrameIndex,CopyLoad](RENDERER::PassBuilder& Builder) {
+			for (auto& BufferCopyLoad : CopyLoad->BufferCopyLoads)
 			{
-				if (CopyOperation.CopyRegions.empty()) continue;
+				if (BufferCopyLoad.CopyRegions.empty()) continue;
 				Builder.Write(
-					CopyOperation.DestinationBuffer,
+					BufferCopyLoad.BufferPtr,
+					VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+					VK_ACCESS_2_TRANSFER_WRITE_BIT
+				);
+			};
+
+			for (auto& ImageCopyLoad : CopyLoad->ImageCopyLoads)
+			{
+				if (ImageCopyLoad.CopyRegions.empty()) continue;
+				Builder.Write(
+					ImageCopyLoad.ImagePtr,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					VK_PIPELINE_STAGE_2_TRANSFER_BIT,
 					VK_ACCESS_2_TRANSFER_WRITE_BIT
 				);
 			};
 		},
 
-		[this](VkCommandBuffer CommandBuffer,uint32_t CurrentFrame) {
-			//std::cout << "Pass [CopyOperations_Internal] is being executed..." << std::endl;
-			LoadMemoryChunks(CommandBuffer,CurrentFrame);
+		[this,CopyLoad,&StagingBuffer](VkCommandBuffer CommandBuffer,uint32_t CurrentFrame) {
+			for (auto& BufferCopyLoad : CopyLoad->BufferCopyLoads)
+			{
+				if (!BufferCopyLoad.CopyRegions.empty())
+				{
+					vkCmdCopyBuffer(
+						CommandBuffer,
+						StagingBuffer.Buffer.BufferObject,
+						BufferCopyLoad.BufferPtr->BufferObject,
+						static_cast<uint32_t>(BufferCopyLoad.CopyRegions.size()),
+						BufferCopyLoad.CopyRegions.data()
+					);
+				}
+			};
+
+			RENDERER_CORE::PipelineBarrier2 Barrier;
+			for (auto& ImageCopyLoad : CopyLoad->ImageCopyLoads)
+			{
+				if (!ImageCopyLoad.CopyRegions.empty())
+				{
+					vkCmdCopyBufferToImage(
+						CommandBuffer,
+						StagingBuffer.Buffer.BufferObject,
+						ImageCopyLoad.ImagePtr->Image,
+						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						ImageCopyLoad.CopyRegions.size(),
+						ImageCopyLoad.CopyRegions.data()
+					);
+
+					if (ImageCopyLoad.BarrierState.ImageLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+					{
+						Barrier.AppendImageMemoryBarrier(
+							ImageCopyLoad.ImagePtr->Image,
+							ImageCopyLoad.ImagePtr->BarrierState.StageMask,
+							ImageCopyLoad.BarrierState.StageMask,
+							ImageCopyLoad.ImagePtr->BarrierState.AccessMask,
+							ImageCopyLoad.BarrierState.AccessMask,
+							ImageCopyLoad.ImagePtr->BarrierState.ImageLayout,
+							ImageCopyLoad.BarrierState.ImageLayout,
+							VK_QUEUE_FAMILY_IGNORED,
+							VK_QUEUE_FAMILY_IGNORED,
+							ImageCopyLoad.Aspect
+						);
+					}
+				}
+			};
 		},
 
 		"CopyOperations_Internal"
@@ -166,7 +250,11 @@ void RENDERER::ResourceManager::QueueCopyOperations(VkCommandBuffer& CommandBuff
 
 }
 
-void RENDERER::ResourceManager::LoadMemoryChunks(VkCommandBuffer CommandBuffer,uint32_t FrameIndex)
+void RENDERER::ResourceManager::LoadMemoryChunks(
+	uint32_t FrameIndex,
+	std::vector<BufferCopyLoad> &BufferCopyLoads,
+	std::vector<ImageCopyLoad> &ImageCopyLoads
+)
 {
 	auto& StagingBuffer = StagingBuffers[FrameIndex].StagingBuffer;
 
@@ -181,88 +269,43 @@ void RENDERER::ResourceManager::LoadMemoryChunks(VkCommandBuffer CommandBuffer,u
 	uint8_t* StagingBufferMappedPtr = reinterpret_cast<uint8_t*>(StagingBuffer.Buffer.MappedMemory);
 	size_t Offset = 0, Budget = PersistentStagingBufferSize;
 
-	std::vector<VkBufferCopy> AppendedCopyRegions;
 	for (size_t CopyInfoIndex = 0; CopyInfoIndex < CopyOperations.size(); CopyInfoIndex++)
 	{
 		auto& CopyInfo = CopyOperations[CopyInfoIndex];
-		if (CopyInfo.CopyRegions.empty()) continue;
+		if (CopyInfo.BufferCopyRegions.empty() && CopyInfo.ImageCopyRegions.empty()) continue;
 
+		bool ShouldSkip = false;
 		for (auto& WaitToken : CopyInfo.WaitTokens)
 		{
-			if (!WaitToken->State.load()) continue;
-		}
-
-		if (CopyInfo.Flags & COPY_OPERATION_FLAG_ATOMIC)
-		{
-			size_t Size = 0;
-			for (auto& CopyRegion : CopyInfo.CopyRegions)
+			if (!WaitToken->State.load())
 			{
-				Size += CopyRegion.size;
-			}
-			if (Size > Budget)
-			{
-				if (Size > PersistentStagingBufferSize)
-				{
-					LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Size of the data being copied is larger than the specified persistent staging buffer size!");
-					throw std::runtime_error("Size of the data being copied is larger than the specified persistent staging buffer size!");
-				}
-				continue;
+				ShouldSkip = true;
+				break;
 			}
 		}
+		if (ShouldSkip) continue;
 
-		for (size_t CopyRegionIndex = CopyInfo.CurrentCopyRegionInline; CopyRegionIndex < CopyInfo.CopyRegions.size(); CopyRegionIndex++)
+		if (CopyInfo.DestinationBuffer)
 		{
-			VkBufferCopy& BluePrintCopyRegion = CopyInfo.CopyRegions[CopyRegionIndex];
-
-			VkBufferCopy CopyRegion;
-			CopyRegion.srcOffset = Offset;
-			CopyRegion.dstOffset = BluePrintCopyRegion.dstOffset;
-
-			size_t OriginalSrcOffset = BluePrintCopyRegion.srcOffset;
-
-			if (Budget >= BluePrintCopyRegion.size)
-			{
-				CopyRegion.size = BluePrintCopyRegion.size;
-				CopyInfo.CurrentCopyRegionInline++;
-			}
-			else
-			{
-				LOG_CONSOLE(COMMON::LOG_SEVERITY_DEBUG, "Created a chunk!");
-				CopyRegion.size = Budget;
-				BluePrintCopyRegion.size -= Budget;
-				BluePrintCopyRegion.dstOffset += Budget;
-				BluePrintCopyRegion.srcOffset += Budget;
-			}
-			Budget -= CopyRegion.size;
-			Offset += CopyRegion.size;
-
-			memcpy(StagingBufferMappedPtr + CopyRegion.srcOffset, CopyInfo.Data->DataPtr + OriginalSrcOffset, CopyRegion.size);
-			AppendedCopyRegions.push_back(CopyRegion);
-
-			if (Budget == 0) break;
-		}
-		if (!AppendedCopyRegions.empty())
-		{
-			vkCmdCopyBuffer(
-				CommandBuffer,
-				StagingBuffer.Buffer.BufferObject,
-				CopyInfo.DestinationBuffer->BufferObject,
-				static_cast<uint32_t>(AppendedCopyRegions.size()),
-				AppendedCopyRegions.data()
+			bool Result = ProcessBufferCopyOperation(
+				CopyInfo, 
+				Budget, 
+				Offset, 
+				StagingBufferMappedPtr, 
+				BufferCopyLoads
 			);
-			AppendedCopyRegions.clear();
+			if (!Result) continue;
 		}
-		if (CopyInfo.CurrentCopyRegionInline == CopyInfo.CopyRegions.size())
+		else
 		{
-			CopyInfo.State->State.store(true);
-
-			for (auto& SignalToken : CopyInfo.SignalTokens)
-			{
-				SignalToken->State.store(true);
-			}
-
-			CopyInfo.Data.reset();
-			ShouldSortCopyInfos = true;
+			bool Result = ProcessImageCopyOperation(
+				CopyInfo,
+				Budget,
+				Offset,
+				StagingBufferMappedPtr,
+				ImageCopyLoads
+			);
+			if (!Result) continue;
 		}
 		if (Budget == 0) break;
 	}
@@ -274,4 +317,165 @@ void RENDERER::ResourceManager::LoadMemoryChunks(VkCommandBuffer CommandBuffer,u
 		CopyOperations.end()
 	);
 }
+
+bool RENDERER::ResourceManager::ProcessBufferCopyOperation(
+      CopyOperationEntry &CopyInfo,
+	  size_t &Budget,
+	  size_t &Offset,
+      uint8_t* StagingBufferMappedPtr,
+	  std::vector<BufferCopyLoad>& BufferCopyLoads
+)
+{
+	if (CopyInfo.Flags & COPY_OPERATION_FLAG_ATOMIC)
+	{
+		size_t Size = 0;
+		for (auto& CopyRegion : CopyInfo.BufferCopyRegions)
+		{
+			Size += CopyRegion.size;
+		}
+
+		if (Size > Budget)
+		{
+			if (Size > PersistentStagingBufferSize)
+			{
+				LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Size of the data being copied is larger than the specified persistent staging buffer size!");
+				throw std::runtime_error("Size of the data being copied is larger than the specified persistent staging buffer size!");
+			}
+			return false;
+		}
+	}
+
+	auto& CopyLoad = BufferCopyLoads.emplace_back();
+	CopyLoad.BufferPtr = CopyInfo.DestinationBuffer;
+	for (size_t CopyRegionIndex = CopyInfo.CurrentCopyRegionInline; CopyRegionIndex < CopyInfo.BufferCopyRegions.size(); CopyRegionIndex++)
+	{
+		VkBufferCopy& BluePrintCopyRegion = CopyInfo.BufferCopyRegions[CopyRegionIndex];
+
+		VkBufferCopy CopyRegion{};
+		CopyRegion.srcOffset = Offset;
+		CopyRegion.dstOffset = BluePrintCopyRegion.dstOffset;
+
+		size_t OriginalSrcOffset = BluePrintCopyRegion.srcOffset;
+
+		if (Budget >= BluePrintCopyRegion.size)
+		{
+			CopyRegion.size = BluePrintCopyRegion.size;
+			CopyInfo.CurrentCopyRegionInline++;
+		}
+		else
+		{
+			LOG_CONSOLE(COMMON::LOG_SEVERITY_DEBUG, "Created a chunk!");
+			CopyRegion.size = Budget;
+			BluePrintCopyRegion.size -= Budget;
+			BluePrintCopyRegion.dstOffset += Budget;
+			BluePrintCopyRegion.srcOffset += Budget;
+		}
+		Budget -= CopyRegion.size;
+		Offset += CopyRegion.size;
+
+		memcpy(StagingBufferMappedPtr + CopyRegion.srcOffset, CopyInfo.Data->DataPtr + OriginalSrcOffset, CopyRegion.size);
+		CopyLoad.CopyRegions.push_back(CopyRegion);
+
+		if (Budget == 0) break;
+	}
+	
+	if (CopyInfo.CurrentCopyRegionInline == CopyInfo.BufferCopyRegions.size())
+	{
+		CopyInfo.State->State.store(true);
+
+		for (auto& SignalToken : CopyInfo.SignalTokens)
+		{
+			SignalToken->State.store(true);
+		}
+
+		CopyInfo.Data.reset();
+		ShouldSortCopyInfos = true;
+	}
+	return true;
+}
+
+bool RENDERER::ResourceManager::ProcessImageCopyOperation(
+	CopyOperationEntry& CopyInfo, 
+	size_t& Budget, 
+	size_t& Offset, 
+	uint8_t* StagingBufferMappedPtr,
+	std::vector<ImageCopyLoad>& ImageCopyLoads
+)
+{
+	if (CopyInfo.Flags & COPY_OPERATION_FLAG_ATOMIC)
+	{
+		size_t Size = CopyInfo.ImageMetaData.Width * CopyInfo.ImageMetaData.Height * CopyInfo.ImageMetaData.BytesPerPixel;
+		if (Size > Budget)
+		{
+			if (Size > PersistentStagingBufferSize)
+			{
+				LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Size of the data being copied is larger than the specified persistent staging buffer size!");
+				throw std::runtime_error("Size of the data being copied is larger than the specified persistent staging buffer size!");
+			}
+			return false;
+		}
+	}
+
+	auto& CopyLoad = ImageCopyLoads.emplace_back();
+	CopyLoad.ImagePtr = CopyInfo.DestinationImage;
+	CopyLoad.Aspect = CopyInfo.Aspect;
+	CopyLoad.BarrierState = CopyInfo.OnCompleteTransition;
+	for (size_t CopyRegionIndex = CopyInfo.CurrentCopyRegionInline; CopyRegionIndex < CopyInfo.ImageCopyRegions.size(); CopyRegionIndex++)
+	{
+		auto& BluePrintCopyRegion = CopyInfo.ImageCopyRegions[CopyRegionIndex];
+		size_t BytesInRow = CopyInfo.ImageMetaData.BytesPerPixel * CopyInfo.ImageMetaData.Width;
+		uint32_t RowCountInBudget = static_cast<uint32_t>(Budget / BytesInRow);
+		uint32_t RemainingHeight = BluePrintCopyRegion.imageExtent.height - static_cast<uint32_t>(BluePrintCopyRegion.imageOffset.y);
+		uint32_t RowCountToCopy = std::min(RemainingHeight, RowCountInBudget);
+
+		//for now just skip this since there is no mechanism for dynamic budget
+		if (RowCountToCopy == 0) continue;
+		
+		VkBufferImageCopy CopyRegion{};
+		CopyRegion.bufferOffset = Offset;
+		CopyRegion.bufferRowLength = BluePrintCopyRegion.bufferRowLength;
+
+		CopyRegion.imageExtent.width = BluePrintCopyRegion.imageExtent.width;
+		CopyRegion.imageExtent.height = RowCountToCopy;
+		CopyRegion.imageExtent.depth = 1; 
+		CopyRegion.imageOffset = { 0,BluePrintCopyRegion.imageOffset.y,0 };
+
+		CopyRegion.imageSubresource.aspectMask = BluePrintCopyRegion.imageSubresource.aspectMask;
+		CopyRegion.imageSubresource.layerCount = 1;
+		CopyRegion.imageSubresource.baseArrayLayer = 0;
+		CopyRegion.imageSubresource.mipLevel = 0;
+
+		size_t CopiedBufferCount = RowCountToCopy * BytesInRow;
+		memcpy(StagingBufferMappedPtr + CopyRegion.bufferOffset, CopyInfo.Data->DataPtr + BluePrintCopyRegion.bufferOffset, CopiedBufferCount);
+
+		if (RowCountInBudget >= RowCountToCopy)
+		{
+			CopyInfo.CurrentCopyRegionInline++;
+		}
+		else
+		{
+			BluePrintCopyRegion.imageOffset.y += RowCountToCopy;
+			BluePrintCopyRegion.bufferOffset += CopiedBufferCount;
+		}
+		CopyLoad.CopyRegions.push_back(CopyRegion);
+
+		Budget -= CopiedBufferCount;
+		Offset += CopiedBufferCount;
+		if (Budget == 0) break;
+	}
+	if (CopyInfo.CurrentCopyRegionInline == CopyInfo.ImageCopyRegions.size())
+	{
+		CopyInfo.State->State.store(true);
+
+		for (auto& SignalToken : CopyInfo.SignalTokens)
+		{
+			SignalToken->State.store(true);
+		}
+
+		CopyInfo.Data.reset();
+		ShouldSortCopyInfos = true;
+	}
+	return true;
+}
+
 

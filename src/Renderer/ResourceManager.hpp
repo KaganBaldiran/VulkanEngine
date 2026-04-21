@@ -28,14 +28,7 @@ namespace RENDERER
 		size_t SizeInBytes = 0;
 
 		std::function<void()> Deleter;
-
-		~DataBlock()
-		{
-			if (Deleter)
-			{
-				Deleter();
-			}
-		}
+		~DataBlock(){ if (Deleter) Deleter();}
 
 		DataBlock(const DataBlock&) = delete;
 		DataBlock& operator=(const DataBlock&) = delete;
@@ -52,10 +45,15 @@ namespace RENDERER
 	{
 		RENDERER_CORE::QueueType QueueType;
 
-		std::vector<VkBufferCopy> CopyRegions;
-		VkBuffer SourceBuffer = VK_NULL_HANDLE;
+		std::vector<VkBufferCopy> BufferCopyRegions;
 		RENDERER_CORE::Buffer* DestinationBuffer = nullptr;
 
+		RENDERER_CORE::ImageData* DestinationImage = nullptr;
+		VkImageAspectFlags Aspect;
+		std::vector<VkBufferImageCopy> ImageCopyRegions;
+		RENDERER_CORE::ImageMetaData ImageMetaData;
+
+		RENDERER_CORE::BarrierState OnCompleteTransition;
 		std::shared_ptr<DataBlock> Data;
 		size_t CurrentCopyRegionInline = 0;
 		uint32_t Priority = 0;
@@ -87,10 +85,10 @@ namespace RENDERER
 		void WaitModelImportsIdle();
 		void WaitTextureImportsIdle();
 
-		void RequestCopyOperation(
+		void RequestBufferCopyOperation(
 			const std::vector<VkBufferCopy>& CopyRegions,
 			RENDERER_CORE::QueueType QueueType,
-			RENDERER_CORE::Buffer* DestinationBuffer,
+			RENDERER_CORE::Buffer* DestinationImage,
 			const std::shared_ptr<DataBlock> &Data,
 			uint32_t Priority = 0,
 			CopyOperationFlagBit Flags = COPY_OPERATION_FLAG_NONE,
@@ -99,13 +97,23 @@ namespace RENDERER
 			std::shared_ptr<COMMON::AsyncToken>* SignalTokens = nullptr,
 			uint32_t SignalTokenCount = 0
 		);
-		
-		void HandleCopyOperations(
-			VkCommandBuffer& CommandBuffer,
-			size_t FrameIndex,
-			RENDERER_CORE::PipelineBarrier2& PipelineBarrier2
-		);
 
+		void RequestImageCopyOperation(
+			const std::vector<VkBufferImageCopy>& CopyRegions,
+			RENDERER_CORE::QueueType QueueType,
+			RENDERER_CORE::ImageData* DestinationImage,
+			const std::shared_ptr<DataBlock>& Data,
+			RENDERER_CORE::ImageMetaData ImageMetaData,
+			VkImageAspectFlags Aspect = VK_IMAGE_ASPECT_COLOR_BIT,
+			uint32_t Priority = 0,
+			CopyOperationFlagBit Flags = COPY_OPERATION_FLAG_NONE,
+			RENDERER_CORE::BarrierState OnCompleteTransition = RENDERER_CORE::BarrierState(),
+			std::shared_ptr<COMMON::AsyncToken>* WaitTokens = nullptr,
+			uint32_t WaitTokenCount = 0,
+			std::shared_ptr<COMMON::AsyncToken>* SignalTokens = nullptr,
+			uint32_t SignalTokenCount = 0
+		);
+		
 		void QueueCopyOperations(
 			VkCommandBuffer& CommandBuffer,
 			size_t FrameIndex,
@@ -115,12 +123,51 @@ namespace RENDERER
 		MeshManager MeshManager;
 		TextureManager TextureManager;
 	private:
-		void LoadMemoryChunks(VkCommandBuffer CommandBuffer,uint32_t FrameIndex);
+
+		struct BufferCopyLoad
+		{
+			std::vector<VkBufferCopy> CopyRegions;
+			RENDERER_CORE::Buffer* BufferPtr = nullptr;
+		};
+
+		struct ImageCopyLoad
+		{
+			std::vector<VkBufferImageCopy> CopyRegions;
+			RENDERER_CORE::ImageData* ImagePtr = nullptr;
+			RENDERER_CORE::BarrierState BarrierState;
+			VkImageAspectFlags Aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+		};
+
+		struct FrameCopyLoad
+		{
+			std::vector<BufferCopyLoad> BufferCopyLoads;
+			std::vector<ImageCopyLoad> ImageCopyLoads;
+		};
+
+		void LoadMemoryChunks(
+			uint32_t FrameIndex,
+			std::vector<BufferCopyLoad>& BufferCopyLoads,
+			std::vector<ImageCopyLoad>& ImageCopyLoads
+		);
+		bool ProcessBufferCopyOperation(
+			CopyOperationEntry& CopyInfo,
+			size_t& Budget,
+			size_t& Offset,
+			uint8_t* StagingBufferMappedPtr,
+			std::vector<BufferCopyLoad>& BufferCopyLoads
+		);
+		bool ProcessImageCopyOperation(
+			CopyOperationEntry& CopyInfo,
+			size_t& Budget,
+			size_t& Offset,
+			uint8_t* StagingBufferMappedPtr,
+			std::vector<ImageCopyLoad>& ImageCopyLoads
+		);
 		bool ShouldSortCopyInfos = true;
 
 		std::array<SCENE::PersistentStagingBuffer, MAX_FRAMES_IN_FLIGHT> StagingBuffers;
 		CopyOperationList CopyOperations;
-   
+		
 		RENDERER::RendererContext* RendererContextPtr = nullptr;
 	};
 }

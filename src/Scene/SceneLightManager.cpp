@@ -2,6 +2,7 @@
 #include "Light.hpp"
 
 #include "../Renderer/RendererContext.hpp"
+#include "../Renderer/ResourceManager.hpp"
 #include "../Common/Log.hpp"
 #include "../Common/CommonDefinitions.hpp"
 
@@ -27,19 +28,25 @@ void SCENE::LightManager::Destroy(VkDevice& LogicalDevice)
 	}
 }
 
-void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
+void SCENE::LightManager::AppendOrUpdateLights(
+		std::vector<Light*> &StaticLights,
+		std::vector<Light*> &DynamicLights,
+		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> &TargetDescriptorSets,
+		uint32_t FrameIndex,
+	    RENDERER::ResourceManager* ResourceManagerPtr
+)
 {
-	auto& InputStaticLights = Info.StaticLights;
-	auto& InputDynamicLights = Info.DynamicLights;
+	auto& InputStaticLights = StaticLights;
+	auto& InputDynamicLights = DynamicLights;
 	if (InputStaticLights.empty() && InputDynamicLights.empty()) return;
 
-	auto& DynamicLightBuffer = DynamicLightSSBOs[Info.FrameIndex];
-	auto& StaticLightBuffer = StaticLightSSBOs[Info.FrameIndex];
+	auto& DynamicLightBuffer = DynamicLightSSBOs[FrameIndex];
+	auto& StaticLightBuffer = StaticLightSSBOs[FrameIndex];
 	auto& DynamicLightBufferAllocator = DynamicLightBuffer.Allocator;
 	auto& StaticLightBufferAllocator = StaticLightBuffer.Allocator;
 
-	auto& TargetDescriptorSet = Info.TargetDescriptorSets[Info.FrameIndex];
-	auto& CurrentLightEntries = this->LightEntries[Info.FrameIndex];
+	auto& TargetDescriptorSet = TargetDescriptorSets[FrameIndex];
+	auto& CurrentLightEntries = this->LightEntries[FrameIndex];
 	
 	size_t StaticLightBufferCapacity = StaticLightBufferAllocator.GetCapacity(), 
 		DynamicLightBufferCapacity = DynamicLightBufferAllocator.GetCapacity();
@@ -109,64 +116,53 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 	size_t StaticLightStagingBufferSize = IsStaticLightBufferReallocated ? (StaticLightBufferAllocator.GetCapacity() - StaticLightBufferAllocator.GetTotalFreeSpace()) : (StaticLightsToUpdate.size() * SizeOfLightData);
 	if (!InputStaticLights.empty() && !StaticLightStagingBufferSize)
 	{
-		LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Unable to proceed light updating operation, faulty staging buffer!");
-		throw std::runtime_error("Faulty staging buffer!");
+		LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Unable to proceed light updating operation, unexpected transfer operation size!");
+		throw std::runtime_error("Unable to proceed light updating operation, unexpected transfer operation size!");
 	}
 
-	RENDERER_CORE::Buffer StagingBuffer{};
-	RENDERER_CORE::VirtualArenaAllocator StagingBufferAllocator(StaticLightStagingBufferSize);
-	uint8_t* StagingBufferPtr = nullptr;
-	if (StaticLightStagingBufferSize)
+	std::vector<VkBufferCopy> AppendedStaticLightCopyRegions;
+	std::vector<LightData> AppendedStaticLightDatas;
+	
+	if (IsStaticLightBufferReallocated)
 	{
-		RENDERER_CORE::CreateStagingBuffer(
-			RendererContext->DeviceContext.PhysicalDevice,
-			RendererContext->DeviceContext.LogicalDevice,
-			StaticLightStagingBufferSize,
-			StagingBuffer
-		);
-		RENDERER_CORE::MapBuffer(StagingBuffer, RendererContext->DeviceContext.LogicalDevice, 0, StaticLightStagingBufferSize, 0);
-		StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.MappedMemory);
-		if (!StagingBufferPtr)
+		for (auto& [LightPtr, LightEntry] : CurrentLightEntries.StaticLightLights)
 		{
-			LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_VERBOSE, "Unable to proceed light updating operation, faulty staging buffer!");
-			throw std::runtime_error("Faulty staging buffer!");
+			VkBufferCopy CopyRegion{};
+			CopyRegion.dstOffset = LightEntry.MemoryRegion.Offset;
+			CopyRegion.size = SizeOfLightData;
+			CopyRegion.srcOffset = AppendedStaticLightDatas.size() * SizeOfLightData;
+
+			AppendedStaticLightCopyRegions.push_back(std::move(CopyRegion));
+			AppendedStaticLightDatas.push_back(LightPtr->Data);
 		}
 	}
-
-	RENDERER_CORE::BufferCopyInfo StaticLightCopyInfo{};
-	StaticLightCopyInfo.SourceBuffer = StagingBuffer.BufferObject;
-	StaticLightCopyInfo.DestinationBuffer = StaticLightBuffer.Buffer.BufferObject;
-	if (StagingBufferPtr && StaticLightStagingBufferSize)
+	else
 	{
-		if (IsStaticLightBufferReallocated)
+		for (auto& [LightPtr, AllocatedMemoryRegion] : StaticLightsToUpdate)
 		{
-			for (auto& [LightPtr, LightEntry] : CurrentLightEntries.StaticLightLights)
-			{
-				auto& AllocatedRegion = StagingBufferAllocator.Suballocate(SizeOfLightData);
-				memcpy(StagingBufferPtr + AllocatedRegion.Offset, &LightPtr->Data, AllocatedRegion.Size);
-
-				VkBufferCopy CopyRegion{};
-				CopyRegion.dstOffset = LightEntry.MemoryRegion.Offset;
-				CopyRegion.size = AllocatedRegion.Size;
-				CopyRegion.srcOffset = AllocatedRegion.Offset;
-				StaticLightCopyInfo.CopyRegions.push_back(CopyRegion);
-			}
-		}
-		else
-		{
-			for (auto& [LightPtr, AllocatedMemoryRegion] : StaticLightsToUpdate)
-			{
-				auto& AllocatedRegion = StagingBufferAllocator.Suballocate(SizeOfLightData);
-				memcpy(StagingBufferPtr + AllocatedRegion.Offset, &LightPtr->Data, AllocatedRegion.Size);
-
-				VkBufferCopy CopyRegion{};
-				CopyRegion.dstOffset = AllocatedMemoryRegion->Offset;
-				CopyRegion.size = AllocatedRegion.Size;
-				CopyRegion.srcOffset = AllocatedRegion.Offset;
-				StaticLightCopyInfo.CopyRegions.push_back(CopyRegion);
-			}
+			VkBufferCopy CopyRegion{};
+			CopyRegion.dstOffset = AllocatedMemoryRegion->Offset;
+			CopyRegion.size = SizeOfLightData;
+			CopyRegion.srcOffset = AppendedStaticLightDatas.size() * SizeOfLightData;
+			
+			AppendedStaticLightCopyRegions.push_back(std::move(CopyRegion));
+			AppendedStaticLightDatas.push_back(LightPtr->Data);
 		}
 	}
+
+	std::shared_ptr<RENDERER::DataBlock> StaticLightDataBlock = std::make_shared<RENDERER::DataBlock>();
+	StaticLightDataBlock->DataPtr = reinterpret_cast<uint8_t*>(AppendedStaticLightDatas.data());
+	StaticLightDataBlock->SizeInBytes = AppendedStaticLightDatas.size() * SizeOfLightData;
+	StaticLightDataBlock->Deleter = [LocalVector = std::move(AppendedStaticLightDatas)]() {};
+
+	ResourceManagerPtr->RequestBufferCopyOperation(
+		AppendedStaticLightCopyRegions,
+		RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
+		&StaticLightBuffer.Buffer,
+		StaticLightDataBlock,
+		3,
+		RENDERER::COPY_OPERATION_FLAG_ATOMIC
+	);
 
 	if (DynamicLightBuffer.Buffer.MappedMemory)
 	{
@@ -185,17 +181,5 @@ void SCENE::LightManager::AppendOrUpdateLights(LightAppendOrUpdateInfo& Info)
 				memcpy(DynamicLightBufferPtr + AllocatedMemoryRegion->Offset, &LightPtr->Data, AllocatedMemoryRegion->Size);
 			}
 		}
-	}
-
-	if (StaticLightStagingBufferSize)
-	{
-		RENDERER_CORE::CopyBuffer(
-			{ StaticLightCopyInfo },
-			RendererContext->DeviceContext.LogicalDevice,
-			RendererContext->CommandPool.Handle,
-			RendererContext->DeviceContext.GraphicsQueue
-		);
-
-		RENDERER_CORE::DestroyBuffer(RendererContext->DeviceContext.LogicalDevice, StagingBuffer);
 	}
 }

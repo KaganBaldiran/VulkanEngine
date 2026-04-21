@@ -92,7 +92,7 @@ bool RENDERER_CORE::CheckDeviceExtensionSupport(VkPhysicalDevice Device, const s
         bool Found = false;
         for (const auto& AvailableExtension : AvailableExtensions)
         {
-            if (strcmp(AvailableExtension.extensionName, Extension.ExtensionName.c_str()))
+            if (strcmp(AvailableExtension.extensionName, Extension.ExtensionName.c_str()) == 0)
             {
                 Found = true;
                 break;

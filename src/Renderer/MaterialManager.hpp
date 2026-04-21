@@ -25,6 +25,7 @@ namespace SCENE
 namespace RENDERER
 {
 	class RendererContext;
+	class ResourceManager;
 	class Renderer;
 	class DeferredRenderPipeline;
 
@@ -45,36 +46,54 @@ namespace RENDERER
 		friend class SCENE::SceneMeshManager;
 		friend class Renderer;
 		friend class DeferredRenderPipeline;
+	private:
+		std::mutex Mutex;
+		double StartingTime;
+		RendererContext* RendererContextPtr = nullptr;
+		ResourceManager* ResourceManagerPtr = nullptr;
+		void UpdateDescriptors(uint32_t FrameIndex);
+
+		std::array<std::vector<uint32_t>, MAX_FRAMES_IN_FLIGHT> DescriptorWriteQueue;
+
+		struct TextureImportLoad
+		{
+			std::shared_ptr<RENDERER_CORE::RawImageData> RawData;
+			uint64_t DestinationTextureID;
+		};
+
+		struct TextureMemoryAllocation
+		{
+			RENDERER_CORE::MemoryRegion Region;
+			VkDeviceMemory Memory = VK_NULL_HANDLE;
+		};
+
+		struct TextureMemoryPage
+		{
+			VkDeviceMemory Memory = VK_NULL_HANDLE;
+			RENDERER_CORE::VirtualArenaAllocator Allocator;
+		};
+		std::unordered_map<uint32_t, std::vector<TextureMemoryPage>> TexturePages;
+		TextureMemoryAllocation AllocateFromTexturePages(
+			VkMemoryRequirements MemoryRequirements,
+			VkMemoryPropertyFlags Properties,
+			VkPhysicalDevice PhysicalDevice,
+			VkDevice LogicalDevice
+		);
 	public:
-		TextureManager(RendererContext& RendererContext);
+		TextureManager(RendererContext& RendererContext,RENDERER::ResourceManager& ResourceManagerPtr);
 		TextureManager() = default;
-		void Create(RendererContext& RendererContext);
+		void Create(RendererContext& RendererContext,RENDERER::ResourceManager& ResourceManagerPtr);
 		void Destroy() override;
 
 		void AppendImportTask(TextureImportInfo ImportInfo);
 		void SubmitImport();
 		void WaitImportsIdle();
 
-		std::vector<std::pair<TextureImportInfo,std::future<bool>>> Futures;
+		std::vector<std::pair<TextureImportInfo,std::future<TextureImportLoad>>> Futures;
 		std::queue<TextureImportInfo> ImportQueue;
 
 		std::unordered_map<std::string,uint64_t> ImportRegistries;
-		std::unordered_map<uint64_t,RENDERER_CORE::RawImageData> RawImageDatas;
+		std::unordered_map<uint64_t,std::shared_ptr<RENDERER_CORE::RawImageData>> RawImageDatas;
 		std::unordered_map<uint64_t,TextureDataEntry> TextureDatas;
-	private:
-		std::mutex Mutex;
-		double StartingTime;
-		RendererContext* RendererContextPtr = nullptr;
-		//bool CreateMeshTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex);
-		//void DestroyMeshTextureDescriptors();
-		void UpdateDescriptors(uint32_t FrameIndex);
-
-		std::array<std::vector<uint32_t>, MAX_FRAMES_IN_FLIGHT> DescriptorWriteQueue;
-		// 0: VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER - Texture array
-		/*
-		std::array<RENDERER_CORE::Descriptor<1>, MAX_FRAMES_IN_FLIGHT> TexturesDescriptors;
-		std::array<uint32_t, MAX_FRAMES_IN_FLIGHT> TextureDescriptorUpperBounds;
-		std::array<RENDERER_CORE::VirtualArenaAllocator, MAX_FRAMES_IN_FLIGHT> TextureDescriptorIndexAllocators;
-		*/
 	};
 }

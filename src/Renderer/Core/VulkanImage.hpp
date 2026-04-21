@@ -33,6 +33,13 @@ namespace RENDERER_CORE
 		void Destroy(VkDevice& LogicalDevice);
 	};
 
+	struct ImageMetaData
+	{
+		uint32_t Width;
+		uint32_t Height;
+		uint32_t BytesPerPixel;
+	};
+
 	struct RawImageData
 	{
 		int Width;

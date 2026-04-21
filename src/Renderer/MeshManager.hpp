@@ -47,20 +47,9 @@ namespace RENDERER
     //Intermediate import data target.
     struct MeshImportResult
     {
-        MeshImportResult() { ProcessedPerFrame.fill(true); };
-
         SCENE::ModelHandle* ConsumerModel = nullptr;
         std::vector<SCENE::GeometryData> GeometryDatas;
         std::vector<size_t> GeometryHandles;
-        //Flags to keep track of whether the target is included in the entries or not. 
-        //If all frames had previously processed the target, it's erased 
-        std::array<bool, MAX_FRAMES_IN_FLIGHT> ProcessedPerFrame;
-
-        //Is the target processed by the frame with the given index
-        bool IsProcessedBy(uint32_t FrameIndex) { return ProcessedPerFrame[FrameIndex]; }
-        bool IsProcessedByAll();
-        void ResetFlags();
-        void SetFlag(uint32_t FrameIndex,bool Value);
     };
 
     class MeshManager : COMMON::Destructible
@@ -90,8 +79,6 @@ namespace RENDERER
         std::vector<ModelImportInfo> ImportQueue;
         double StartingTime;
 
-        RENDERER_CORE::BufferAllocator& GetCurrentVertexBuffer(uint32_t FrameIndex);
-        RENDERER_CORE::BufferAllocator& GetCurrentIndexBuffer(uint32_t FrameIndex);
         std::vector<std::shared_ptr<COMMON::AsyncToken>> GeometryBufferPageCopyTokens;
     private:
         //Processes the dwelling import results (the intermediary product of the importing process).
@@ -103,40 +90,13 @@ namespace RENDERER
         //This function is already called internally within the scenes so there is no need to call it explicitly. 
         void UpdateGeometryEntries();
 
-        void CreateGeometryBuffers(
-            RENDERER::RendererContext* RendererContext,
-            //RENDERER_CORE::BufferAllocator& StagingBuffer,
-            bool VertexBufferReallocated,
-            bool IndexBufferReallocated,
-            bool VertexBufferAllocatedFirstTime,
-            bool IndexBufferAllocatedFirstTime,
-            uint32_t FrameIndex
-        );
-
-        void HandleGeometryBufferReallocationCopy(
-            std::vector<RENDERER_CORE::BufferCopyInfo>& CopyInfos,
-            bool VertexBufferReallocated,
-            bool IndexBufferReallocated,
-            size_t VertexCapacity,
-            size_t IndexCapacity,
-            uint32_t FrameIndex
-        );
-
         BufferPageAllocationInfo AllocateFromGeometryBuffers(
             size_t VertexSize,
             size_t IndexSize
-            //uint32_t FrameIndex
         );
-
-        //Central Geometry Buffers
-        std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT * 2> VertexBuffers;
-        std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT * 2> IndexBuffers;
 
         //std::array<std::vector<RENDERER_CORE::BufferAllocator>, MAX_FRAMES_IN_FLIGHT> GeometryBufferPages;
         std::vector<RENDERER_CORE::BufferAllocator> GeometryBufferPages;
-
-        std::array<bool, MAX_FRAMES_IN_FLIGHT> VertexBufferSet;
-        std::array<bool, MAX_FRAMES_IN_FLIGHT> IndexBufferSet;
 
         std::array<std::vector<size_t>, MAX_FRAMES_IN_FLIGHT> EraseList;
 

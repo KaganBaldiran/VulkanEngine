@@ -74,8 +74,6 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsHostVisible(std::vector<M
 void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
     std::vector<ModelInstance*>& UpdateList, 
     uint32_t CurrentFrame
-    //std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations,
-    //SCENE::PersistentStagingBuffer& StagingBuffer
 )
 {
     auto& CurrentFrameEntries = Entries[CurrentFrame];
@@ -87,16 +85,10 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
     size_t SizeOfMat4 = sizeof(glm::mat4);
     size_t SizeOfTransformMatrices = sizeof(SCENE::INTERNAL::ModelTransformMatrices);
 
-    //Makes sure current staging buffer capacity is enough to take what's coming.
-    //size_t MatrixBufferSize = CurrentFrameEntries.TransformationMatrixReallocated ? (CurrentFrameInstanceEntries.size() * SizeOfTransformMatrices) : (UpdateList.size() * SizeOfTransformMatrices);
-    //StagingBuffer.AllocateSceneStagingBuffer(MatrixBufferSize, RendererContext);
-    //uint8_t* Destination = reinterpret_cast<uint8_t*>(StagingBuffer.StagingBuffer.Buffer.MappedMemory);
-
     std::vector<SCENE::INTERNAL::ModelTransformMatrices> AppendedTransformMatrices;
     std::vector<VkBufferCopy> TransformMatricesCopyInfos;
 
     //If the buffer is reallocated and data must be recovered, update the entries using the update list and rewrite them back into the buffer.
-   // bool IsThereCopyInfo = !CopyOperations[TRANSFORMATION_MATRIX_COPY]->CopyRegions.empty();
     if (CurrentFrameEntries.TransformationMatrixReallocated)
     {
         //Updates the model matrixes if given.
@@ -110,36 +102,16 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
             ModelInstanceEntryIterator->second.TransformMatrices.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(ModelMatrix)));
         }
 
-        //Refresh the copy regions since they will be overwritten anyways.
-        //CopyOperations[TRANSFORMATION_MATRIX_COPY]->CopyRegions.clear();
-       // CopyOperations[TRANSFORMATION_MATRIX_COPY]->CopyRegions.reserve(CurrentFrameInstanceEntries.size());
         //Iterate over the instance entries and contruct the required copy infos.
-        //TO-DO Unordered map is slow to iterate over, might benefit from VectorMap instead.
         for (auto& [Handle,InstanceEntry] : CurrentFrameInstanceEntries)
         {
             auto& AllocatedMemoryRegion = InstanceEntry.TransformationMatrixMemoryRegion;
             
-            /*
-            auto& StagingAllocatedMemoryRegion = InstanceEntry.StagingTransformationMatrixMemoryRegion;
-            if (!StagingAllocatedMemoryRegion.Size || !IsThereCopyInfo)
-            {
-                InstanceEntry.StagingTransformationMatrixMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfTransformMatrices);
-            }
-           
-
-            memcpy(Destination + StagingAllocatedMemoryRegion.Offset,
-                &InstanceEntry.TransformMatrices,
-                StagingAllocatedMemoryRegion.Size
-            );
-             */
-
             VkBufferCopy CopyRegion{};
             CopyRegion.dstOffset = AllocatedMemoryRegion.Offset;
             CopyRegion.size = SizeOfTransformMatrices;
             CopyRegion.srcOffset = AppendedTransformMatrices.size() * SizeOfTransformMatrices;
-            //CopyRegion.size = StagingAllocatedMemoryRegion.Size;
-            //CopyRegion.srcOffset = StagingAllocatedMemoryRegion.Offset;
-            //CopyOperations[TRANSFORMATION_MATRIX_COPY]->CopyRegions.push_back(CopyRegion);
+   
             TransformMatricesCopyInfos.push_back(std::move(CopyRegion));
             AppendedTransformMatrices.push_back(InstanceEntry.TransformMatrices);
         }
@@ -148,45 +120,24 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
     else
     {
         //Buffer isn't reallocated so update list suffice.
-        //Constracts copy regions from the update list.
-        //CopyOperations[TRANSFORMATION_MATRIX_COPY]->CopyRegions.reserve(UpdateList.size());
         for (auto& ModelInstance : UpdateList)
         {
             auto ModelInstanceEntryIterator = CurrentFrameInstanceEntries.find(ModelInstance->GetHandleID());
             if (!ModelInstanceEntryIterator) continue;
 
             auto& AllocatedMemoryRegion = ModelInstanceEntryIterator->second.TransformationMatrixMemoryRegion;
-            /*
-            auto& StagingAllocatedMemoryRegion = ModelInstanceEntryIterator->second.StagingTransformationMatrixMemoryRegion;
-            if (!StagingAllocatedMemoryRegion.Size || !IsThereCopyInfo)
-            {
-                StagingAllocatedMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfTransformMatrices);
-            }
-            */
-
             SCENE::INTERNAL::ModelTransformMatrices TransformMatrices{};
             TransformMatrices.ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
             TransformMatrices.NormalMatrix = glm::transpose(glm::inverse(glm::mat3(TransformMatrices.ModelMatrix)));
-            //glm::mat4 ModelMatrix = ModelInstance->Transformations.GetModelMatrix();
-            /*
-            memcpy(Destination + StagingAllocatedMemoryRegion.Offset,
-                &TransformMatrices,
-                StagingAllocatedMemoryRegion.Size
-            );
-            */
 
             VkBufferCopy CopyRegion{};
             CopyRegion.dstOffset = AllocatedMemoryRegion.Offset;
             CopyRegion.size = SizeOfTransformMatrices;
             CopyRegion.srcOffset = AppendedTransformMatrices.size() * SizeOfTransformMatrices;
-            //CopyRegion.size = StagingAllocatedMemoryRegion.Size;
-            //CopyRegion.srcOffset = StagingAllocatedMemoryRegion.Offset;
 
             ModelInstanceEntryIterator->second.TransformMatrices = TransformMatrices;
             AppendedTransformMatrices.push_back(std::move(TransformMatrices));
             TransformMatricesCopyInfos.push_back(std::move(CopyRegion));
-            //CopyOperations[TRANSFORMATION_MATRIX_COPY]->CopyRegions.push_back(CopyRegion);
-
         }
     }
 
@@ -197,7 +148,7 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
         TransformMatricesDataBlock->SizeInBytes = AppendedTransformMatrices.size() * SizeOfTransformMatrices;
         TransformMatricesDataBlock->Deleter = [LocalVector = std::move(AppendedTransformMatrices)]() {};
 
-        ResourceManagerPtr->RequestCopyOperation(
+        ResourceManagerPtr->RequestBufferCopyOperation(
             TransformMatricesCopyInfos,
             RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             &ModelMatrixBuffer,
@@ -486,27 +437,17 @@ void CreateAppendCopyInfos(
     RENDERER::ResourceManager *ResourceManagerPtr
 )
 {
-    //Pointers to copy infos.
-    //RENDERER::CopyOperationEntry* DrawMetaCopyInfo = CopyOperations[SCENE::DRAWMETA_COPY];
-    //RENDERER::CopyOperationEntry* IndirectCopyInfo = CopyOperations[SCENE::INDIRECT_COPY];
     size_t SizeOfUint32 = sizeof(uint32_t),
         SizeOfMat4 = sizeof(glm::mat4),
         SizeOfTransformMatrices= sizeof(SCENE::INTERNAL::ModelTransformMatrices),
         SizeOfDrawMetaData = sizeof(SCENE::INTERNAL::DrawMetadata),
         SizeOfIndirectCommand = sizeof(SCENE::ExtendedIndirectCommand);
 
-   // uint8_t* StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.Buffer.MappedMemory);
-    //if (!StagingBufferPtr) throw std::runtime_error("Unable to map the staging buffer! exitting...");
-
     size_t MeshIterator = 0;
     //Global draw index iterator
     size_t DrawIndexIterator = 0;
-    //Create or update indirect commands 
-   // if (IsThereIndirectCopyInfos && IsIndirectBufferReallocated) IndirectCopyInfo.CopyRegions.clear();
-    //if (IsThereIndirectCopyInfos) IndirectCopyInfo->CopyRegions.clear();
     IndirectBuffer.Allocator.Reset(IndirectBuffer.Allocator.GetCapacity());
     DrawMetaDataBuffer.Allocator.Reset(DrawMetaDataBuffer.Allocator.GetCapacity());
-    //DrawMetaCopyInfo->CopyRegions.clear();
 
     //Clear the page mesh counts to avoid accumulation over the passes. 
     CurrentPageMeshCounts.clear();
@@ -517,8 +458,6 @@ void CreateAppendCopyInfos(
 
     std::vector<SCENE::INTERNAL::DrawMetadata> AppendedDrawMetadatas;
     std::vector<VkBufferCopy> DrawMetadataCopyInfos;
-    //DrawMetaCopyInfo->CopyRegions.reserve(CurrentFrameEntries.MeshEntries.size() * 10);
-    //IndirectCopyInfo->CopyRegions.reserve(CurrentFrameEntries.MeshEntries.size());
 
     CurrentFrameEntries.MeshEntries.sort([](auto& First, auto& Second) {
         if (First.second.PageIndex == Second.second.PageIndex)
@@ -549,23 +488,12 @@ void CreateAppendCopyInfos(
             //NewDrawMetaData.MeshID = MeshIterator;
 
             InstanceLink.DrawDataMemoryRegion = DrawMetaDataBuffer.Allocator.Suballocate(SizeOfDrawMetaData);
-            /*
-            if (!IsThereDrawMetaCopyInfos || !InstanceLink.StagingDrawDataMemoryRegion.Size)
-            {
-                InstanceLink.StagingDrawDataMemoryRegion = StagingBuffer.Allocator.Suballocate(SizeOfDrawMetaData, 1, false);
-            }
-
-            memcpy(StagingBufferPtr + InstanceLink.StagingDrawDataMemoryRegion.Offset, &NewDrawMetaData, InstanceLink.StagingDrawDataMemoryRegion.Size);
-            */
-
-
+           
             VkBufferCopy CopyRegion{};
             CopyRegion.dstOffset = InstanceLink.DrawDataMemoryRegion.Offset;
             CopyRegion.size = SizeOfDrawMetaData;
             CopyRegion.srcOffset = AppendedDrawMetadatas.size() * SizeOfDrawMetaData;
-            //CopyRegion.size = InstanceLink.DrawDataMemoryRegion.Size;
-            //CopyRegion.srcOffset = InstanceLink.StagingDrawDataMemoryRegion.Offset;
-            //DrawMetaCopyInfo->CopyRegions.push_back(std::move(CopyRegion));
+          
             AppendedDrawMetadatas.push_back(std::move(NewDrawMetaData));
             DrawMetadataCopyInfos.push_back(std::move(CopyRegion));
         }
@@ -582,29 +510,14 @@ void CreateAppendCopyInfos(
             NewIndirectCommand.VertexOffset = MeshEntry.Info.VertexOffset;
             NewIndirectCommand.FirstInstance = DrawIndexIterator;
             NewIndirectCommand.BoundingBox = MeshEntry.BoundingBox;
-            //NewIndirectCommand.FirstInstance = PageMeshCountData.InstanceCount;
-            //NewIndirectCommand.InstanceCount = MeshEntry.ReferenceCount;
             
-            /*
-            //Should allocate a region from the staging buffer
-            if (!IsThereIndirectCopyInfos || !MeshEntry.StagingIndirectBufferMemoryRegion.Size)
-            {
-                MeshEntry.StagingIndirectBufferMemoryRegion = StagingBuffer.Allocator.Suballocate(SizeOfIndirectCommand,1,false);
-            }
-            memcpy(StagingBufferPtr + MeshEntry.StagingIndirectBufferMemoryRegion.Offset, &NewIndirectCommand, MeshEntry.StagingIndirectBufferMemoryRegion.Size);
-            */
-
-
             VkBufferCopy CopyRegion{};
             CopyRegion.dstOffset = MeshEntry.IndirectBufferMemoryRegion.Offset;
             CopyRegion.size = SizeOfIndirectCommand;
             CopyRegion.srcOffset = AppendedIndirectCommands.size() * SizeOfIndirectCommand;
-            //CopyRegion.size = MeshEntry.StagingIndirectBufferMemoryRegion.Size;
-            //CopyRegion.srcOffset = MeshEntry.StagingIndirectBufferMemoryRegion.Offset;
 
             AppendedIndirectCommands.push_back(std::move(NewIndirectCommand));
             IndirectCommandCopyInfos.push_back(std::move(CopyRegion));
-            //IndirectCopyInfo->CopyRegions.push_back(std::move(CopyRegion));
         }
         if (MeshEntry.FirstInstance != DrawIndexIterator) MeshEntry.FirstInstance = DrawIndexIterator;
 
@@ -622,7 +535,7 @@ void CreateAppendCopyInfos(
         IndirectDataBlock->SizeInBytes = AppendedIndirectCommands.size() * SizeOfIndirectCommand;
         IndirectDataBlock->Deleter = [LocalVector = std::move(AppendedIndirectCommands)]() {};
 
-        ResourceManagerPtr->RequestCopyOperation(
+        ResourceManagerPtr->RequestBufferCopyOperation(
             IndirectCommandCopyInfos,
             RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             &IndirectBuffer.Buffer,
@@ -641,7 +554,7 @@ void CreateAppendCopyInfos(
         DrawMetadataBlock->SizeInBytes = AppendedDrawMetadatas.size() * SizeOfDrawMetaData;
         DrawMetadataBlock->Deleter = [LocalVector = std::move(AppendedDrawMetadatas)]() {};
 
-        ResourceManagerPtr->RequestCopyOperation(
+        ResourceManagerPtr->RequestBufferCopyOperation(
             DrawMetadataCopyInfos,
             RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             &DrawMetaDataBuffer.Buffer,
@@ -666,11 +579,9 @@ void SCENE::SceneMeshManager::AppendModels(
     std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>& TargetDescriptorSets,
     PersistentStagingBuffer& StagingBuffer,
     SCENE::SceneOptions SceneOptions
-   // std::array<RENDERER::CopyOperationEntry*, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 )
 {
     auto Start = std::chrono::high_resolution_clock::now();
-    //this->ResourceManagerPtr->MeshManager.UpdateGeometryEntries();
 
     size_t& EnabledMeshCount = Buffers.EnabledMeshCount[FrameIndex];
 
@@ -704,9 +615,6 @@ void SCENE::SceneMeshManager::AppendModels(
 
     auto& CurrentFrameEntries = Entries[FrameIndex];
     auto& CurrentFrameGeometryEntries = this->ResourceManagerPtr->MeshManager.GeometryEntries;
-
-    //bool IsThereDrawMetaCopyInfos = !CopyInfos[DRAWMETA_COPY]->CopyRegions.empty();
-    //bool IsThereIndirectCopyInfos = !CopyInfos[INDIRECT_COPY]->CopyRegions.empty();
 
     //Process newly inserted meshes.
     ProcessAppendList(
@@ -747,7 +655,6 @@ void SCENE::SceneMeshManager::AppendModels(
     //In case the buffer needs be enlarged , create a new buffer and copy existing data into it.
     AllocateSceneBuffers(
         RendererContext,
-        //CopyInfos,
         IndirectBuffer,
         DrawMetaDataBuffer, 
         ModelMatricesBuffer,
@@ -763,38 +670,6 @@ void SCENE::SceneMeshManager::AppendModels(
         IsVisibilityBufferReallocated
     );
       
-    //Calculate the needed staging buffer size
-    //size_t IndirectStagingBufferSize = IsIndirectBufferReallocated ? IndirectBufferAllocator.GetUsedSpace() : IndirectAppendedBufferSize;
-    //size_t IndirectStagingBufferSize = IndirectBufferAllocator.GetUsedSpace() + IndirectAppendedBufferSize;
-    //size_t DrawMetaDataBufferSize = IsThereDrawMetaCopyInfos ? (InsertedMeshInstanceCount * SizeOfDrawMetaData) : DrawMetaDataBufferAllocator.GetUsedSpace();
-    
-    /*
-    size_t TotalStagingBufferSize = IndirectStagingBufferSize + DrawMetaDataBufferSize;
-
-    //Nothing else to do. Return
-    if (!TotalStagingBufferSize)
-    {
-        return;
-    }
-    */
-
-    //Handle the allocation or reallocation of the scene persisten staging buffer
-    //StagingBuffer.AllocateSceneStagingBuffer(TotalStagingBufferSize, RendererContext);
-
-    //Create or update the indirect commands and draw meta datas
-    /*CreateAppendCopyInfos(
-        CopyInfos,
-        CurrentFrameEntries,
-        IndirectBuffer,
-        DrawMetaDataBuffer,
-        StagingBuffer.StagingBuffer,
-        CurrentPageMeshCounts,
-        GeometryBufferPageCount,
-        IsIndirectBufferReallocated,
-        IsThereIndirectCopyInfos, 
-        IsThereDrawMetaCopyInfos
-    );*/
-
     CreateAppendCopyInfos(
         CurrentFrameEntries,
         IndirectBuffer,
@@ -1109,8 +984,6 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     std::vector<SCENE::ModelInstance*> &SceneMaterialUpdateList,
     uint32_t FrameIndex,
     VkDescriptorSet& TargetDescriptorSet
-    //PersistentStagingBuffer& StagingBuffer
-    //std::array<RENDERER::CopyOperationEntry*, static_cast<size_t>(BUFFER_COPY_SLOT_SIZE)>& CopyOperations
 )
 {
     //this->ResourceManagerPtr->TextureManager.UpdateDescriptors(FrameIndex);
@@ -1123,8 +996,6 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     auto& TextureIndexBufferAllocator = CurrentTextureIndexBuffer.Allocator;
     auto Capacity = TextureIndexBufferAllocator.GetCapacity() - TextureIndexBufferAllocator.GetTotalFreeSpace();
     auto& TexturesIndexBufferReallocated = Buffers.TexturesIndexBuffersReallocated[FrameIndex];
-
-    //bool IsThereTextureIndexCopyInfos = !CopyOperations[TEXTUREINDEX_COPY]->CopyRegions.empty();
 
     uint32_t MaterialTextureTypeCount = static_cast<uint32_t>(MATERIAL_TEXTURE_TYPE_META_DATA_SIZE);
     size_t SizeOfMaterialData = sizeof(INTERNAL::MaterialData);
@@ -1143,24 +1014,6 @@ void SCENE::SceneMeshManager::UpdateMaterials(
         for (size_t i = 0; i < ModelInstancePtr->Materials.size(); i++)
         {
             auto& InstanceMaterial = ModelInstancePtr->Materials[i];
-            //Pick the right material
-            /*
-            size_t MeshGeometryID = ModelInstancePtr->Source->Meshes[i].GeometryID;
-            if (ModelInstancePtr->Materials.size() > i)
-            {
-                MaterialPtr = &ModelInstancePtr->Materials[i];
-            }
-            else
-            {
-                auto& GeometryEntryIterator = CurrentFrameGeometryEntries.find(MeshGeometryID);
-                if (GeometryEntryIterator == CurrentFrameGeometryEntries.end())
-                {
-                    throw std::runtime_error("Attempt on linking non-existent mesh instance!");
-                }
-                MaterialPtr = &GeometryEntryIterator->second.MeshMaterial;
-            }
-            */
-
             auto& MaterialMetaData = InstanceEntryIterator->second.Materials[ModelInstancePtr->Source->Meshes[i].GeometryID];
             //Extract the material data
             ExtractMaterial(
@@ -1202,18 +1055,8 @@ void SCENE::SceneMeshManager::UpdateMaterials(
             { DrawMetaDataBufferWrite },
             {}
         );
-       // CopyOperations[TEXTUREINDEX_COPY]->DestinationBuffer = &CurrentTextureIndexBuffer.Buffer;
     }
 
-   // RENDERER_CORE::PersistentBuffer TextureIndexStagingBuffer;
-    /*
-    size_t StagingBufferSize = TexturesIndexBufferReallocated ? Capacity :
-                                SceneMaterialUpdateList.size() * SizeOfMaterialData;
-
-    StagingBuffer.AllocateSceneStagingBuffer(StagingBufferSize, RendererContext);
-    uint8_t* StagingBufferPtr = reinterpret_cast<uint8_t*>(StagingBuffer.StagingBuffer.Buffer.MappedMemory);
-    if (!StagingBufferPtr) return;
-    */
     std::vector<SCENE::INTERNAL::MaterialData> AppendedMaterialDatas;
     std::vector<VkBufferCopy> AppendedMaterialDataCopyRegions;
 
@@ -1221,30 +1064,17 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     //In case the buffer was reallocated, all existing data must be copied inside again.
     if (TexturesIndexBufferReallocated)
     {
-        //if(IsThereTextureIndexCopyInfos) CopyOperations[TEXTUREINDEX_COPY]->CopyRegions.clear();
-        //CopyOperations[TEXTUREINDEX_COPY]->CopyRegions.reserve(CurrentFrameEntries.InstanceEntries.size() * 10);
         for (auto& [Handle,InstanceEntry] : CurrentFrameEntries.InstanceEntries)
         {
             for (auto& [MeshGeometryHandle, MetaData] : InstanceEntry.Materials)
             {
-                /*
-                //Reallocate a memory region from the staging buffer if staging buffer was reset or it's first time
-                if (!IsThereTextureIndexCopyInfos || !MetaData.StagingTextureIndexMemoryRegion.Size)
-                {
-                    MetaData.StagingTextureIndexMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMaterialData);
-                }
-                memcpy(StagingBufferPtr + MetaData.StagingTextureIndexMemoryRegion.Offset, &MetaData.Material, MetaData.StagingTextureIndexMemoryRegion.Size);
-                */
                 VkBufferCopy CopyRegion{};
                 CopyRegion.dstOffset = MetaData.TextureIndexMemoryRegion.Offset;
                 CopyRegion.size = SizeOfMaterialData;
                 CopyRegion.srcOffset = AppendedMaterialDatas.size() * SizeOfMaterialData;
-                //CopyRegion.srcOffset = MetaData.StagingTextureIndexMemoryRegion.Offset;
-                //CopyRegion.size = MetaData.StagingTextureIndexMemoryRegion.Size;
 
                 AppendedMaterialDataCopyRegions.push_back(std::move(CopyRegion));
                 AppendedMaterialDatas.push_back(MetaData.Material);
-                //CopyOperations[TEXTUREINDEX_COPY]->CopyRegions.push_back(std::move(CopyRegion));
             }
         }
     }
@@ -1260,21 +1090,11 @@ void SCENE::SceneMeshManager::UpdateMaterials(
                 //Fetch the cached data
                 auto& MaterialCache = InstanceMaterialMetaDataCaches[MaterialCacheIterator];
 
-                /*
-                //Reallocate a memory region from the staging buffer if staging buffer was reset or it's first time
-                if (!IsThereTextureIndexCopyInfos || !MaterialCache->StagingTextureIndexMemoryRegion.Size)
-                {
-                    MaterialCache->StagingTextureIndexMemoryRegion = StagingBuffer.StagingBuffer.Allocator.Suballocate(SizeOfMaterialData);
-                }
-                memcpy(StagingBufferPtr + MaterialCache->StagingTextureIndexMemoryRegion.Offset, &MaterialCache->Material, MaterialCache->StagingTextureIndexMemoryRegion.Size);
-                */
                 VkBufferCopy CopyRegion{};
                 CopyRegion.dstOffset = MaterialCache->TextureIndexMemoryRegion.Offset;
                 CopyRegion.size = SizeOfMaterialData;
                 CopyRegion.srcOffset = AppendedMaterialDatas.size() * SizeOfMaterialData;
-                //CopyRegion.srcOffset = MaterialCache->StagingTextureIndexMemoryRegion.Offset;
-                //CopyRegion.size = MaterialCache->StagingTextureIndexMemoryRegion.Size;
-                //CopyOperations[TEXTUREINDEX_COPY]->CopyRegions.push_back(std::move(CopyRegion));
+              
                 AppendedMaterialDataCopyRegions.push_back(std::move(CopyRegion));
                 AppendedMaterialDatas.push_back(MaterialCache->Material);
 
@@ -1290,7 +1110,7 @@ void SCENE::SceneMeshManager::UpdateMaterials(
         MaterialDataBlock->SizeInBytes = AppendedMaterialDatas.size() * SizeOfMaterialData;
         MaterialDataBlock->Deleter = [LocalVector = std::move(AppendedMaterialDatas)]() {};
 
-        ResourceManagerPtr->RequestCopyOperation(
+        ResourceManagerPtr->RequestBufferCopyOperation(
             AppendedMaterialDataCopyRegions,
             RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             &CurrentTextureIndexBuffer.Buffer,

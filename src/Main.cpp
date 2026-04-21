@@ -84,6 +84,7 @@ int main()
         );
         */
         ResourceManager.AppendModelImportTask({ &SponzaModel , "Resources\\sponza.obj" });
+        //ResourceManager.AppendModelImportTask({ &SponzaModel , "C:\\Users\\kbald\\Downloads\\main_sponza\\main_sponza\\NewSponza_Main_glTF_003.gltf" });
         ResourceManager.AppendModelImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
         ResourceManager.SubmitModelImports();
         ResourceManager.WaitModelImportsIdle();
@@ -132,10 +133,9 @@ int main()
         }
 
         Sponza.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+        //SponzaTextured.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(5.0f));
         Sponza.Transformations.RotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         Shovel.Transformations.ScalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
-
-       
 
         SCENE::Cubemap Cubemap0(RendererContext, 1024, 1024);
         SCENE::ImportHDRI("resources\\boma_4k.hdr", Cubemap0, RendererContext);

@@ -224,6 +224,7 @@ void RENDERER::ShadowMapManager::Destroy()
 }
 
 void RENDERER::ShadowMapManager::AppendCascadedShadowMap(
+   
     std::vector<CascadedShadowMapInfo>& Infos,
     uint32_t FrameIndex,
     std::array<RENDERER::CopyOperationEntry*, 2>& CopyInfos,
@@ -231,6 +232,7 @@ void RENDERER::ShadowMapManager::AppendCascadedShadowMap(
     SCENE::PersistentStagingBuffer& StagingBuffer
 )
 {
+    /*
     auto& CurrentMetaDataBuffer = CascadedShadowMapsMetaDataBuffers[FrameIndex];
     auto& CurrentDataBuffer = CascadedShadowMapsDataBuffers[FrameIndex];
     auto& CurrentMetaDataBufferAllocator = CurrentMetaDataBuffer.Allocator;
@@ -401,6 +403,7 @@ void RENDERER::ShadowMapManager::AppendCascadedShadowMap(
             Entry.RequiresUpload = false; 
         }
     }
+    */
 }
 
 void RENDERER::ShadowMapManager::CreateShadowMapTextures(

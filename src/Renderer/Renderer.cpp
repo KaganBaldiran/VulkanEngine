@@ -468,20 +468,21 @@ void RENDERER::Renderer::RenderFrame()
     SwapChainImage.BarrierState = SwapChainBarrierState;
     SwapChainImage.Image = SwapChainImageHandle;
 
+    std::unordered_set<ResourceManager*> UniqueResourceManagers;
     for (auto &[HandlePair,SceneCameraPair] : UniqueSceneCameraPairs)
     {
         SCENE::Scene* Scene = SceneCameraPair.first;
         Scene->ResourceManagerPtr->MeshManager.UpdateGeometryEntries();
         Scene->ResourceManagerPtr->TextureManager.UpdateDescriptors(CurrentFrame);
         Scene->FlushPendingUpdates(SCENE::SCENE_UPDATE_TYPE_ALL_PENDING, CurrentFrame);
+        UniqueResourceManagers.insert(Scene->ResourceManagerPtr);
     }
 
-    //Resource copying passes
-    for (uint32_t i = 0; i < RenderPasses.size(); i++)
+    for (auto& ResourceManagerPtr : UniqueResourceManagers)
     {
-        RenderPasses[i].Scene->ResourceManagerPtr->QueueCopyOperations(MainCommandBuffer, CurrentFrame, FrameGraph);
+        ResourceManagerPtr->QueueCopyOperations(MainCommandBuffer, CurrentFrame, FrameGraph);
     }
-
+   
     bool EnableCulling = true;
 
     FrameGraph.AppendTask({

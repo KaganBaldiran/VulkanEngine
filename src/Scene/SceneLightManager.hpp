@@ -9,6 +9,7 @@
 namespace RENDERER
 {
 	class RendererContext;
+	class ResourceManager;
 }
 
 namespace SCENE
@@ -48,7 +49,13 @@ namespace SCENE
 		void Create(RENDERER::RendererContext &RendererContext);
 		void Destroy(VkDevice& LogicalDevice);
 
-		void AppendOrUpdateLights(LightAppendOrUpdateInfo &Info);
+		void AppendOrUpdateLights(
+			std::vector<Light*>& StaticLights,
+			std::vector<Light*>& DynamicLights,
+			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>& TargetDescriptorSets,
+			uint32_t FrameIndex,
+			RENDERER::ResourceManager* ResourceManagerPtr
+		);
 		void EraseLights(LightEraseInfo &Info);
 		std::array<LightEntryManager, MAX_FRAMES_IN_FLIGHT> LightEntries;
 		std::array<RENDERER_CORE::BufferAllocator, MAX_FRAMES_IN_FLIGHT> StaticLightSSBOs;
