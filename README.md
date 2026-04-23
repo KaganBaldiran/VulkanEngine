@@ -3,11 +3,14 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/KaganBaldiran/VulkanEngine)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 # VulkanEngine
-Vulkan engine is a real time PBR renderer powered by Vulkan graphics API written in c++. Planning to use it to power future games.
+Vulkan engine is a GPU driven real time PBR renderer powered by Vulkan graphics API written in c++. It's being developed with highly strict memory optimizations and ease of use in mind.
+# Currently being worked-on
+-Ray traced shadows
 # Abilities
 - Pbr rendering.
 - HDRI support.
-- Multi-indirect rendering with dynamic central mesh buffer managing.
+- Multi-indirect rendering.
+- Chunk-by-chunk multi-frame resource loading/copying. 
 - GPU frustum culling.
 - Packed cascaded show maps.
 - Native instancing control.
