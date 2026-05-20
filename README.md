@@ -17,3 +17,24 @@ Vulkan engine is a GPU driven real time PBR renderer powered by Vulkan graphics 
 - Asynchronous asset loading.
 # Current Look
 <img width="1919" height="1028" alt="image" src="https://github.com/user-attachments/assets/2ee5ceb6-def8-4a95-bab6-9b032f52de60" />
+
+# Building
+
+The project uses cmake to generate the files. 
+if you are on linux you may build it using 
+```shell
+cmake -B build
+cmake --build build
+```
+If you are on windows, you are required to install vcpkg to download the required libraries
+
+```shell
+git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
+cd C:/vcpkg
+.\bootstrap-vcpkg.bat
+```
+Then you may proceed with generating the required files.
+```shell
+cmake -G "Visual Studio 17 2022" -A x64 -S . -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+```
+
