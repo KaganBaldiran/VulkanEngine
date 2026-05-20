@@ -36,7 +36,7 @@ cd C:/vcpkg
 Then you may proceed with generating the required files.
 ```shell
 cmake -G "Visual Studio 17 2022" -A x64 -S . -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-//Then you may build the .exe file directly if you wish
+#Then you may build the .exe file directly if you wish
 cmake --build build
 ```
 
