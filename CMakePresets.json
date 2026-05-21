@@ -1,0 +1,44 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "windows-vcpkg",
+      "displayName": "Windows (vcpkg + VS2022)",
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build/windows",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "linux-vcpkg",
+      "displayName": "Linux (vcpkg + Ninja)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-vcpkg",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "linux-apt",
+      "displayName": "Linux (APT System Packages + Ninja)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-apt"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-vcpkg",
+      "configurePreset": "windows-vcpkg"
+    },
+    {
+      "name": "linux-vcpkg",
+      "configurePreset": "linux-vcpkg"
+    },
+    {
+      "name": "linux-apt",
+      "configurePreset": "linux-apt"
+    }
+  ]
+}

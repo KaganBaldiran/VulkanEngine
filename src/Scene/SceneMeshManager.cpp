@@ -577,7 +577,6 @@ void SCENE::SceneMeshManager::AppendModels(
     std::vector<ModelInstance*>& MaterialUpdateList,
     const uint32_t& FrameIndex,
     std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>& TargetDescriptorSets,
-    PersistentStagingBuffer& StagingBuffer,
     SCENE::SceneOptions SceneOptions
 )
 {

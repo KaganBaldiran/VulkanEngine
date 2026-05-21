@@ -165,7 +165,11 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 
 	for (uint64_t NodesID = 0; NodesID < Nodes.size(); NodesID++)
 	{
-		if (Nodes[NodesID].Degree == 0) ProcessQueue.push(NodesID);
+		if (Nodes[NodesID].Degree == 0)
+		{
+			ProcessQueue.push(NodesID);
+			//LOG_CONSOLE(COMMON::LOG_SEVERITY_DEBUG, std::string("0 dependent node: ") + Nodes[NodesID].Name);
+		}
 	}
 
 	while (ProcessQueue.size())

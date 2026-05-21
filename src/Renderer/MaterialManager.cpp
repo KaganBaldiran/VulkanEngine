@@ -64,77 +64,9 @@ void RENDERER::TextureManager::SubmitImport()
             Load.DestinationTextureID = ImportInfo.DestinationTextureID;
 
             return Load;
-            //auto& DestinationTextureData = TextureDatas[ImportInfo.DestinationTextureID];
-
-            /*
-            RENDERER_CORE::CommandPool TempCommandPool(
-                RendererContextPtr->QueueFamilyIndices.GraphicsFamily.value(),
-                RendererContextPtr->DeviceContext.LogicalDevice,
-                VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
-            );
-
-            RENDERER_CORE::CreateTextureImageAsync(
-                NewRawImageData,
-                RendererContextPtr->DeviceContext.PhysicalDevice,
-                RendererContextPtr->DeviceContext.LogicalDevice,
-                TempCommandPool.Handle,
-                RendererContextPtr->DeviceContext.GraphicsQueue,
-                DestinationTextureData.Data,
-                Mutex
-            );
-
-            TempCommandPool.Destroy(RendererContextPtr->DeviceContext.LogicalDevice);
-            return true;
-            */
         }) });
     }
 }
-/*
-void RENDERER::TextureManager::SubmitImport()
-{
-    std::vector<uint64_t> ImagesToTransition;
-    ImagesToTransition.reserve(ImportQueue.size());
-
-    StartingTime = glfwGetTime();
-    while (!ImportQueue.empty())
-    {
-        auto ImportInfo = ImportQueue.front();
-        ImportQueue.pop();
-
-        Futures.push_back({ ImportInfo,std::async(std::launch::async, [this,ImportInfo]() -> bool {
-            RENDERER_CORE::RawImageData NewRawImageData;
-            auto Result = RENDERER_CORE::ReadTexture(ImportInfo.FileName.c_str(), NewRawImageData);
-            if (Result < 0) {
-                LOG_FILE(GLOBAL_LOG_FILE_PATH, COMMON::LOG_SEVERITY_ERROR, "Failed reading texture[" + ImportInfo.FileName + "].");
-                return false;
-            };
-
-            RawImageDatas[ImportInfo.DestinationTextureID] = NewRawImageData;
-            auto& DestinationTextureData = TextureDatas[ImportInfo.DestinationTextureID];
-
-            RENDERER_CORE::CommandPool TempCommandPool(
-                RendererContextPtr->QueueFamilyIndices.GraphicsFamily.value(),
-                RendererContextPtr->DeviceContext.LogicalDevice,
-                VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
-            );
-
-            RENDERER_CORE::CreateTextureImageAsync(
-                NewRawImageData,
-                RendererContextPtr->DeviceContext.PhysicalDevice,
-                RendererContextPtr->DeviceContext.LogicalDevice,
-                TempCommandPool.Handle,
-                RendererContextPtr->DeviceContext.GraphicsQueue,
-                DestinationTextureData.Data,
-                Mutex
-            );
-
-            TempCommandPool.Destroy(RendererContextPtr->DeviceContext.LogicalDevice);
-            return true;
-        }) });
-
-    }
-}
-*/
 
 void RENDERER::TextureManager::WaitImportsIdle()
 {
@@ -145,6 +77,7 @@ void RENDERER::TextureManager::WaitImportsIdle()
         {
             RawImageDatas[ImportInfo.DestinationTextureID] = Load.RawData;
             auto& DestinationTextureData = TextureDatas[ImportInfo.DestinationTextureID];
+            DestinationTextureData.Uploaded = std::make_shared<COMMON::AsyncToken>();
 
             VkImageCreateInfo ImageCreateInfo{};
             ImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -203,7 +136,7 @@ void RENDERER::TextureManager::WaitImportsIdle()
             std::shared_ptr<RENDERER::DataBlock> TextureDataBlock = std::make_shared<RENDERER::DataBlock>();
             TextureDataBlock->DataPtr = reinterpret_cast<uint8_t*>(Load.RawData->Pixels);
             TextureDataBlock->SizeInBytes = Load.RawData->Width * Load.RawData->Height * 4;
-            TextureDataBlock->Deleter = []() {};
+            TextureDataBlock->Deleter = [RawData = Load.RawData]() {};
 
             VkBufferImageCopy CopyRegion{};
             CopyRegion.bufferOffset = 0;
@@ -229,7 +162,7 @@ void RENDERER::TextureManager::WaitImportsIdle()
 
             RENDERER_CORE::BarrierState OnCompleteTransition;
             OnCompleteTransition.AccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
-            OnCompleteTransition.StageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            OnCompleteTransition.StageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
             OnCompleteTransition.ImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
             ResourceManagerPtr->RequestImageCopyOperation(
@@ -239,16 +172,16 @@ void RENDERER::TextureManager::WaitImportsIdle()
                 TextureDataBlock,
                 MetaData,
                 VK_IMAGE_ASPECT_COLOR_BIT,
-                2,
+                3,
                 COPY_OPERATION_FLAG_NONE,
-                OnCompleteTransition
+                OnCompleteTransition,
+                nullptr,
+                0,
+                &DestinationTextureData.Uploaded,
+                1
             );
 
             ImportRegistries.emplace(std::string(ImportInfo.FileName), ImportInfo.DestinationTextureID);
-            
-            auto Iterator = TextureDatas.find(ImportInfo.DestinationTextureID);
-            if (Iterator == TextureDatas.end()) continue;
-
             for (size_t i = 0; i < this->DescriptorWriteQueue.size(); i++)
             {
                 DescriptorWriteQueue[i].push_back(ImportInfo.DestinationTextureID);

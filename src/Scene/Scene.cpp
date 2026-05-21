@@ -169,7 +169,6 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
                 UpdateList.MaterialUpdateList,
                 i, 
                 IndirectDescriptorSets, 
-                ResourceManagerPtr->StagingBuffers[i],
                 this->Options
             );
             UpdateList.ModelInstancesAppendList.clear();

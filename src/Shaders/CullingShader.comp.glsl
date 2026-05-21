@@ -29,7 +29,6 @@ layout(push_constant) uniform MetaData{
    uint Padding0; 
    uint Padding1; 
    uint Padding2;
-   //---- 16 byte
    vec4 FrustumPlanes[6];
 };
 

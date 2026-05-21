@@ -264,7 +264,6 @@ namespace SCENE
 			std::vector<ModelInstance*>& MaterialUpdateList,
 			const uint32_t &FrameIndex,
 			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> &TargetDescriptorSets,
-			PersistentStagingBuffer &StagingBuffer,
 			SceneOptions SceneOptions
 			//std::array<RENDERER::CopyOperationEntry*, static_cast<int>(BUFFER_COPY_SLOT_SIZE)>& CopyInfos
 		);

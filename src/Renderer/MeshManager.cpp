@@ -122,6 +122,8 @@ void RENDERER::MeshManager::UpdateGeometryEntries()
 
     std::unordered_map<size_t, GeometryEntry> InsertedGeometryEntries;
     std::unordered_map<size_t, SCENE::GeometryData*> GeometryDataReferences;
+    std::vector<std::shared_ptr<COMMON::AsyncToken>> UploadedTokens;
+    UploadedTokens.reserve(MeshImportResults.size() + 1);
     for (auto& ImportResult : MeshImportResults)
     {
         for (size_t i = 0; i < ImportResult.GeometryDatas.size(); i++)
@@ -136,10 +138,15 @@ void RENDERER::MeshManager::UpdateGeometryEntries()
             VertexSize = Data.Vertices.size() * sizeof(SCENE::Vertex3D);
             IndexSize = Data.Indices.size() * sizeof(uint32_t);
 
+            std::shared_ptr<COMMON::AsyncToken> NewToken = std::make_shared<COMMON::AsyncToken>();
+
             //Fill in the new geometry entry
             GeometryEntry NewGeometryEntry{};
             NewGeometryEntry.MeshMaterial = Data.MeshMaterial;
             NewGeometryEntry.BoundingBox = Data.BoundingBox;
+            NewGeometryEntry.Uploaded = NewToken;
+
+            UploadedTokens.push_back(std::move(NewToken));
 
             RENDERER::BufferPageAllocationInfo AllocationInfo = AllocateFromGeometryBuffers(VertexSize, IndexSize);
             NewGeometryEntry.VertexRegion = AllocationInfo.VertexRegion;
@@ -203,6 +210,7 @@ void RENDERER::MeshManager::UpdateGeometryEntries()
         if (!CopyRegions.empty())
         {
             std::shared_ptr<COMMON::AsyncToken> Token = std::make_shared<COMMON::AsyncToken>();
+            UploadedTokens.push_back(Token);
             ResourceManagerPtr->RequestBufferCopyOperation(
                 CopyRegions,
                 RENDERER_CORE::QUEUE_TYPE_TRANSFER,
@@ -212,8 +220,8 @@ void RENDERER::MeshManager::UpdateGeometryEntries()
                 COPY_OPERATION_FLAG_NONE,
                 nullptr,
                 0,
-                &Token,
-                1
+                UploadedTokens.data(),
+                UploadedTokens.size()
             );
             GeometryBufferPageCopyTokens.push_back(std::move(Token));
         }

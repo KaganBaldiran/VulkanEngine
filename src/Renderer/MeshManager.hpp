@@ -35,6 +35,8 @@ namespace RENDERER
         SCENE::BoundingBoxAABB BoundingBox;
         SCENE::Material MeshMaterial;
         uint32_t PageIndex;
+
+        std::shared_ptr<COMMON::AsyncToken> Uploaded;
     };
 
     struct BufferPageAllocationInfo

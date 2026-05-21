@@ -32,7 +32,7 @@ int main()
         RENDERER::RendererContext RendererContext(1000, 800,"HelloWorld",RendererSettings);
         RENDERER::Renderer Renderer(RendererContext, false);
         
-        RendererContext.Window.SetFullScreen(true);
+        //RendererContext.Window.SetFullScreen(true);
 
         SCENE::ModelHandle SponzaModel;
         SCENE::ModelHandle ShovelModel;
@@ -84,8 +84,8 @@ int main()
         );
         */
         ResourceManager.AppendModelImportTask({ &SponzaModel , "Resources\\sponza.obj" });
-        //ResourceManager.AppendModelImportTask({ &SponzaModel , "C:\\Users\\kbald\\Downloads\\main_sponza\\main_sponza\\NewSponza_Main_glTF_003.gltf" });
         ResourceManager.AppendModelImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
+        //ResourceManager.AppendModelImportTask({ &SponzaModel , "C:\\Users\\kbald\\Downloads\\main_sponza\\main_sponza\\NewSponza_Main_glTF_003.gltf" });
         ResourceManager.SubmitModelImports();
         ResourceManager.WaitModelImportsIdle();
 
@@ -174,9 +174,9 @@ int main()
         //Scene0.LinkModelInstance(SceneModelInstance);
         //Scene0.LinkModelInstance(Shovel1);
 
+        Scene0.LinkModelInstance(Shovel);
         Scene0.LinkModelInstance(Sponza);
         Scene0.LinkModelInstance(SponzaTextured);
-        Scene0.LinkModelInstance(Shovel);
 
         for (size_t i = 0; i < 100; i++)
         {
@@ -272,7 +272,7 @@ int main()
             }";
 
         RENDERER::DeferredRenderPipeline DeferredPipeline(RendererContext);
-        DeferredPipeline.CompileCustomPipeline(ShadeFunction, "CustomShader0");
+        DeferredPipeline.CompileCustomPipeline(ShadeFunction, "Shaders/CustomShaders/CustomShader0");
         RENDERER::DeferredRenderPipeline DeferredPipelineNormal(RendererContext);
 
         VkViewport Viewport0{};

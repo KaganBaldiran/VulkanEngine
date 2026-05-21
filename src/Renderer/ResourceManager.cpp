@@ -15,11 +15,31 @@ void RENDERER::ResourceManager::Create(RENDERER::RendererContext& RendererContex
 
 	this->TextureManager.Create(RendererContext,*this);
 	this->MeshManager.Create(TextureManager, RendererContext,*this);
+	Semaphore.Create(RendererContext.DeviceContext.LogicalDevice, 0);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	auto TransferQueue = RendererContext.DeviceContext.GetQueue(RENDERER_CORE::QUEUE_TYPE_TRANSFER);
+	if (TransferQueue == VK_NULL_HANDLE || !RendererContext.QueueFamilyIndices.TransferFamily.has_value())
 	{
-		StagingBuffers[i].AllocateSceneStagingBuffer(PersistentStagingBufferSize, RendererContextPtr);
+		LOG_CONSOLE(COMMON::LOG_SEVERITY_DEBUG, "Error during initializing the resource manager! No transfer queue present!");
 	}
+	CommandPool.Create(
+		RendererContext.QueueFamilyIndices.TransferFamily.value(),
+		RendererContext.DeviceContext.LogicalDevice
+	);
+
+	CommandBuffers.resize(5);
+	FreeCommandBuffers.reserve(5);
+	RENDERER_CORE::AllocateCommandBuffers(
+		CommandPool.Handle,
+		RendererContextPtr->DeviceContext.LogicalDevice,
+		CommandBuffers.data(),
+		CommandBuffers.size()
+	);
+	for (auto& StagingBuffer : TransientStagingBuffers)
+	{
+		StagingBuffer.AllocateSceneStagingBuffer(PersistentStagingBufferSize, RendererContextPtr);
+	}
+	//RingStagingBuffer.AllocateSceneStagingBuffer(PersistentStagingBufferSize * 3, RendererContextPtr);
 
 	IsDestroyed = false;
 	DestructionPriority = 2;
@@ -29,11 +49,16 @@ void RENDERER::ResourceManager::Create(RENDERER::RendererContext& RendererContex
 void RENDERER::ResourceManager::Destroy()
 {
 	if (IsDestroyed) return;
-	for (uint32_t i = 0; i < StagingBuffers.size(); i++)
+	CommandPool.Destroy(RendererContextPtr->DeviceContext.LogicalDevice);
+	
+	for (auto& StagingBuffer: TransientStagingBuffers)
 	{
 		RENDERER_CORE::DestroyBuffer(RendererContextPtr->DeviceContext.LogicalDevice, 
-											StagingBuffers[i].StagingBuffer.Buffer);
+										StagingBuffer.StagingBuffer.Buffer);
 	}
+	
+	RENDERER_CORE::DestroyBuffer(RendererContextPtr->DeviceContext.LogicalDevice,
+		RingStagingBuffer.StagingBuffer.Buffer);
 	IsDestroyed = true;
 }
 
@@ -171,8 +196,9 @@ void RENDERER::ResourceManager::QueueCopyOperations(VkCommandBuffer& CommandBuff
 
 	std::shared_ptr<FrameCopyLoad> CopyLoad = std::make_shared<FrameCopyLoad>();
 	LoadMemoryChunks(FrameIndex, CopyLoad->BufferCopyLoads, CopyLoad->ImageCopyLoads);
-	auto& StagingBuffer = StagingBuffers[FrameIndex].StagingBuffer;
+	auto& StagingBuffer = TransientStagingBuffers[FrameIndex].StagingBuffer;
 
+	if (CopyLoad->BufferCopyLoads.empty() && CopyLoad->ImageCopyLoads.empty()) return;
 	FrameGraph.AppendTask({
 		[this, FrameIndex,CopyLoad](RENDERER::PassBuilder& Builder) {
 			for (auto& BufferCopyLoad : CopyLoad->BufferCopyLoads)
@@ -243,6 +269,7 @@ void RENDERER::ResourceManager::QueueCopyOperations(VkCommandBuffer& CommandBuff
 					}
 				}
 			};
+			Barrier.ExecutePipelineBarrier(CommandBuffer);
 		},
 
 		"CopyOperations_Internal"
@@ -256,7 +283,7 @@ void RENDERER::ResourceManager::LoadMemoryChunks(
 	std::vector<ImageCopyLoad> &ImageCopyLoads
 )
 {
-	auto& StagingBuffer = StagingBuffers[FrameIndex].StagingBuffer;
+	auto& StagingBuffer = TransientStagingBuffers[FrameIndex].StagingBuffer;
 
 	if (ShouldSortCopyInfos)
 	{
@@ -364,7 +391,6 @@ bool RENDERER::ResourceManager::ProcessBufferCopyOperation(
 		}
 		else
 		{
-			LOG_CONSOLE(COMMON::LOG_SEVERITY_DEBUG, "Created a chunk!");
 			CopyRegion.size = Budget;
 			BluePrintCopyRegion.size -= Budget;
 			BluePrintCopyRegion.dstOffset += Budget;
@@ -394,6 +420,7 @@ bool RENDERER::ResourceManager::ProcessBufferCopyOperation(
 	return true;
 }
 
+
 bool RENDERER::ResourceManager::ProcessImageCopyOperation(
 	CopyOperationEntry& CopyInfo, 
 	size_t& Budget, 
@@ -419,7 +446,6 @@ bool RENDERER::ResourceManager::ProcessImageCopyOperation(
 	auto& CopyLoad = ImageCopyLoads.emplace_back();
 	CopyLoad.ImagePtr = CopyInfo.DestinationImage;
 	CopyLoad.Aspect = CopyInfo.Aspect;
-	CopyLoad.BarrierState = CopyInfo.OnCompleteTransition;
 	for (size_t CopyRegionIndex = CopyInfo.CurrentCopyRegionInline; CopyRegionIndex < CopyInfo.ImageCopyRegions.size(); CopyRegionIndex++)
 	{
 		auto& BluePrintCopyRegion = CopyInfo.ImageCopyRegions[CopyRegionIndex];
@@ -438,7 +464,7 @@ bool RENDERER::ResourceManager::ProcessImageCopyOperation(
 		CopyRegion.imageExtent.width = BluePrintCopyRegion.imageExtent.width;
 		CopyRegion.imageExtent.height = RowCountToCopy;
 		CopyRegion.imageExtent.depth = 1; 
-		CopyRegion.imageOffset = { 0,BluePrintCopyRegion.imageOffset.y,0 };
+		CopyRegion.imageOffset = { BluePrintCopyRegion.imageOffset.x,BluePrintCopyRegion.imageOffset.y,0 };
 
 		CopyRegion.imageSubresource.aspectMask = BluePrintCopyRegion.imageSubresource.aspectMask;
 		CopyRegion.imageSubresource.layerCount = 1;
@@ -448,7 +474,7 @@ bool RENDERER::ResourceManager::ProcessImageCopyOperation(
 		size_t CopiedBufferCount = RowCountToCopy * BytesInRow;
 		memcpy(StagingBufferMappedPtr + CopyRegion.bufferOffset, CopyInfo.Data->DataPtr + BluePrintCopyRegion.bufferOffset, CopiedBufferCount);
 
-		if (RowCountInBudget >= RowCountToCopy)
+		if (RowCountToCopy == RemainingHeight)
 		{
 			CopyInfo.CurrentCopyRegionInline++;
 		}
@@ -461,6 +487,7 @@ bool RENDERER::ResourceManager::ProcessImageCopyOperation(
 
 		Budget -= CopiedBufferCount;
 		Offset += CopiedBufferCount;
+
 		if (Budget == 0) break;
 	}
 	if (CopyInfo.CurrentCopyRegionInline == CopyInfo.ImageCopyRegions.size())
@@ -472,10 +499,29 @@ bool RENDERER::ResourceManager::ProcessImageCopyOperation(
 			SignalToken->State.store(true);
 		}
 
+		CopyLoad.BarrierState = CopyInfo.OnCompleteTransition;
 		CopyInfo.Data.reset();
 		ShouldSortCopyInfos = true;
 	}
 	return true;
 }
+
+void RENDERER::ResourceManager::HandleCopiesInFlight()
+{
+	uint64_t CurrentTimelineValue = Semaphore.GetSemaphoreCounterValue(RendererContextPtr->DeviceContext.LogicalDevice);
+	while(!CopiesInFlight.empty())
+	{
+		auto& CurrentCopyInFlight = CopiesInFlight.front();
+		if (CurrentTimelineValue >= CurrentCopyInFlight.TimelineValue)
+		{
+			CurrentCopyInFlight.Flag->State.store(true);
+
+
+			CopiesInFlight.pop_front();
+		}
+		else break;
+	}
+}
+
 
 

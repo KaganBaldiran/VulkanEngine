@@ -11,6 +11,7 @@
 #include "../Common/DestructionQueue.hpp"
 #include "../Common/CommonDefinitions.hpp"
 #include "../Common/MemoryArenaAllocator.hpp"
+#include "../Common/AsyncToken.hpp"
 
 #include "../Renderer/Core/VulkanImage.hpp"
 #include "../Renderer/Core/VulkanDescriptor.hpp"
@@ -39,6 +40,8 @@ namespace RENDERER
 	{
 		RENDERER_CORE::ImageData Data;
 		std::array<size_t,MAX_FRAMES_IN_FLIGHT> DescriptorSlots;
+
+		std::shared_ptr<COMMON::AsyncToken> Uploaded;
 	};
 
 	class TextureManager : COMMON::Destructible

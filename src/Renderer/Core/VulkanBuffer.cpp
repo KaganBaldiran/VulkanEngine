@@ -210,13 +210,12 @@ void RENDERER_CORE::UploadDataToExistingDeviceLocalBuffer(VkDevice LogicalDevice
     RENDERER_CORE::DestroyBuffer(LogicalDevice, StagingBuffer);
 }
 
-uint64_t RENDERER_CORE::GetBufferDeviceAddress(VkDevice& LogicalDevice,const Buffer& Buffer)
+VkDeviceAddress RENDERER_CORE::GetBufferDeviceAddress(VkDevice& LogicalDevice,const Buffer& Buffer)
 {
-    VkBufferDeviceAddressInfoKHR Info{};
+    VkBufferDeviceAddressInfo Info{};
     Info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     Info.buffer = Buffer.BufferObject;
-    //return vkGetBufferDeviceAddressKHR(LogicalDevice,&Info);
-    return 0;
+    return vkGetBufferDeviceAddress(LogicalDevice,&Info);
 }
 
 void RENDERER_CORE::MapBuffer(Buffer& DestinationBuffer, VkDevice& LogicalDevice, VkDeviceSize Offset, VkDeviceSize Size, VkMemoryMapFlags Flags)

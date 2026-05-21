@@ -124,7 +124,7 @@ namespace RENDERER_CORE
 		VkBufferUsageFlags UsageFlags
 	);
 
-	uint64_t GetBufferDeviceAddress(VkDevice& LogicalDevice, const Buffer& Buffer);
+	VkDeviceAddress GetBufferDeviceAddress(VkDevice& LogicalDevice, const Buffer& Buffer);
 
 	//Buffer with a virtual allocator plugged into it
 	struct BufferAllocator

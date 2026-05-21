@@ -10,6 +10,9 @@
 #include "../Common/DestructionQueue.hpp"
 #include "../Common/AsyncToken.hpp"
 
+#include <thread>
+#include <mutex>
+
 namespace SCENE
 {
 	class SceneMeshManager;
@@ -120,6 +123,8 @@ namespace RENDERER
 			FrameGraph &FrameGraph
 		);
 
+		void HandleAsyncCopyOperations();
+
 		MeshManager MeshManager;
 		TextureManager TextureManager;
 	private:
@@ -144,6 +149,15 @@ namespace RENDERER
 			std::vector<ImageCopyLoad> ImageCopyLoads;
 		};
 
+		struct CopyInFlight
+		{
+			uint64_t TimelineValue = 0;
+			std::shared_ptr<COMMON::AsyncToken> Flag;
+			
+			std::vector<std::shared_ptr<COMMON::AsyncToken>> WaitTokens;
+			std::vector<std::shared_ptr<COMMON::AsyncToken>> SignalTokens;
+		};
+
 		void LoadMemoryChunks(
 			uint32_t FrameIndex,
 			std::vector<BufferCopyLoad>& BufferCopyLoads,
@@ -165,9 +179,18 @@ namespace RENDERER
 		);
 		bool ShouldSortCopyInfos = true;
 
-		std::array<SCENE::PersistentStagingBuffer, MAX_FRAMES_IN_FLIGHT> StagingBuffers;
-		CopyOperationList CopyOperations;
+		void HandleCopiesInFlight();
+
+		SCENE::PersistentStagingBuffer RingStagingBuffer;
+		std::array<SCENE::PersistentStagingBuffer,MAX_FRAMES_IN_FLIGHT> TransientStagingBuffers;
+		std::deque<CopyInFlight> CopiesInFlight;
 		
+		RENDERER_CORE::CommandPool CommandPool;
+		std::vector<VkCommandBuffer> CommandBuffers;
+		std::vector<VkCommandBuffer> FreeCommandBuffers;
+
+		CopyOperationList CopyOperations;
+		RENDERER_CORE::TimelineSemaphore Semaphore;
 		RENDERER::RendererContext* RendererContextPtr = nullptr;
 	};
 }

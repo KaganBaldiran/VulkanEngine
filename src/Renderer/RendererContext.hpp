@@ -198,7 +198,6 @@ namespace RENDERER
 	private:
         bool IsRayQuerySupported();
         bool IsRayTracingPipelineSupported();
-
         //Creates texture descriptors. If the provided descriptor count exceeds the current free descriptor count, it recreates the descriptors.
         //In case the descriptors are recreated then the pipelines that reference the prior descriptors are also recreated.
         bool CreateTextureDescriptors(uint32_t DescriptorCount, uint32_t FrameIndex,bool DestroyPrevious = false);

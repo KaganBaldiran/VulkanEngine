@@ -174,6 +174,16 @@ void RENDERER::RendererContext::Create(
         [&TimelineFeatures]() { return TimelineFeatures.timelineSemaphore == VK_TRUE; }
     });
 
+    VkPhysicalDeviceBufferDeviceAddressFeatures BufferDeviceAddressFeatures{};
+    BufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    BufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
+    DeviceCreateInfo.RequestedDeviceFeatureNodes.push_back({
+        std::string(),
+        &BufferDeviceAddressFeatures,
+        false,
+        [&BufferDeviceAddressFeatures]() { return BufferDeviceAddressFeatures.bufferDeviceAddress == VK_TRUE; }
+    });
+
     DeviceCreateInfo.RequestedDeviceFeatureNodes.insert(DeviceCreateInfo.RequestedDeviceFeatureNodes.end(), Settings.RequestedDeviceFeatureNodes.begin(), Settings.RequestedDeviceFeatureNodes.end());
 
     VkPhysicalDeviceDescriptorIndexingFeatures PhysicalDeviceDescriptorIndexingFeatures{};
