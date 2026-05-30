@@ -455,3 +455,43 @@ VkQueue RENDERER_CORE::DeviceContext::GetQueue(QueueType Type)
             break;
     }
 }
+
+uint32_t RENDERER_CORE::QueueFamilyIndices::GetQueueFamilyIndex(QueueType Type)
+{
+    switch (Type)
+    {
+    case QUEUE_TYPE_PRESENT:
+    {
+        if (PresentFamily.has_value()) return PresentFamily.value();
+        return VK_QUEUE_FAMILY_IGNORED;
+        break;
+    }
+    case QUEUE_TYPE_GRAPHICS:
+    {
+        if (GraphicsFamily.has_value()) return GraphicsFamily.value();
+        return VK_QUEUE_FAMILY_IGNORED;
+        break;
+    }
+    case QUEUE_TYPE_TRANSFER:
+    {
+        if (TransferFamily.has_value()) return TransferFamily.value();
+        return VK_QUEUE_FAMILY_IGNORED;
+        break;
+    }
+    case QUEUE_TYPE_COMPUTE:
+    {
+        if (ComputeFamily.has_value()) return ComputeFamily.value();
+        return VK_QUEUE_FAMILY_IGNORED;
+        break;
+    }
+    case QUEUE_TYPE_GRAPHICS_COMPUTE:
+    {
+        if (GraphicsComputeFamily.has_value()) return GraphicsComputeFamily.value();
+        return VK_QUEUE_FAMILY_IGNORED;
+        break;
+    }
+    default:
+        return VK_QUEUE_FAMILY_IGNORED;
+        break;
+    }
+}

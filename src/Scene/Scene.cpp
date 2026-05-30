@@ -171,7 +171,7 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
                 IndirectDescriptorSets, 
                 this->Options
             );
-            UpdateList.ModelInstancesAppendList.clear();
+            //UpdateList.ModelInstancesAppendList.clear();
         }
         if ((Bit & SCENE_UPDATE_TYPE_UNLINK_MESHES) && !UpdateList.ModelInstancesEraseList.empty())
         {
@@ -194,7 +194,7 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
                 i, 
                 TextureIndicesDescriptorSets[i]
             );
-            UpdateList.MaterialUpdateList.clear();
+            //UpdateList.MaterialUpdateList.clear();
         }
         if ((Bit & SCENE_UPDATE_TYPE_UPDATE_DYNAMIC_LIGHT_BUFFERS) || (Bit & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS))
         {
@@ -202,13 +202,6 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
             bool UpdateStaticLightBuffers = (Bit & SCENE_UPDATE_TYPE_UPDATE_STATIC_LIGHT_BUFFERS);
 
             std::vector<Light*> EmptyLightList;
-            /*
-            LightAppendOrUpdateInfo Info{};
-            Info.FrameIndex = i;
-            Info.DynamicLights = UpdateDynamicLightBuffers ? UpdateList.DynamicLightAppendUpdateList : EmptyLightList;
-            Info.StaticLights = UpdateStaticLightBuffers ? UpdateList.StaticLightAppendUpdateList : EmptyLightList;
-            Info.TargetDescriptorSets = SceneDescriptorSets;
-            */
             LightManager.AppendOrUpdateLights(
                 UpdateStaticLightBuffers ? UpdateList.StaticLightAppendUpdateList : EmptyLightList,
                 UpdateDynamicLightBuffers ? UpdateList.DynamicLightAppendUpdateList : EmptyLightList,
@@ -220,7 +213,16 @@ void SCENE::Scene::FlushPendingUpdates(SceneUpdateType Type, uint32_t FrameIndex
             if (UpdateDynamicLightBuffers) UpdateList.DynamicLightAppendUpdateList.clear();
             if (UpdateStaticLightBuffers) UpdateList.StaticLightAppendUpdateList.clear();
         }
+
         this->PendingUpdateBits[i] = SCENE_UPDATE_TYPE_NONE;
+        if (!UpdateList.ModelInstancesAppendList.empty())
+        {
+            this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_LINK_MESHES;
+        }
+        if (!UpdateList.ModelInstancesEraseList.empty())
+        {
+            this->PendingUpdateBits[i] = this->PendingUpdateBits[i] | SCENE_UPDATE_TYPE_UNLINK_MESHES;
+        }
     }
 }
 

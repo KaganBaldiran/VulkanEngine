@@ -156,8 +156,8 @@ void SCENE::LightManager::AppendOrUpdateLights(
 	StaticLightDataBlock->Deleter = [LocalVector = std::move(AppendedStaticLightDatas)]() {};
 
 	ResourceManagerPtr->RequestBufferCopyOperation(
+		false,
 		AppendedStaticLightCopyRegions,
-		RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
 		&StaticLightBuffer.Buffer,
 		StaticLightDataBlock,
 		3,

@@ -22,6 +22,7 @@ namespace RENDERER_CORE
     );
 
     void BeginCommandBuffer(VkCommandBuffer CommandBuffer, VkCommandBufferUsageFlags Flags = 0, VkCommandBufferInheritanceInfo *InheritanceInfo = nullptr);
+    void EndCommandBuffer(VkCommandBuffer CommandBuffer);
 	void ExecuteSingleTimeCommand(VkDevice& LogicalDevice,std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandPool& Pool, VkQueue& Queue);
 	void ExecuteSingleTimeCommand(VkDevice& LogicalDevice,std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandBuffer& CommandBuffer,VkFence &Fence, VkQueue& Queue);
     void ExecuteSingleTimeCommandAsync(

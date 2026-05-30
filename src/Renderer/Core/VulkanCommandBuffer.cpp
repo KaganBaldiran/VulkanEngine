@@ -49,6 +49,14 @@ void RENDERER_CORE::BeginCommandBuffer(VkCommandBuffer CommandBuffer,VkCommandBu
     }
 }
 
+void RENDERER_CORE::EndCommandBuffer(VkCommandBuffer CommandBuffer)
+{
+    if (vkEndCommandBuffer(CommandBuffer) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to end a command buffer");
+    }
+}
+
 void RENDERER_CORE::ExecuteSingleTimeCommand(VkDevice &LogicalDevice,std::function<void(VkCommandBuffer& CommandBuffer)> Task, VkCommandPool& Pool, VkQueue& Queue)
 {
     VkFence Fence{};

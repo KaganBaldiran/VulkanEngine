@@ -10,6 +10,16 @@
 
 namespace RENDERER_CORE
 {
+    enum QueueType
+    {
+        QUEUE_TYPE_PRESENT = 0,
+        QUEUE_TYPE_GRAPHICS = 1,
+        QUEUE_TYPE_TRANSFER = 2,
+        QUEUE_TYPE_COMPUTE = 3,
+        QUEUE_TYPE_GRAPHICS_COMPUTE = 4,
+        QUEUE_TYPE_SIZE
+    };
+
     struct DeviceFeature
     {
         //Vulkan extention name
@@ -47,6 +57,8 @@ namespace RENDERER_CORE
         bool HasPresent() { return PresentFamily.has_value(); };
         bool HasComputeGraphics() { return GraphicsComputeFamily.has_value(); };
         bool HasTransfer() { return TransferFamily.has_value(); };
+
+        uint32_t GetQueueFamilyIndex(QueueType Type);
 
         bool isComplete() {
             return GraphicsComputeFamily.has_value() && GraphicsFamily.has_value() && PresentFamily.has_value() && ComputeFamily.has_value();
@@ -93,16 +105,6 @@ namespace RENDERER_CORE
 
         VkSurfaceKHR Handle;
     private:
-    };
-
-    enum QueueType
-    {
-        QUEUE_TYPE_PRESENT = 0,
-        QUEUE_TYPE_GRAPHICS = 1,
-        QUEUE_TYPE_TRANSFER = 2,
-        QUEUE_TYPE_COMPUTE = 3,
-        QUEUE_TYPE_GRAPHICS_COMPUTE = 4,
-        QUEUE_TYPE_SIZE
     };
 
     class DeviceContext

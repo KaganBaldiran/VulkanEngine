@@ -204,7 +204,7 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 			{
 				auto& Usage = ResourceUsages[BufferRead.Buffer];
 
-				if (Usage.StageMask != BufferRead.StageMask || Usage.AccessMask != BufferRead.AccessMask)
+				if (Usage.StageMask != BufferRead.StageMask || Usage.AccessMask != BufferRead.AccessMask || Usage.QueueFamilyIndex != BufferRead.QueueFamilyIndex)
 				{
 					Node.Barrier.AppendBufferMemoryBarrier(
 						BufferRead.Buffer->BufferObject,
@@ -213,10 +213,13 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 						Usage.StageMask,
 						BufferRead.StageMask,
 						Usage.AccessMask,
-						BufferRead.AccessMask
+						BufferRead.AccessMask,
+						Usage.QueueFamilyIndex,
+						BufferRead.QueueFamilyIndex
 					);
 					Usage.StageMask = BufferRead.StageMask;
 					Usage.AccessMask = BufferRead.AccessMask;
+					Usage.QueueFamilyIndex = BufferRead.QueueFamilyIndex;
 				}
 			}
 			else
@@ -228,13 +231,16 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 					BufferRead.Buffer->BarrierState.StageMask,
 					BufferRead.StageMask,
 					BufferRead.Buffer->BarrierState.AccessMask,
-					BufferRead.AccessMask
+					BufferRead.AccessMask,
+					BufferRead.Buffer->BarrierState.QueueFamily,
+					BufferRead.QueueFamilyIndex
 				);
 
 				ResourceUsage NewUsage;
 				NewUsage.UsageType = RESOURCE_USAGE_TYPE_BUFFER;
 				NewUsage.StageMask = BufferRead.StageMask;
 				NewUsage.AccessMask = BufferRead.AccessMask;
+				NewUsage.QueueFamilyIndex = BufferRead.QueueFamilyIndex;
 				NewUsage.Resource = BufferRead.Buffer;
 				ResourceUsages[BufferRead.Buffer] = std::move(NewUsage);
 			}
@@ -247,7 +253,7 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 				auto& Usage = ResourceUsages[TextureRead.Texture];
 
 				if (Usage.StageMask != TextureRead.StageMask || Usage.AccessMask != TextureRead.AccessMask ||
-					Usage.ImageLayout != TextureRead.ImageLayout)
+					Usage.ImageLayout != TextureRead.ImageLayout || Usage.QueueFamilyIndex != TextureRead.QueueFamilyIndex)
 				{
 					Node.Barrier.AppendImageMemoryBarrier(
 						TextureRead.Texture->Image,
@@ -257,14 +263,15 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 						TextureRead.AccessMask,
 						Usage.ImageLayout,
 						TextureRead.ImageLayout,
-						VK_QUEUE_FAMILY_IGNORED,
-						VK_QUEUE_FAMILY_IGNORED,
+						Usage.QueueFamilyIndex,
+						TextureRead.QueueFamilyIndex,
 						TextureRead.AspectMask
 					);
 
 					Usage.StageMask = TextureRead.StageMask;
 					Usage.AccessMask = TextureRead.AccessMask;
 					Usage.ImageLayout = TextureRead.ImageLayout;
+					Usage.QueueFamilyIndex = TextureRead.QueueFamilyIndex;
 				}
 			}
 			else
@@ -277,8 +284,8 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 					TextureRead.AccessMask,
 					TextureRead.Texture->BarrierState.ImageLayout,
 					TextureRead.ImageLayout,
-					VK_QUEUE_FAMILY_IGNORED,
-					VK_QUEUE_FAMILY_IGNORED,
+					TextureRead.Texture->BarrierState.QueueFamily,
+					TextureRead.QueueFamilyIndex,
 					TextureRead.AspectMask
 				);
 
@@ -287,6 +294,7 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 				NewUsage.StageMask = TextureRead.StageMask;
 				NewUsage.AccessMask = TextureRead.AccessMask;
 				NewUsage.ImageLayout = TextureRead.ImageLayout;
+				NewUsage.QueueFamilyIndex = TextureRead.QueueFamilyIndex;
 				NewUsage.Resource = TextureRead.Texture;
 				ResourceUsages[TextureRead.Texture] = std::move(NewUsage);
 			}
@@ -299,7 +307,7 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 				auto& Usage = ResourceUsages[TextureWrite.Texture];
 
 				if (Usage.StageMask != TextureWrite.StageMask || Usage.AccessMask != TextureWrite.AccessMask ||
-					Usage.ImageLayout != TextureWrite.ImageLayout)
+					Usage.ImageLayout != TextureWrite.ImageLayout || Usage.QueueFamilyIndex != TextureWrite.QueueFamilyIndex)
 				{
 					Node.Barrier.AppendImageMemoryBarrier(
 						TextureWrite.Texture->Image,
@@ -309,14 +317,15 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 						TextureWrite.AccessMask,
 						Usage.ImageLayout,
 						TextureWrite.ImageLayout,
-						VK_QUEUE_FAMILY_IGNORED,
-						VK_QUEUE_FAMILY_IGNORED,
+						Usage.QueueFamilyIndex,
+						TextureWrite.QueueFamilyIndex,
 						TextureWrite.AspectMask
 					);
 
 					Usage.StageMask = TextureWrite.StageMask;
 					Usage.AccessMask = TextureWrite.AccessMask;
 					Usage.ImageLayout = TextureWrite.ImageLayout;
+					Usage.QueueFamilyIndex = TextureWrite.QueueFamilyIndex;
 				}
 			}
 			else
@@ -329,8 +338,8 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 					TextureWrite.AccessMask,
 					TextureWrite.Texture->BarrierState.ImageLayout,
 					TextureWrite.ImageLayout,
-					VK_QUEUE_FAMILY_IGNORED,
-					VK_QUEUE_FAMILY_IGNORED,
+					TextureWrite.Texture->BarrierState.QueueFamily,
+					TextureWrite.QueueFamilyIndex,
 					TextureWrite.AspectMask
 				);
 
@@ -339,6 +348,7 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 				NewUsage.StageMask = TextureWrite.StageMask;
 				NewUsage.AccessMask = TextureWrite.AccessMask;
 				NewUsage.ImageLayout = TextureWrite.ImageLayout;
+				NewUsage.QueueFamilyIndex = TextureWrite.QueueFamilyIndex;
 				NewUsage.Resource = TextureWrite.Texture;
 				ResourceUsages[TextureWrite.Texture] = std::move(NewUsage);
 			}
@@ -350,7 +360,8 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 			{
 				auto& Usage = ResourceUsages[BufferWrite.Buffer];
 
-				if (Usage.StageMask != BufferWrite.StageMask || Usage.AccessMask != BufferWrite.AccessMask)
+				if (Usage.StageMask != BufferWrite.StageMask || Usage.AccessMask != BufferWrite.AccessMask || 
+					Usage.QueueFamilyIndex != BufferWrite.QueueFamilyIndex)
 				{
 					Node.Barrier.AppendBufferMemoryBarrier(
 						BufferWrite.Buffer->BufferObject,
@@ -359,11 +370,14 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 						Usage.StageMask,
 						BufferWrite.StageMask,
 						Usage.AccessMask,
-						BufferWrite.AccessMask
+						BufferWrite.AccessMask,
+						Usage.QueueFamilyIndex,
+						BufferWrite.QueueFamilyIndex
 					);
 
 					Usage.StageMask = BufferWrite.StageMask;
 					Usage.AccessMask = BufferWrite.AccessMask;
+					Usage.QueueFamilyIndex = BufferWrite.QueueFamilyIndex;
 				}
 			}
 			else
@@ -375,13 +389,16 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 					BufferWrite.Buffer->BarrierState.StageMask,
 					BufferWrite.StageMask,
 					BufferWrite.Buffer->BarrierState.AccessMask,
-					BufferWrite.AccessMask
+					BufferWrite.AccessMask,
+					BufferWrite.Buffer->BarrierState.QueueFamily,
+					BufferWrite.QueueFamilyIndex
 				);
 
 				ResourceUsage NewUsage;
 				NewUsage.UsageType = RESOURCE_USAGE_TYPE_BUFFER;
 				NewUsage.StageMask = BufferWrite.StageMask;
 				NewUsage.AccessMask = BufferWrite.AccessMask;
+				NewUsage.QueueFamilyIndex = BufferWrite.QueueFamilyIndex;
 				NewUsage.Resource = BufferWrite.Buffer;
 				ResourceUsages[BufferWrite.Buffer] = std::move(NewUsage);
 			}
@@ -398,6 +415,7 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 			RENDERER_CORE::Buffer* BufferPtr = reinterpret_cast<RENDERER_CORE::Buffer*>(Usage.Resource);
 			BufferPtr->BarrierState.AccessMask = Usage.AccessMask;
 			BufferPtr->BarrierState.StageMask = Usage.StageMask;
+			BufferPtr->BarrierState.QueueFamily = Usage.QueueFamilyIndex;
 			break;
 		}
 		case RESOURCE_USAGE_TYPE_TEXTURE:
@@ -406,6 +424,7 @@ void RENDERER::FrameGraph::Compile(uint32_t CurrentFrame)
 			TexturePtr->BarrierState.AccessMask = Usage.AccessMask;
 			TexturePtr->BarrierState.StageMask = Usage.StageMask;
 			TexturePtr->BarrierState.ImageLayout = Usage.ImageLayout;
+			TexturePtr->BarrierState.QueueFamily = Usage.QueueFamilyIndex;
 			break;
 		}
 		default:

@@ -212,12 +212,13 @@ void RENDERER::MeshManager::UpdateGeometryEntries()
             std::shared_ptr<COMMON::AsyncToken> Token = std::make_shared<COMMON::AsyncToken>();
             UploadedTokens.push_back(Token);
             ResourceManagerPtr->RequestBufferCopyOperation(
+                true,
                 CopyRegions,
-                RENDERER_CORE::QUEUE_TYPE_TRANSFER,
                 &PageBuffer.Buffer,
                 CopiedDataBlock,
                 1,
                 COPY_OPERATION_FLAG_NONE,
+                RENDERER_CORE::BarrierState(),
                 nullptr,
                 0,
                 UploadedTokens.data(),

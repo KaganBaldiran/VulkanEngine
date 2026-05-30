@@ -4,6 +4,7 @@
 
 #include "Core/VulkanSynchoronization.hpp"
 #include "Core/VulkanDevice.hpp"
+#include "Core/VulkanCommandPool.hpp"
 #include "../Scene/PersistentSceneStagingBuffer.hpp"
 
 #include "../Common/StableVector.hpp"
@@ -46,8 +47,6 @@ namespace RENDERER
 
 	struct CopyOperationEntry
 	{
-		RENDERER_CORE::QueueType QueueType;
-
 		std::vector<VkBufferCopy> BufferCopyRegions;
 		RENDERER_CORE::Buffer* DestinationBuffer = nullptr;
 
@@ -60,8 +59,7 @@ namespace RENDERER
 		std::shared_ptr<DataBlock> Data;
 		size_t CurrentCopyRegionInline = 0;
 		uint32_t Priority = 0;
-		uint64_t TargetSemaphoreValue = 0;
-		std::shared_ptr<COMMON::AsyncToken> State;
+		std::shared_ptr<COMMON::AsyncToken> AllChunksProcessed;
 		CopyOperationFlagBit Flags = COPY_OPERATION_FLAG_NONE;
 
 		std::vector<std::shared_ptr<COMMON::AsyncToken>> WaitTokens;
@@ -89,12 +87,13 @@ namespace RENDERER
 		void WaitTextureImportsIdle();
 
 		void RequestBufferCopyOperation(
+			bool Asynchronous,
 			const std::vector<VkBufferCopy>& CopyRegions,
-			RENDERER_CORE::QueueType QueueType,
-			RENDERER_CORE::Buffer* DestinationImage,
+			RENDERER_CORE::Buffer* DestinationBuffer,
 			const std::shared_ptr<DataBlock> &Data,
 			uint32_t Priority = 0,
 			CopyOperationFlagBit Flags = COPY_OPERATION_FLAG_NONE,
+			RENDERER_CORE::BarrierState OnCompleteTransition = RENDERER_CORE::BarrierState(),
 			std::shared_ptr<COMMON::AsyncToken>* WaitTokens = nullptr,
 			uint32_t WaitTokenCount = 0,
 			std::shared_ptr<COMMON::AsyncToken>* SignalTokens = nullptr,
@@ -102,8 +101,8 @@ namespace RENDERER
 		);
 
 		void RequestImageCopyOperation(
+			bool Asynchronous,
 			const std::vector<VkBufferImageCopy>& CopyRegions,
-			RENDERER_CORE::QueueType QueueType,
 			RENDERER_CORE::ImageData* DestinationImage,
 			const std::shared_ptr<DataBlock>& Data,
 			RENDERER_CORE::ImageMetaData ImageMetaData,
@@ -117,7 +116,7 @@ namespace RENDERER
 			uint32_t SignalTokenCount = 0
 		);
 		
-		void QueueCopyOperations(
+		void QueueTransientCopyOperations(
 			VkCommandBuffer& CommandBuffer,
 			size_t FrameIndex,
 			FrameGraph &FrameGraph
@@ -149,13 +148,31 @@ namespace RENDERER
 			std::vector<ImageCopyLoad> ImageCopyLoads;
 		};
 
-		struct CopyInFlight
+		struct AsyncTransferContext
+		{
+			RENDERER_CORE::CommandPool CommandPool;
+			VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
+			
+			uint64_t LastSubmittedTimelineValue = 0;
+		};
+
+		struct InFlightPayload
+		{
+			RENDERER_CORE::Buffer* DestinationBuffer = nullptr;
+			RENDERER_CORE::ImageData* DestinationImage = nullptr;
+			VkImageAspectFlags Aspect;
+			RENDERER_CORE::BarrierState OnCompleteTransition;
+			std::shared_ptr<COMMON::AsyncToken> AllChunksProcessed;
+			std::vector<std::shared_ptr<COMMON::AsyncToken>> SignalTokens;
+		};
+
+		struct BatchInFlight
 		{
 			uint64_t TimelineValue = 0;
 			std::shared_ptr<COMMON::AsyncToken> Flag;
+			AsyncTransferContext* Context = nullptr;
 			
-			std::vector<std::shared_ptr<COMMON::AsyncToken>> WaitTokens;
-			std::vector<std::shared_ptr<COMMON::AsyncToken>> SignalTokens;
+			std::vector<InFlightPayload> Payloads;
 		};
 
 		void LoadMemoryChunks(
@@ -179,18 +196,31 @@ namespace RENDERER
 		);
 		bool ShouldSortCopyInfos = true;
 
+		void RecordAcquireBarriers(
+			VkCommandBuffer DestinationCommandBuffer,
+			const std::vector<InFlightPayload>& CompletedTransfers
+		);
 		void HandleCopiesInFlight();
 
-		SCENE::PersistentStagingBuffer RingStagingBuffer;
 		std::array<SCENE::PersistentStagingBuffer,MAX_FRAMES_IN_FLIGHT> TransientStagingBuffers;
-		std::deque<CopyInFlight> CopiesInFlight;
+		std::vector<CopyOperationEntry> CopyOperations;
 		
-		RENDERER_CORE::CommandPool CommandPool;
-		std::vector<VkCommandBuffer> CommandBuffers;
-		std::vector<VkCommandBuffer> FreeCommandBuffers;
+		std::deque<BatchInFlight> CopiesInFlight;
+		SCENE::PersistentStagingBuffer RingStagingBuffer;
+		RENDERER_CORE::PipelineBarrier2 InterQueueBarrier;
 
-		CopyOperationList CopyOperations;
+		std::mutex AcquireQueueMutex;
+		std::vector<InFlightPayload> PendingAcquires;
+		
+		std::vector<uint32_t> FreeContexts;
+		std::vector<CopyOperationEntry> AsyncCopyOperations;
+		std::array<AsyncTransferContext,5> AsyncTransferContexts;
+		uint32_t CurrentTransferContextIndex = 0;
+		uint64_t TimelineSemaphoreCounter = 0;
+
 		RENDERER_CORE::TimelineSemaphore Semaphore;
+		bool ShouldSortAsyncCopyInfos = true;
+
 		RENDERER::RendererContext* RendererContextPtr = nullptr;
 	};
 }

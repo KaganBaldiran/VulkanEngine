@@ -166,8 +166,8 @@ void RENDERER::TextureManager::WaitImportsIdle()
             OnCompleteTransition.ImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
             ResourceManagerPtr->RequestImageCopyOperation(
+                true,
                 { CopyRegion },
-                RENDERER_CORE::QUEUE_TYPE_TRANSFER,
                 &DestinationTextureData.Data,
                 TextureDataBlock,
                 MetaData,

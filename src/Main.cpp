@@ -54,7 +54,7 @@ int main()
 
         ResourceManager.AppendModelImportTask({ &Quad , "Resources\\Quad.fbx" });
         //ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
-       // ResourceManager.AppendModelImportTask({ &SponzaModel , "Resources\\sponza.obj" });
+        //ResourceManager.AppendModelImportTask({ &SponzaModel , "Resources\\sponza.obj" });
         //ResourceManager.AppendModelImportTask({ &ShovelModel , "Resources\\shovel2.obj" });
         //ResourceManager.AppendModelImportTask({ &SceneModel , "C:\\Users\\kbald\\Desktop\\SunTemple\\SunTemple.fbx" });
         //ResourceManager.AppendModelImportTask({ &Quad , "Resources\\Quad.fbx" });

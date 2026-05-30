@@ -149,8 +149,8 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
         TransformMatricesDataBlock->Deleter = [LocalVector = std::move(AppendedTransformMatrices)]() {};
 
         ResourceManagerPtr->RequestBufferCopyOperation(
+            false,
             TransformMatricesCopyInfos,
-            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             &ModelMatrixBuffer,
             TransformMatricesDataBlock,
             3,
@@ -158,6 +158,7 @@ void SCENE::SceneMeshManager::UpdateMeshTransformationsDeviceLocal(
         );
     }
 }
+
 
 //Processes the input model instances and produces mesh and instance entries  
 void ProcessAppendList(
@@ -183,6 +184,9 @@ void ProcessAppendList(
 
     CurrentFrameEntries.MeshEntries.reserve(CurrentFrameEntries.MeshEntries.size() + (AppendList.size() * 5));
     CurrentFrameEntries.InstanceEntries.reserve(CurrentFrameEntries.InstanceEntries.size() + AppendList.size());
+
+    std::vector<SCENE::ModelInstance*> SkippedProcesses;
+    SkippedProcesses.reserve(AppendList.size());
     //Process newly inserted meshes.
     for (auto& ModelInstance : AppendList)
     {
@@ -190,6 +194,27 @@ void ProcessAppendList(
         if (ModelInstance->Materials.size() > ModelInstance->Source->Meshes.size())
         {
             throw std::runtime_error("Instance material count exceeds target mesh count!");
+        }
+
+        std::vector<RENDERER::GeometryEntry*> GeometryEntries(ModelInstance->Source->Meshes.size());
+        bool IsUploaded = true;
+        for (uint32_t i = 0; i < ModelInstance->Source->Meshes.size(); i++)
+        {
+            auto& Mesh = ModelInstance->Source->Meshes[i];
+
+            auto& GeometryEntryIterator = CurrentFrameGeometryEntries.find(Mesh.GeometryID);
+            if (GeometryEntryIterator == CurrentFrameGeometryEntries.end())
+            {
+                throw std::runtime_error("Attempt on linking non-existent mesh instance!");
+            }
+
+            IsUploaded = IsUploaded && GeometryEntryIterator->second.Uploaded->State.load();
+            GeometryEntries[i] = &GeometryEntryIterator->second;
+        }
+        if (!IsUploaded)
+        {
+            SkippedProcesses.push_back(ModelInstance);
+            continue;
         }
 
         MaterialUpdateList.push_back(ModelInstance);
@@ -236,7 +261,7 @@ void ProcessAppendList(
                 MeshEntryIterator->second.InstanceLinks.push_back({ ModelInstance->GetHandleID(), RENDERER_CORE::MemoryRegion() });
                 continue;
             }
-            
+
             //Fill data in the new mesh entry
             SCENE::INTERNAL::MeshEntry NewMeshEntry{};
             NewMeshEntry.BoundingBox = GeometryEntryIterator->second.BoundingBox;
@@ -263,6 +288,7 @@ void ProcessAppendList(
         InsertedMeshInstanceCount += ModelInstance->Source->Meshes.size();
         EnabledMeshCount += ModelInstance->Source->Meshes.size();
     }
+    AppendList.swap(SkippedProcesses);
 }
 
 //Allocates or reallocates required scene buffers and writes them in descriptors
@@ -536,12 +562,13 @@ void CreateAppendCopyInfos(
         IndirectDataBlock->Deleter = [LocalVector = std::move(AppendedIndirectCommands)]() {};
 
         ResourceManagerPtr->RequestBufferCopyOperation(
+            false,
             IndirectCommandCopyInfos,
-            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             &IndirectBuffer.Buffer,
             IndirectDataBlock,
             4,
             RENDERER::COPY_OPERATION_FLAG_ATOMIC,
+            RENDERER_CORE::BarrierState(),
             ResourceManagerPtr->MeshManager.GeometryBufferPageCopyTokens.data(),
             ResourceManagerPtr->MeshManager.GeometryBufferPageCopyTokens.size()
         );
@@ -555,12 +582,13 @@ void CreateAppendCopyInfos(
         DrawMetadataBlock->Deleter = [LocalVector = std::move(AppendedDrawMetadatas)]() {};
 
         ResourceManagerPtr->RequestBufferCopyOperation(
+            false,
             DrawMetadataCopyInfos,
-            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             &DrawMetaDataBuffer.Buffer,
             DrawMetadataBlock,
             3,
             RENDERER::COPY_OPERATION_FLAG_ATOMIC,
+            RENDERER_CORE::BarrierState(),
             ResourceManagerPtr->MeshManager.GeometryBufferPageCopyTokens.data(),
             ResourceManagerPtr->MeshManager.GeometryBufferPageCopyTokens.size()
         );
@@ -945,21 +973,14 @@ void SCENE::SceneMeshManager::EraseModels(MeshEraseInfo Info)
     */
 }
 
-void ExtractMaterial(
+bool ExtractMaterial(
    SCENE::INTERNAL::MaterialMetaData &MaterialMetaData,
    std::unordered_map<uint64_t, RENDERER::TextureDataEntry> &TextureDatas,
    SCENE::Material* MaterialPtr,
    uint32_t FrameIndex
 )
 {
-    auto& MaterialData = MaterialMetaData.Material;
-
-    MaterialData.Parameters.Albedo = MaterialPtr->Albedo;
-    MaterialData.Parameters.Metallic = MaterialPtr->Metallic;
-    MaterialData.Parameters.Roughness = MaterialPtr->Roughness;
-
-    MaterialData.SamplingData.TextureSampleSize = MaterialPtr->TextureSampleSize;
-    MaterialData.SamplingData.TextureSamplePosition = MaterialPtr->TextureSamplePosition;
+    SCENE::INTERNAL::MaterialData MaterialData;
     for (uint32_t i = 0; i < static_cast<uint32_t>(SCENE::MATERIAL_TEXTURE_TYPE_META_DATA_SIZE); i++)
     {
         auto TextureIndex = MaterialPtr->GetTexture(static_cast<SCENE::MaterialTextureType>(i));
@@ -971,11 +992,23 @@ void ExtractMaterial(
                 MaterialData.IndexData.TextureIndexes[i] = -1;
                 continue;
             }
+            if (!Iterator->second.Uploaded->State.load()) return false;
+
             auto& TextureDataEntry = Iterator->second;
             MaterialData.IndexData.TextureIndexes[i] = TextureDataEntry.DescriptorSlots[FrameIndex];
         }
         else MaterialData.IndexData.TextureIndexes[i] = -1;
     }
+
+    MaterialData.Parameters.Albedo = MaterialPtr->Albedo;
+    MaterialData.Parameters.Metallic = MaterialPtr->Metallic;
+    MaterialData.Parameters.Roughness = MaterialPtr->Roughness;
+
+    MaterialData.SamplingData.TextureSampleSize = MaterialPtr->TextureSampleSize;
+    MaterialData.SamplingData.TextureSamplePosition = MaterialPtr->TextureSamplePosition;
+
+    std::swap(MaterialMetaData.Material, MaterialData);
+    return true;
 }
 
 //Updating texture index buffer which links materials with the actual texture descriptor slots 
@@ -988,6 +1021,8 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     //this->ResourceManagerPtr->TextureManager.UpdateDescriptors(FrameIndex);
     auto& CurrentFrameEntries = Entries[FrameIndex];
     if (SceneMaterialUpdateList.empty()) return;
+
+    std::vector<SCENE::ModelInstance*> SkippedSceneMaterials;
 
     auto& CurrentFrameGeometryEntries = this->ResourceManagerPtr->MeshManager.GeometryEntries[FrameIndex];
 
@@ -1002,6 +1037,8 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     //Material meta data caches to avoid fetching the datas from the unordered map again.
     std::vector<SCENE::INTERNAL::MaterialMetaData*> InstanceMaterialMetaDataCaches;
     InstanceMaterialMetaDataCaches.reserve(SceneMaterialUpdateList.size() * 10);
+
+    std::vector<SCENE::INTERNAL::MaterialMetaData*> TempInstanceCache;
     //Handle material update lists and extract materials
     RENDERER_CORE::BufferCopyInfo CopyInfo{};
     for (auto& ModelInstancePtr : SceneMaterialUpdateList)
@@ -1009,22 +1046,40 @@ void SCENE::SceneMeshManager::UpdateMaterials(
         //Fetch the instance entries belonging to this instance ID
         auto InstanceEntryIterator = CurrentFrameEntries.InstanceEntries.find(ModelInstancePtr->GetHandleID());
         if (!InstanceEntryIterator) continue;
+        bool Uploaded = true;
 
         for (size_t i = 0; i < ModelInstancePtr->Materials.size(); i++)
         {
             auto& InstanceMaterial = ModelInstancePtr->Materials[i];
             auto& MaterialMetaData = InstanceEntryIterator->second.Materials[ModelInstancePtr->Source->Meshes[i].GeometryID];
             //Extract the material data
-            ExtractMaterial(
+            Uploaded = Uploaded && ExtractMaterial(
                 MaterialMetaData,
                 this->ResourceManagerPtr->TextureManager.TextureDatas,
                 &InstanceMaterial,
                 FrameIndex
             );
+            if (!Uploaded)
+            {
+                break;
+            }
 
             //Push back the material cache
             //Since all of the traversed containers are vectors, caches will be in the pushed order. 
-            InstanceMaterialMetaDataCaches.push_back(&MaterialMetaData);
+            TempInstanceCache.push_back(&MaterialMetaData);
+        }
+
+        if (!Uploaded)
+        {
+            SkippedSceneMaterials.push_back(ModelInstancePtr);
+        }
+        else
+        {
+            InstanceMaterialMetaDataCaches.insert(
+                InstanceMaterialMetaDataCaches.end(),
+                TempInstanceCache.begin(),
+                TempInstanceCache.end()
+            );
         }
     }
     
@@ -1080,25 +1135,15 @@ void SCENE::SceneMeshManager::UpdateMaterials(
     else
     {
         //Copy only the related ones.
-       // CopyOperations[TEXTUREINDEX_COPY]->CopyRegions.reserve(SceneMaterialUpdateList.size() * 10);
-        size_t MaterialCacheIterator = 0;
-        for (auto& ModelInstancePtr : SceneMaterialUpdateList)
+        for (auto* MaterialCache : InstanceMaterialMetaDataCaches)
         {
-            for (size_t y = 0; y < ModelInstancePtr->Materials.size(); y++)
-            {
-                //Fetch the cached data
-                auto& MaterialCache = InstanceMaterialMetaDataCaches[MaterialCacheIterator];
+            VkBufferCopy CopyRegion{};
+            CopyRegion.dstOffset = MaterialCache->TextureIndexMemoryRegion.Offset;
+            CopyRegion.size = SizeOfMaterialData;
+            CopyRegion.srcOffset = AppendedMaterialDatas.size() * SizeOfMaterialData;
 
-                VkBufferCopy CopyRegion{};
-                CopyRegion.dstOffset = MaterialCache->TextureIndexMemoryRegion.Offset;
-                CopyRegion.size = SizeOfMaterialData;
-                CopyRegion.srcOffset = AppendedMaterialDatas.size() * SizeOfMaterialData;
-              
-                AppendedMaterialDataCopyRegions.push_back(std::move(CopyRegion));
-                AppendedMaterialDatas.push_back(MaterialCache->Material);
-
-                MaterialCacheIterator++;
-            }
+            AppendedMaterialDataCopyRegions.push_back(std::move(CopyRegion));
+            AppendedMaterialDatas.push_back(MaterialCache->Material);
         }
     }
 
@@ -1110,8 +1155,8 @@ void SCENE::SceneMeshManager::UpdateMaterials(
         MaterialDataBlock->Deleter = [LocalVector = std::move(AppendedMaterialDatas)]() {};
 
         ResourceManagerPtr->RequestBufferCopyOperation(
+            false,
             AppendedMaterialDataCopyRegions,
-            RENDERER_CORE::QUEUE_TYPE_GRAPHICS,
             &CurrentTextureIndexBuffer.Buffer,
             MaterialDataBlock,
             2,
@@ -1119,6 +1164,7 @@ void SCENE::SceneMeshManager::UpdateMaterials(
         );
     }
 
+    SceneMaterialUpdateList.swap(SkippedSceneMaterials);
     //Clean slate.
     TexturesIndexBufferReallocated = false;
 }

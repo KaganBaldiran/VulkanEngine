@@ -283,7 +283,8 @@ void RENDERER::Renderer::RenderFrame()
 
     for (auto& ResourceManagerPtr : UniqueResourceManagers)
     {
-        ResourceManagerPtr->QueueCopyOperations(MainCommandBuffer, CurrentFrame, FrameGraph);
+        ResourceManagerPtr->HandleAsyncCopyOperations();
+        ResourceManagerPtr->QueueTransientCopyOperations(MainCommandBuffer, CurrentFrame, FrameGraph);
     }
    
     bool EnableCulling = true;
